@@ -1,0 +1,53 @@
+# ==========================================
+# IDENTITY: The Forge / Infrastructure
+# FILEPATH: infrastructure/docker-compose.yml
+# COMPONENT: VM Operations (Root)
+# ROLE: The God-level process manager. Keeps Postgres, Redis, and FastAPI breathing 24/7.
+# VIBE: If this goes down, Orbit goes to sleep, and your MT5 account is on its own. 💀
+# ==========================================
+
+version: '3.8'
+
+services:
+  # The Brain (FastAPI)
+  orbit-core:
+    build: 
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: orbit-fastapi
+    restart: always # Never stop the grind
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://orbit_user:super_secret_password@db:5432/orbit_db
+      - REDIS_URL=redis://cache:6379/0
+    depends_on:
+      - db
+      - cache
+    volumes:
+      - ../backend:/app # Hot reloading so we can code on the fly
+
+  # The Memory (Postgres)
+  db:
+    image: postgres:15-alpine
+    container_name: orbit-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: orbit_user
+      POSTGRES_PASSWORD: super_secret_password
+      POSTGRES_DB: orbit_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - orbit_pgdata:/var/lib/postgresql/data
+
+  # The Reflexes (Redis for caching vibe checks and quick tasks)
+  cache:
+    image: redis:7-alpine
+    container_name: orbit-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  orbit_pgdata: # Persistent memory, no amnesia here

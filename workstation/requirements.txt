@@ -1,0 +1,19 @@
+#==========================================
+#IDENTITY: The Ubuntu Drip / Workstation Requirements
+#FILEPATH: workstation/requirements.txt
+#COMPONENT: Laptop Frontend
+#ROLE: The packages needed to make your laptop look like a hacker terminal.
+#VIBE: Dark mode CustomTkinter. Because we don't do basic UIs. 💻🦇
+#==========================================
+
+#The UI Framework (Makes Tkinter not look like Windows 95)
+
+customtkinter==5.2.1
+
+#Real-time WebSocket connection to the VM
+
+websockets==12.0
+
+#Async logic so the UI doesn't freeze while waiting for data
+
+asyncio==3.4.3
