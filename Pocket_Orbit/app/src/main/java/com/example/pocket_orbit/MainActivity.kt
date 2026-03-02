@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // 10.0.2.2 is the magic IP for Android Emulator to hit localhost
-        blastClient = BlastClient("ws://10.0.2.2:8000/ws/blast")
+        blastClient = BlastClient("ws://102.215.33.12:8000/ws/blast")
         blastClient.connect()
 
         setContent {

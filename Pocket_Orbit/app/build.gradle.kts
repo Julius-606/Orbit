@@ -1,15 +1,16 @@
 // ==========================================
 // IDENTITY: The Funding Account / App Gradle
-// FILEPATH: app/build.gradle.kts
-// VIBE: Swapped KSP for KAPT because Android Studio was acting like an opp. 🛑
+// FILEPATH: Pocket_Orbit/app/build.gradle.kts
+// SYSTEM VERSION: Android v3.0.2
+// VIBE: Kotlin 2.0 handles Compose natively now. Deleted the obsolete block. Funded Retrofit. 💰
 // ==========================================
 
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("kotlin-kapt") // The fix! KAPT works out of the box without root config drama.
+    id("kotlin-kapt")
+    id("org.jetbrains.kotlin.plugin.compose") 
 }
-
 
 android {
     namespace = "com.example.pocket_orbit"
@@ -44,13 +45,11 @@ android {
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
-    }
 }
 
 dependencies {
     val room_version = "2.6.1"
+    val retrofit_version = "2.9.0"
 
     // Android Core & Compose
     implementation("androidx.core:core-ktx:1.12.0")
@@ -65,8 +64,12 @@ dependencies {
     // The Memory Card (Room DB)
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
-    kapt("androidx.room:room-compiler:$room_version") // Replaced ksp with kapt
+    kapt("androidx.room:room-compiler:$room_version")
 
     // The Antenna (OkHttp for WebSockets)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // The Courier (Retrofit & GSON for API calls)
+    implementation("com.squareup.retrofit2:retrofit:$retrofit_version")
+    implementation("com.squareup.retrofit2:converter-gson:$retrofit_version")
 }

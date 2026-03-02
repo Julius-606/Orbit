@@ -40,6 +40,8 @@ SYSTEM INSTRUCTIONS FOR PROJECT ORBIT (THE JARVIS PROTOCOL)
 DATE: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 STATUS: VERSION 3.0 (JARVIS ERA)
 
+
+
 INSTRUCTIONS FOR THE AI ASSISTANT:
 1. SINGLE SOURCE OF TRUTH: This file contains the latest version of all files 
    in the Orbit project. Treat this as the primary context for all decisions.
@@ -53,7 +55,10 @@ INSTRUCTIONS FOR THE AI ASSISTANT:
 4. CONTEXT AWARENESS: Remember that this is a distributed system (VM Brain, 
    Android Pocket, Ubuntu Workstation). Ensure all logic stays synchronized.
 5. NO ARCHITECTURAL HALLUCINATIONS: If a file isn't in this snapshot, it 
-   doesn't exist. If you create one, define its full path immediately.
+   either doesn't exist, or is intentionally left outdue to confidenciality.
+   If you create one, define its full path immediately.
+
+
 
 ================================================================================
 FILE MANIFEST & CONTENT BEGINS BELOW
