@@ -17,3 +17,4 @@ websockets==12.0
 #Async logic so the UI doesn't freeze while waiting for data
 
 asyncio==3.4.3
+psutil

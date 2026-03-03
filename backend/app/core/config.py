@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     VERSION: str = "3.0"
     
     # DB Settings
+
     DATABASE_URL: str = "postgresql+asyncpg://orbit_user:super_secret_password@localhost:5432/orbit_db"
     REDIS_URL: str = "redis://localhost:6379/0"
     

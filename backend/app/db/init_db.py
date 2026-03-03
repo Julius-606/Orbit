@@ -9,6 +9,7 @@
 import asyncio
 from db.session import async_session, engine
 from models.study import Base, StudyTask
+from models.study import Base, StudyTask, BrainRotLevel
 import logging
 
 logger = logging.getLogger("Orbit-Genesis")
@@ -24,15 +25,18 @@ async def init_models():
 async def seed_data():
     """Drops some default tasks into the syllabus vault."""
     async with async_session() as db:
-        task1 = StudyTask(title="Master the Cardiac Cycle", subject="Cardiology", brain_rot_level="cooked")
-        task2 = StudyTask(title="Review Prop Firm Drawdown Rules", subject="Forex", brain_rot_level="chill")
+        task1 = StudyTask(title="Master the Cardiac Cycle", subject="Cardiology", brain_rot_level=BrainRotLevel.COOKED)
+        task2 = StudyTask(title="Review Prop Firm Drawdown Rules", subject="Forex", brain_rot_level=BrainRotLevel.CHILL)
         
         db.add(task1)
         db.add(task2)
         await db.commit()
         logger.info("Genesis data injected. Orbit is alive.")
 
+async def main():
+    await init_models()
+    await seed_data()
+
 if __name__ == "__main__":
     logger.info("Initiating Project Orbit Genesis Protocol...")
-    asyncio.run(init_models())
-    asyncio.run(seed_data())
+    asyncio.run(main())

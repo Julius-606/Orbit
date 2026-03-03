@@ -1,0 +1,3447 @@
+================================================================================
+SYSTEM INSTRUCTIONS FOR PROJECT ORBIT (THE JARVIS PROTOCOL)
+================================================================================
+DATE: 2026-03-03 12:51:59
+STATUS: VERSION 3.1 (STABILITY UPGRADE)
+
+INSTRUCTIONS FOR THE AI ASSISTANT:
+1. SINGLE SOURCE OF TRUTH: This snapshot is the Holy Grail. Use it for all context.
+2. EDIT PROTOCOL: 
+   - State the target file path clearly.
+   - Increment VERSION (Major.Minor.Patch) in the IDENTITY header.
+   - For files > 700 lines, use the "DIFF" approach (10 lines context).
+3. DELIMITER AWARENESS: Files are wrapped in unique delimiters:
+   >>>--- START_FILE_BLOCK: [path] and  <<<--- END_FILE_BLOCK: [path].
+   Use these to anchor your parsing and avoid "fumbling" lines.
+4. VIBE CHECK: Maintain all comments, imports, and docstrings. No "creative deletion."
+5. PROJECT STRUCTURE: Refer to the FILE MANIFEST below for the full architecture.
+
+================================================================================
+FILE MANIFEST (TABLE OF CONTENTS)
+================================================================================
+- backend/alembic.ini [v1.0.0]
+- backend/requirements.txt [v1.0.0]
+- backend/Dockerfile [v1.0.0]
+- backend/alembic/env.py [v1.0.0]
+- backend/alembic/versions/0252b66d5ffd_initial_orbit_schema.py [v1.0.0]
+- backend/app/main.py [v1.0.0]
+- backend/app/db/init_db.py [v1.0.0]
+- backend/app/db/redis_cache.py [v1.0.0]
+- backend/app/db/session.py [v1.0.0]
+- backend/app/api/deps.py [v1.0.0]
+- backend/app/api/v1/med_scholar.py [v1.0.0]
+- backend/app/api/v1/api.py [v1.0.0]
+- backend/app/api/v1/auth.py [v1.0.0]
+- backend/app/api/v1/forex.py [v1.0.0]
+- backend/app/api/v1/tasks.py [v1.0.0]
+- backend/app/core/config.py [v1.0.0]
+- backend/app/core/security.py [v1.0.0]
+- backend/app/core/notifications.py [v1.0.0]
+- backend/app/services/governor.py [v1.0.0]
+- backend/app/services/mt5_bridge.py [v1.0.0]
+- backend/app/services/telegram_mod.py [v1.0.0]
+- backend/app/services/med_scan.py [v1.0.0]
+- backend/app/services/blast.py [v1.0.0]
+- backend/app/services/psych_check.py [v1.0.0]
+- backend/app/services/llm.py [v1.0.0]
+- backend/app/services/cate.py [v1.0.0]
+- backend/app/worker/heartbeat.py [v1.0.0]
+- backend/app/models/study.py [v1.0.0]
+- Pocket_Orbit/build.gradle.kts [v1.0.0]
+- Pocket_Orbit/settings.gradle.kts [v1.0.0]
+- Pocket_Orbit/app/build.gradle.kts [v1.0.0]
+- Pocket_Orbit/app/src/main/AndroidManifest.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/values/strings.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/values/colors.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/values/themes.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/drawable/ic_launcher_foreground.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/drawable/ic_launcher_background.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/xml/backup_rules.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/xml/data_extraction_rules.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Color.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Type.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/DataConverter.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Daos.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Entities.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt [v1.0.0]
+- Pocket_Orbit/app/src/test/java/com/example/pocket_orbit/ExampleUnitTest.kt [v1.0.0]
+- Pocket_Orbit/app/src/androidTest/java/com/example/pocket_orbit/ExampleInstrumentedTest.kt [v1.0.0]
+- workstation/requirements.txt [v1.0.0]
+- workstation/main.py [v3.1.0]
+- workstation/src/ui/panels/med_scholar.py [v1.0.0]
+- workstation/src/ui/panels/forex_guardian.py [v1.0.1]
+- workstation/src/hooks/mt5_bridge.py [v1.0.0]
+- workstation/src/hooks/vscode_sync.py [v1.0.0]
+- infrastructure/docker-compose.yml [v1.0.0]
+- infrastructure/nginx/nginx.conf [v1.0.0]
+- initiate_orbit.py [v1.0.0]
+- mobile/app/src/main/java/com/orbit/data/local/AppDatabase.kt [v1.0.0]
+- mobile/app/src/main/java/com/orbit/data/remote/OrbitApiService.kt [v1.0.0]
+- mobile/app/src/main/java/com/orbit/data/repository/TaskRepository.kt [v1.0.0]
+
+================================================================================
+FULL PROJECT CONTENT BEGINS BELOW
+================================================================================
+
+>>>--- START_FILE_BLOCK: backend/alembic.ini
+################################################################################
+FILE: backend/alembic.ini
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Database Time Machine / Alembic Config
+# FILEPATH: backend/alembic.ini
+# COMPONENT: DB Migrations
+# ROLE: Tells Alembic where your Postgres database lives so it can upgrade/downgrade tables.
+# VIBE: Ctrl+Z for your database schemas. Absolute lifesaver. ⏪
+# ==========================================
+
+[alembic]
+# Path to migration scripts
+script_location = alembic
+prepend_sys_path = .
+version_path_separator = os 
+
+# We will override this in env.py with our actual settings, 
+# but Alembic complains if it's completely empty here.
+sqlalchemy.url = postgresql+asyncpg://orbit_user:super_secret_password@localhost/orbit_db
+
+[post_write_hooks]
+
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARN
+handlers = console
+qualname =
+
+[logger_sqlalchemy]
+level = WARN
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+datefmt = %H:%M:%S
+
+ <<<--- END_FILE_BLOCK: backend/alembic.ini
+
+>>>--- START_FILE_BLOCK: backend/requirements.txt
+################################################################################
+FILE: backend/requirements.txt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+#==========================================
+#IDENTITY: The Arsenal / Dependencies Matrix
+#FILEPATH: backend/requirements.txt
+#COMPONENT: Backend Environment
+#ROLE: All the sauce needed to make Python go brrrr.
+#VIBE: Installing these is like funding your broker account. Necessary for the W.
+#==========================================
+
+#Core Framework - Fast and Furious
+
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+#Database & ORM - The Vault
+
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+alembic==1.12.1
+
+#Real-time Comms - The Blast Protocol
+
+websockets==12.0
+
+#Security & Data Validation
+
+pydantic==2.5.2
+pydantic-settings==2.1.0
+python-jose[cryptography]==3.3.0 # For that AES-256 vibe
+passlib[bcrypt]==1.7.4
+
+#The Agents & AI
+
+google-generativeai==0.3.1 # Gemini 2.5 Flash for Orbit-Speak
+
+#Forex Guardian 📈
+
+#MetaTrader5==5.0.45
+pandas==2.1.3
+
+#Redis & Celery for Background Sync
+
+redis==5.0.1
+
+
+ <<<--- END_FILE_BLOCK: backend/requirements.txt
+
+>>>--- START_FILE_BLOCK: backend/Dockerfile
+################################################################################
+FILE: backend/Dockerfile
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Spaceship / VM Container
+# FILEPATH: backend/Dockerfile
+# COMPONENT: Infrastructure
+# ROLE: Packages the whole Python backend into an unkillable container.
+# VIBE: If this builds successfully on the first try, you should buy a lottery ticket. 🎟️
+# ==========================================
+
+# Using a slim version so it doesn't eat all your RAM
+FROM python:3.11-slim
+
+# Set environment variables so Python doesn't buffer text and crash quietly
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Create the working directory
+WORKDIR /app
+
+# Install system dependencies (needed for compiling some Python packages)
+RUN apt-get update \
+    && apt-get install -y gcc libpq-dev \
+    && apt-get clean
+
+# Copy the dependency matrix and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the actual brain into the container
+COPY ./app /app
+
+# Expose the FastAPI port
+EXPOSE 8000
+
+# Start the engine! Uvicorn handles the FastAPI requests
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+ <<<--- END_FILE_BLOCK: backend/Dockerfile
+
+>>>--- START_FILE_BLOCK: backend/alembic/env.py
+################################################################################
+FILE: backend/alembic/env.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Time Machine Engine / Alembic Env
+# FILEPATH: backend/alembic/env.py
+# COMPONENT: DB Migrations
+# ROLE: Looks at your Python models and your actual Postgres DB and figures out what changed.
+# VIBE: The ultimate "Ctrl+Z" for when you accidentally drop a production database table. ⏪💀
+# ==========================================
+
+import asyncio
+from logging.config import fileConfig
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
+from alembic import context
+
+# Import your settings and your Base models so Alembic can read them
+from app.core.config import settings
+from app.models.study import Base
+
+config = context.config
+
+# Overwrite the empty URL in alembic.ini with the real one from our .env vault
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = Base.metadata
+
+def do_run_migrations(connection: Connection) -> None:
+    context.configure(connection=connection, target_metadata=target_metadata)
+    with context.begin_transaction():
+        context.run_migrations()
+
+async def run_async_migrations() -> None:
+    """In this house, we run async migrations so we don't block the event loop."""
+    connectable = async_engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+
+    await connectable.dispose()
+
+def run_migrations_online() -> None:
+    asyncio.run(run_async_migrations())
+
+run_migrations_online()
+
+ <<<--- END_FILE_BLOCK: backend/alembic/env.py
+
+>>>--- START_FILE_BLOCK: backend/alembic/versions/0252b66d5ffd_initial_orbit_schema.py
+################################################################################
+FILE: backend/alembic/versions/0252b66d5ffd_initial_orbit_schema.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+"""initial_orbit_schema
+
+Revision ID: 0252b66d5ffd
+Revises: 
+Create Date: 2026-03-03 10:52:07.272398
+
+"""
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision = '0252b66d5ffd'
+down_revision = None
+branch_labels = None
+depends_on = None
+
+def upgrade():
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.create_table('study_tasks',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(), nullable=False),
+    sa.Column('subject', sa.String(), nullable=False),
+    sa.Column('due_date', sa.DateTime(), nullable=True),
+    sa.Column('completed', sa.Boolean(), nullable=True),
+    sa.Column('brain_rot_level', sa.Enum('CHILL', 'MID', 'COOKED', name='brainrotlevel'), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_study_tasks_id'), 'study_tasks', ['id'], unique=False)
+    op.create_index(op.f('ix_study_tasks_subject'), 'study_tasks', ['subject'], unique=False)
+    op.create_index(op.f('ix_study_tasks_title'), 'study_tasks', ['title'], unique=False)
+    # ### end Alembic commands ###
+
+def downgrade():
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index(op.f('ix_study_tasks_title'), table_name='study_tasks')
+    op.drop_index(op.f('ix_study_tasks_subject'), table_name='study_tasks')
+    op.drop_index(op.f('ix_study_tasks_id'), table_name='study_tasks')
+    op.drop_table('study_tasks')
+    # ### end Alembic commands ###
+
+
+ <<<--- END_FILE_BLOCK: backend/alembic/versions/0252b66d5ffd_initial_orbit_schema.py
+
+>>>--- START_FILE_BLOCK: backend/app/main.py
+################################################################################
+FILE: backend/app/main.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Brain / Central Hub
+# FILEPATH: backend/app/main.py
+# COMPONENT: Backend Entry Point
+# ROLE: The main server file. Routes traffic, handles the "Blast" WebSocket protocol.
+# VIBE: The Grand Central Station of your Life-OS. Everything passes through here.
+# ==========================================
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from core.config import settings
+import logging
+
+# Set up logging so we know when the app is acting mid
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("Orbit-Core")
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    description="The centralized brain for the Life-OS."
+)
+
+# CORS - Let the Android app and Laptop interface talk to us
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # In prod, restrict this to your actual IPs!
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# The Blast Protocol (Connection Manager)
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        logger.info("New satellite device connected to Orbit. 🪐")
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+        logger.info("Satellite device disconnected.")
+
+    async def broadcast(self, message: dict):
+        # Sends message to Ubuntu Workstation AND Android Pocket
+        for connection in self.active_connections:
+            await connection.send_json(message)
+
+manager = ConnectionManager()
+
+@app.get("/")
+async def root():
+    return {"status": "Orbit-Core is online. Ready to grind.", "version": settings.VERSION}
+
+@app.websocket("/ws/blast")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    The main artery for Dual-Device Sync.
+    If a trade hits SL, this route blasts it to your phone and laptop instantly.
+    """
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Echo back for now, but eventually this triggers CATE logic
+            await manager.broadcast({"event": "SYNC_PING", "data": data})
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+
+ <<<--- END_FILE_BLOCK: backend/app/main.py
+
+>>>--- START_FILE_BLOCK: backend/app/db/init_db.py
+################################################################################
+FILE: backend/app/db/init_db.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Big Bang / DB Seed Script
+# FILEPATH: backend/app/db/init_db.py
+# COMPONENT: Database Initialization
+# ROLE: Fills your fresh database with some starting data so it isn't completely empty.
+# VIBE: Creating the universe in 7 days, but we're doing it in 0.5 seconds. 🌌
+# ==========================================
+
+import asyncio
+from db.session import async_session, engine
+from models.study import Base, StudyTask
+from models.study import Base, StudyTask, BrainRotLevel
+import logging
+
+logger = logging.getLogger("Orbit-Genesis")
+
+async def init_models():
+    """
+    Creates the tables if Alembic hasn't done it yet.
+    """
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables forged successfully. 🔨")
+
+async def seed_data():
+    """Drops some default tasks into the syllabus vault."""
+    async with async_session() as db:
+        task1 = StudyTask(title="Master the Cardiac Cycle", subject="Cardiology", brain_rot_level=BrainRotLevel.COOKED)
+        task2 = StudyTask(title="Review Prop Firm Drawdown Rules", subject="Forex", brain_rot_level=BrainRotLevel.CHILL)
+        
+        db.add(task1)
+        db.add(task2)
+        await db.commit()
+        logger.info("Genesis data injected. Orbit is alive.")
+
+async def main():
+    await init_models()
+    await seed_data()
+
+if __name__ == "__main__":
+    logger.info("Initiating Project Orbit Genesis Protocol...")
+    asyncio.run(main())
+
+ <<<--- END_FILE_BLOCK: backend/app/db/init_db.py
+
+>>>--- START_FILE_BLOCK: backend/app/db/redis_cache.py
+################################################################################
+FILE: backend/app/db/redis_cache.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+
+
+ <<<--- END_FILE_BLOCK: backend/app/db/redis_cache.py
+
+>>>--- START_FILE_BLOCK: backend/app/db/session.py
+################################################################################
+FILE: backend/app/db/session.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Memory Card / DB Session
+# FILEPATH: backend/app/db/session.py
+# COMPONENT: Database Connection
+# ROLE: Hooks up FastAPI to Postgres.
+# VIBE: Holding onto data tighter than you hold onto a losing trade hoping it reverses. 😭
+# ==========================================
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from core.config import settings
+import logging
+
+logger = logging.getLogger("Orbit-DB")
+
+# Create the Async Engine - We don't block the event loop here.
+# Fast execution, just like a 1-minute scalp.
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=False, # Set to True if you want to see raw SQL and get a headache
+    future=True
+)
+
+# The Session Factory
+async_session = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
+
+async def get_db():
+    """
+    Dependency to inject the DB session into our routes.
+    Yields a session and safely closes it when the request is done.
+    No connection leaks on my watch! 🛑
+    """
+    async with async_session() as session:
+        try:
+            yield session
+        except Exception as e:
+            logger.error(f"Database just hit a stop loss: {e}")
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+ <<<--- END_FILE_BLOCK: backend/app/db/session.py
+
+>>>--- START_FILE_BLOCK: backend/app/api/deps.py
+################################################################################
+FILE: backend/app/api/deps.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The API Bouncer / Dependencies
+# FILEPATH: backend/app/api/deps.py
+# COMPONENT: Security
+# ROLE: Checks the VIP list before letting a device talk to the API.
+# VIBE: "Let me see some ID before I let you touch the Forex Guardian." 🛑🛂
+# ==========================================
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from core.config import settings
+import logging
+
+logger = logging.getLogger("API-Bouncer")
+
+# We use a simple token check for now. Your laptop and phone will send this token.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+async def verify_device_access(token: str = Depends(oauth2_scheme)):
+    """
+    If someone finds your server IP, this stops them from randomly adding
+    fake tasks or closing your MT5 trades.
+    """
+    # In a real setup, you'd decode a JWT here. For now, we check against a static secret.
+    if token != settings.SECRET_KEY:
+        logger.warning("Intruder alert! Someone tried to breach Orbit with a fake token.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Opps detected. Access denied.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return True
+
+
+ <<<--- END_FILE_BLOCK: backend/app/api/deps.py
+
+>>>--- START_FILE_BLOCK: backend/app/api/v1/med_scholar.py
+################################################################################
+FILE: backend/app/api/v1/med_scholar.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Dean / Med-Scholar API
+# FILEPATH: backend/app/api/v1/med_scholar.py
+# COMPONENT: Backend API Routes
+# ROLE: CRUD operations for study tasks. Orbit-Speak hits this.
+# VIBE: "Bro, did you even study for the OSCE?" - Orbit, probably.
+# ==========================================
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from db.session import get_db
+from models.study import StudyTask
+from pydantic import BaseModel
+from typing import List
+
+router = APIRouter()
+
+# Pydantic schema for input validation
+class TaskCreate(BaseModel):
+    title: str
+    subject: str
+    brain_rot_level: str = "mid"
+
+@router.post("/tasks/", response_model=dict)
+async def create_study_task(task: TaskCreate, db: AsyncSession = Depends(get_db)):
+    """
+    Drop a new task into the syllabus vault.
+    """
+    new_task = StudyTask(
+        title=task.title,
+        subject=task.subject,
+        brain_rot_level=task.brain_rot_level
+    )
+    db.add(new_task)
+    await db.commit()
+    await db.refresh(new_task)
+    return {"status": "W", "message": "Task added. Time to lock in.", "task_id": new_task.id}
+
+@router.get("/tasks/pending", response_model=List[dict])
+async def get_pending_tasks(db: AsyncSession = Depends(get_db)):
+    """
+    Shows you exactly how behind you are in Med School.
+    """
+    result = await db.execute(select(StudyTask).where(StudyTask.completed == False))
+    tasks = result.scalars().all()
+    
+    if not tasks:
+        return [{"message": "Zero pending tasks. You're either a genius or you forgot to write them down."}]
+        
+    return [{"id": t.id, "title": t.title, "subject": t.subject} for t in tasks]
+
+ <<<--- END_FILE_BLOCK: backend/app/api/v1/med_scholar.py
+
+>>>--- START_FILE_BLOCK: backend/app/api/v1/api.py
+################################################################################
+FILE: backend/app/api/v1/api.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Switchboard / Main API Router
+# FILEPATH: backend/app/api/v1/api.py
+# COMPONENT: Backend Routing
+# ROLE: Glues all your mini-APIs (Forex, Med, Tasks) into one massive brain.
+# VIBE: The air traffic controller making sure your trades and study habits don't crash into each other. ✈️💥
+# ==========================================
+
+from fastapi import APIRouter
+from api.v1 import forex, med_scholar, tasks
+
+api_router = APIRouter()
+
+# Mount the Forex Guardian
+api_router.include_router(forex.router, prefix="/forex", tags=["Risk Management"])
+
+# Mount the Med-Scholar (Dean)
+api_router.include_router(med_scholar.router, prefix="/study", tags=["Syllabus Vault"])
+
+# Mount the Life Tasks
+api_router.include_router(tasks.router, prefix="/tasks", tags=["Life Admin"])
+
+# Now you just hit /api/v1/forex/alert or /api/v1/study/tasks 
+# Clean, modular, and W architecture.
+
+ <<<--- END_FILE_BLOCK: backend/app/api/v1/api.py
+
+>>>--- START_FILE_BLOCK: backend/app/api/v1/auth.py
+################################################################################
+FILE: backend/app/api/v1/auth.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Ticket Booth / Auth API
+# FILEPATH: backend/app/api/v1/auth.py
+# COMPONENT: Backend API Routes
+# ROLE: Hands out the access tokens so your devices can talk to the VM.
+# VIBE: "Here's your VIP wristband, don't lose it." 🎫
+# ==========================================
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from core.config import settings
+
+router = APIRouter()
+
+@router.post("/token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Your laptop/phone sends a username and password here. 
+    If it matches the Vault, we give them a token.
+    """
+    # Hardcoded for now. We are the only user of Orbit!
+    if form_data.username != "orbit_admin" or form_data.password != "admin_password":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password. Are you an opp?",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Return the secret key as the token (in V4 we will use real JWTs)
+    return {"access_token": settings.SECRET_KEY, "token_type": "bearer"}
+
+ <<<--- END_FILE_BLOCK: backend/app/api/v1/auth.py
+
+>>>--- START_FILE_BLOCK: backend/app/api/v1/forex.py
+################################################################################
+FILE: backend/app/api/v1/forex.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Risk Manager / Forex Guardian
+# FILEPATH: backend/app/api/v1/forex.py
+# COMPONENT: Backend API Routes
+# ROLE: Bridges MT5 to Orbit. Watches for SL/TP, checks leverage.
+# VIBE: The friend who takes your phone away when you try to revenge trade. 📉✋
+# ==========================================
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+import logging
+
+router = APIRouter()
+logger = logging.getLogger("Forex-Guardian")
+
+# Schema for incoming MT5 alerts
+class TradeAlert(BaseModel):
+    pair: str
+    action: str # e.g., "TP_HIT", "SL_HIT", "OVER_LEVERAGED"
+    pnl: float
+    message: str
+
+@router.post("/alert")
+async def trigger_trade_alert(alert: TradeAlert):
+    """
+    Endpoint hit by the local MT5 bridge when something spicy happens in the market.
+    """
+    logger.info(f"Forex Alert: {alert.pair} - {alert.action}. PNL: {alert.pnl}")
+    
+    # Priority scaling based on what happened
+    priority = "HIGH" if alert.action in ["SL_HIT", "OVER_LEVERAGED"] else "NORMAL"
+    
+    # TODO: Inject the WebSockets manager here to blast the notification
+    # to the Android app and Laptop UI simultaneously.
+    
+    # Guardian Psych-Check Logic Placeholder
+    if alert.action == "OVER_LEVERAGED":
+        warning_msg = f"Yo, we're over-leveraged on {alert.pair}. Orbit is advising you to close a position. Don't be a hero!"
+        # This message gets sent to the TTS engine on the phone/laptop
+        return {"status": "Alert Broadcasted", "tts_payload": warning_msg, "priority": priority}
+        
+    return {"status": "Alert Processed", "data": alert}
+
+@router.get("/risk-audit")
+async def run_risk_audit():
+    """
+    Checks total exposure. Keeps you from revenge trading when Anatomy gets too stressful.
+    """
+    # Placeholder for MT5 Python API logic
+    exposure_safe = True 
+    
+    if not exposure_safe:
+        raise HTTPException(status_code=400, detail="Risk limit exceeded. Step away from the charts.")
+        
+    return {"status": "Risk levels acceptable. Let him cook."}
+
+ <<<--- END_FILE_BLOCK: backend/app/api/v1/forex.py
+
+>>>--- START_FILE_BLOCK: backend/app/api/v1/tasks.py
+################################################################################
+FILE: backend/app/api/v1/tasks.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The To-Do List / Life Tasks API
+# FILEPATH: backend/app/api/v1/tasks.py
+# COMPONENT: Backend API Routes
+# ROLE: Manages general tasks (SHOFCO, coding, buying groceries).
+# VIBE: Because you can't pay for prop firm challenges if you forget to do your real-life work. 📝
+# ==========================================
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import List
+from services.governor import governor
+
+router = APIRouter()
+
+# Schema (Fake DB for now, we'll hook it to Postgres later)
+class LifeTask(BaseModel):
+    id: int
+    title: str
+    category: str # e.g., "SHOFCO", "CODING", "LIFE"
+    is_urgent: bool = False
+
+# Temporary memory bank
+db_mock = []
+
+@router.post("/add")
+async def add_task(task: LifeTask):
+    db_mock.append(task)
+    return {"status": "W", "message": f"Task '{task.title}' secured in the vault."}
+
+@router.get("/current-vibe")
+async def what_should_i_do():
+    """
+    Hits the Life-Governor to tell you what you should actually be doing right now.
+    """
+    advice = governor.get_current_recommendation()
+    return {"governor_says": advice}
+
+@router.get("/all", response_model=List[LifeTask])
+async def get_all_tasks():
+    if not db_mock:
+        return []
+    return db_mock
+
+ <<<--- END_FILE_BLOCK: backend/app/api/v1/tasks.py
+
+>>>--- START_FILE_BLOCK: backend/app/core/config.py
+################################################################################
+FILE: backend/app/core/config.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Vault / System Configuration
+# FILEPATH: backend/app/core/config.py
+# COMPONENT: Backend Core
+# ROLE: Holds all the keys to the kingdom. 
+# VIBE: Keep this out of version control, or someone in Russia is trading your account. 💀
+# ==========================================
+
+from pydantic_settings import BaseSettings
+from typing import Optional
+
+class Settings(BaseSettings):
+    PROJECT_NAME: str = "Project Orbit: Jarvis Protocol"
+    VERSION: str = "3.0"
+    
+    # DB Settings
+
+    DATABASE_URL: str = "postgresql+asyncpg://orbit_user:super_secret_password@localhost:5432/orbit_db"
+    REDIS_URL: str = "redis://localhost:6379/0"
+    
+    # Security
+    SECRET_KEY: str = "generate_a_massive_random_string_here_for_aes256"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 1 week offline cache max
+    
+    # Agent APIs
+    GEMINI_API_KEY: Optional[str] = None
+    
+    # Forex Guardian (MT5)
+    MT5_LOGIN: Optional[int] = None
+    MT5_PASSWORD: Optional[str] = None
+    MT5_SERVER: Optional[str] = None
+
+    class Config:
+        env_file = ".env" # Loads from the shadow realm
+
+# Instantiate the settings so the whole app can vibe with it
+settings = Settings()
+
+ <<<--- END_FILE_BLOCK: backend/app/core/config.py
+
+>>>--- START_FILE_BLOCK: backend/app/core/security.py
+################################################################################
+FILE: backend/app/core/security.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+
+
+ <<<--- END_FILE_BLOCK: backend/app/core/security.py
+
+>>>--- START_FILE_BLOCK: backend/app/core/notifications.py
+################################################################################
+FILE: backend/app/core/notifications.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+
+
+ <<<--- END_FILE_BLOCK: backend/app/core/notifications.py
+
+>>>--- START_FILE_BLOCK: backend/app/services/governor.py
+################################################################################
+FILE: backend/app/services/governor.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Manager / Life-Governor
+# FILEPATH: backend/app/services/governor.py
+# COMPONENT: Chronotype Scheduling Logic
+# ROLE: Decides what you should be doing based on the time of day.
+# VIBE: "Bro it's 2 AM, why are you trying to learn Cardiology? Go to sleep." 🛏️
+# ==========================================
+
+from datetime import datetime
+import logging
+
+logger = logging.getLogger("Life-Governor")
+
+class LifeGovernor:
+    def __init__(self):
+        # Kisumu timezone vibes. 
+        # Hardcoding the prime hours based on your chronotype.
+        self.peak_focus_hours = range(8, 12)   # 8 AM to 12 PM - Internal Med time
+        self.grind_hours = range(14, 18)       # 2 PM to 6 PM - Coding / SHOFCO time
+        self.london_session = range(10, 19)    # Forex London crossover vibes
+
+    def get_current_recommendation(self) -> str:
+        """
+        Returns a string recommending what you should be doing right now.
+        """
+        current_hour = datetime.now().hour
+        
+        if current_hour in range(0, 5):
+            return "SLEEP_MODE: The markets are dead and your brain is cooked. Go to bed. 💀"
+            
+        elif current_hour in self.peak_focus_hours:
+            return "DEEP_WORK: Highest cognitive load recommended. Lock in on that Med School syllabus."
+            
+        elif current_hour in self.grind_hours:
+            return "EXECUTION: Good time for coding the VM or handling SHOFCO tasks."
+            
+        elif current_hour >= 20:
+            return "WIND_DOWN: Backtest your Forex strategies, review Anki flashcards, and chill."
+            
+        else:
+            return "FLEX_TIME: Do whatever. Maybe grab some fish by the lake?"
+
+governor = LifeGovernor()
+
+ <<<--- END_FILE_BLOCK: backend/app/services/governor.py
+
+>>>--- START_FILE_BLOCK: backend/app/services/mt5_bridge.py
+################################################################################
+FILE: backend/app/services/mt5_bridge.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Broker Handshake / MT5 Bridge
+# FILEPATH: backend/app/services/mt5_bridge.py
+# COMPONENT: Financial Integration
+# ROLE: Logs into your MetaTrader 5 terminal to stalk your trades.
+# VIBE: "Let's see if bro is over-leveraged on Gold again." 📉👀
+# ==========================================
+
+import MetaTrader5 as mt5
+from core.config import settings
+import logging
+import pandas as pd
+
+logger = logging.getLogger("MT5-Bridge")
+
+class MT5Engine:
+    def __init__(self):
+        self.connected = False
+
+    def connect(self):
+        if not mt5.initialize():
+            logger.error(f"MT5 Init failed. Error code: {mt5.last_error()}")
+            return False
+
+        # Login to the broker (Hopefully a funded prop firm account 💰)
+        authorized = mt5.login(
+            settings.MT5_LOGIN, 
+            password=settings.MT5_PASSWORD, 
+            server=settings.MT5_SERVER
+        )
+        
+        if authorized:
+            self.connected = True
+            logger.info(f"MT5 Connected successfully to {settings.MT5_SERVER}. Let's get this bread.")
+            return True
+        else:
+            logger.error(f"Failed to connect to MT5. Did you blow the account? Code: {mt5.last_error()}")
+            return False
+
+    def check_exposure(self):
+        """
+        Checks if you are risking too much of the account.
+        """
+        if not self.connected:
+            self.connect()
+
+        account_info = mt5.account_info()
+        if account_info is None:
+            return {"status": "error", "message": "Could not retrieve account info."}
+
+        margin_level = account_info.margin_level
+        equity = account_info.equity
+
+        # If margin level drops below 300%, we sound the alarm
+        if margin_level > 0 and margin_level < 300.0:
+            return {"status": "DANGER", "message": "Margin Level critically low. Close some positions bro!"}
+        
+        return {"status": "CHILL", "equity": equity, "margin_level": margin_level}
+
+# Global instance to import into the Heartbeat Worker
+mt5_engine = MT5Engine()
+
+ <<<--- END_FILE_BLOCK: backend/app/services/mt5_bridge.py
+
+>>>--- START_FILE_BLOCK: backend/app/services/telegram_mod.py
+################################################################################
+FILE: backend/app/services/telegram_mod.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Bouncer / Telegram Mod
+# FILEPATH: backend/app/services/telegram_mod.py
+# COMPONENT: Community Agent
+# ROLE: Auto-mods the Med School Telegram group. Kicks spammers.
+# VIBE: "If you ask for the Pharmacology answers one more time, you're getting banned." 🛑📱
+# ==========================================
+
+import logging
+import asyncio
+from core.config import settings
+
+logger = logging.getLogger("Telegram-Bouncer")
+
+class TelegramModerator:
+    def __init__(self):
+        self.bot_token = getattr(settings, "TELEGRAM_BOT_TOKEN", None)
+        # Words that trigger the bouncer
+        self.banned_words = ["spoonfeed", "leak", "exam answers", "buy signal", "crypto pump"]
+        
+        if self.bot_token:
+            logger.info("Telegram Bouncer is at the door. Checking IDs.")
+        else:
+            logger.warning("No Telegram bot token. The group chat is currently the Wild West.")
+
+    async def check_message(self, user_id: str, message_text: str) -> dict:
+        """
+        Evaluates a message to see if it violates the study group's vibe.
+        """
+        logger.info(f"Scanning message from user {user_id}...")
+        
+        message_lower = message_text.lower()
+        
+        # Check for absolute ops
+        for word in self.banned_words:
+            if word in message_lower:
+                logger.warning(f"Opp detected! User {user_id} used banned word: {word}")
+                return {
+                    "action": "DELETE_AND_WARN",
+                    "message": f"Bro, we don't do '{word}' here. Lock in and study. Strike 1."
+                }
+                
+        # Positive reinforcement if they are actually grinding
+        if "anatomy" in message_lower or "usmle" in message_lower:
+            return {"action": "REACT", "emoji": "🧠", "message": "Valid academic discussion. Let him cook."}
+            
+        return {"action": "NONE", "message": "Message clean. Vibe check passed."}
+
+    async def start_polling(self):
+        """
+        Simulated polling loop for Telegram. 
+        In prod, hook this up to Webhooks or python-telegram-bot.
+        """
+        if not self.bot_token:
+            return
+        
+        logger.info("Starting Telegram polling loop... Watchlist active.")
+        while True:
+            # Logic to fetch updates from Telegram API would go here
+            await asyncio.sleep(5) # Poll every 5 seconds like checking the 1-min chart
+
+# Global instance
+telegram_bouncer = TelegramModerator()
+
+
+ <<<--- END_FILE_BLOCK: backend/app/services/telegram_mod.py
+
+>>>--- START_FILE_BLOCK: backend/app/services/med_scan.py
+################################################################################
+FILE: backend/app/services/med_scan.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Radiologist / OCR Engine
+# FILEPATH: backend/app/services/med_scan.py
+# COMPONENT: Proactive Intelligence
+# ROLE: Reads doctors' terrible handwriting so you don't have to.
+# VIBE: "Bro, is this a prescription for Paracetamol or a spell to summon a demon?" 🩺📜
+# ==========================================
+
+import logging
+import google.generativeai as genai
+from core.config import settings
+
+logger = logging.getLogger("Med-Scan")
+
+class RadiologistEngine:
+    def __init__(self):
+        if settings.GEMINI_API_KEY:
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            # Using Gemini Flash for multimodal OCR speed. We need it fast.
+            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            logger.info("Med-Scan OCR initialized. Ready to decode hieroglyphics.")
+        else:
+            self.model = None
+            logger.warning("No Gemini API key. Good luck reading that prescription yourself.")
+
+    async def scan_chart(self, image_bytes: bytes) -> dict:
+        """
+        Pass an image of a patient chart, Med school notes, or an ECG.
+        Gemini will extract the text, structure it, and make it searchable.
+        """
+        if not self.model:
+            return {"status": "error", "message": "API Key missing. Cannot process image."}
+
+        logger.info("Processing new medical chart... Hold tight.")
+        
+        prompt = """
+        You are an expert radiologist, medical scribe, and top-tier Med School professor.
+        Read this patient chart, ECG, or medical notes image.
+        Extract the key information (Symptoms, Diagnosis, Plan, Pathophysiology) and format it cleanly using Markdown.
+        If the handwriting is absolutely cooked and illegible, just do your best and flag it for manual review.
+        """
+        
+        try:
+            # Note: image_bytes should be formatted via genai.types.BlobDict in prod
+            response = self.model.generate_content([prompt, image_bytes])
+            return {"status": "success", "extracted_data": response.text}
+        except Exception as e:
+            logger.error(f"Med-Scan hit a snag: {e}")
+            return {"status": "error", "message": "Failed to decode the chart. Might actually be a demon spell."}
+
+# Global instance to import into the Med-Scholar endpoints
+radiologist = RadiologistEngine()
+
+
+ <<<--- END_FILE_BLOCK: backend/app/services/med_scan.py
+
+>>>--- START_FILE_BLOCK: backend/app/services/blast.py
+################################################################################
+FILE: backend/app/services/blast.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Megaphone / Blast Protocol
+# FILEPATH: backend/app/services/blast.py
+# COMPONENT: WebSocket Manager
+# ROLE: Blasts real-time syncs to Ubuntu & Android.
+# VIBE: "WAKE UP, YOUR STOP LOSS JUST GOT HIT!" 🚨🔊
+# ==========================================
+
+from fastapi import WebSocket
+import logging
+import json
+
+logger = logging.getLogger("Blast-Protocol")
+
+class BlastManager:
+    """
+    Manages dual-device sync. When the VM updates something, 
+    this class makes sure your laptop and phone know instantly.
+    """
+    def __init__(self):
+        self.active_devices: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_devices.append(websocket)
+        logger.info(f"Device locked in. Total devices: {len(self.active_devices)}")
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_devices:
+            self.active_devices.remove(websocket)
+            logger.info("Device disconnected. Hope they didn't rage quit.")
+
+    async def blast_event(self, event_type: str, payload: dict):
+        """
+        The main artery. Sends a JSON payload to all connected devices.
+        Used for Forex SL/TP alerts, Task reminders, etc.
+        """
+        message = {
+            "type": event_type,
+            "data": payload
+        }
+        dead_connections = []
+        for device in self.active_devices:
+            try:
+                await device.send_text(json.dumps(message))
+            except Exception as e:
+                logger.error(f"Failed to blast device: {e}")
+                dead_connections.append(device)
+                
+        # Clean up connections that ghosted us
+        for dead in dead_connections:
+            self.disconnect(dead)
+
+# Global instance to be imported across the app (like in forex.py)
+blast_engine = BlastManager()
+
+ <<<--- END_FILE_BLOCK: backend/app/services/blast.py
+
+>>>--- START_FILE_BLOCK: backend/app/services/psych_check.py
+################################################################################
+FILE: backend/app/services/psych_check.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Therapist / Psych-Check Engine
+# FILEPATH: backend/app/services/psych_check.py
+# COMPONENT: Proactive Intelligence
+# ROLE: Monitors your "heart rate" to lock trading if you're panicking.
+# VIBE: "Bro your BPM is 140, step away from the terminal. You are about to revenge trade." 🛑💔
+# ==========================================
+
+import logging
+
+logger = logging.getLogger("Psych-Check")
+
+class PsychCheckEngine:
+    def __init__(self):
+        self.trading_locked = False
+        self.baseline_bpm = 70
+        self.panic_threshold = 110 # If BPM hits this, we cut the MT5 bridge
+
+    def evaluate_biometrics(self, current_bpm: int):
+        """
+        In the future, this hooks into your smartwatch API.
+        For now, we simulate the vibe check.
+        """
+        logger.info(f"Psych-Check running. Current BPM: {current_bpm}")
+
+        if current_bpm >= self.panic_threshold:
+            self.trading_locked = True
+            logger.warning("🚨 PANIC DETECTED 🚨. User is stressing. Locking MT5 terminal.")
+            return {
+                "status": "LOCKED",
+                "message": "Heart rate too high. Trading disabled for 15 minutes. Touch grass."
+            }
+        
+        elif self.trading_locked and current_bpm <= (self.baseline_bpm + 10):
+            self.trading_locked = False
+            logger.info("User has calmed down. Unlocking terminal. Let him cook.")
+            return {
+                "status": "UNLOCKED",
+                "message": "Vitals stable. You may resume trading."
+            }
+            
+        return {"status": "ACTIVE", "message": "Stay frosty."}
+
+# Global instance
+psych_ward = PsychCheckEngine()
+
+ <<<--- END_FILE_BLOCK: backend/app/services/psych_check.py
+
+>>>--- START_FILE_BLOCK: backend/app/services/llm.py
+################################################################################
+FILE: backend/app/services/llm.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Voice / Orbit-Speak Engine
+# FILEPATH: backend/app/services/llm.py
+# COMPONENT: AI Integration (Gemini)
+# ROLE: Gives Orbit its personality and reasoning.
+# VIBE: Basically your sassy AI mentor who roasts your trading history. 🔥
+# ==========================================
+
+import google.generativeai as genai
+from core.config import settings
+import logging
+
+logger = logging.getLogger("Orbit-Speak")
+
+class OrbitSpeak:
+    def __init__(self):
+        if settings.GEMINI_API_KEY:
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            # Using Flash because we need speed like a 1-minute scalp
+            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            logger.info("Orbit-Speak initialized. Gemini is online and ready to judge you.")
+        else:
+            self.model = None
+            logger.warning("No Gemini API key found. Orbit is currently mute. 🤐")
+
+    async def generate_response(self, prompt: str, context: str = "chilling") -> str:
+        """
+        Feeds your prompt to Gemini with system instructions to act like your personal Jarvis.
+        """
+        if not self.model:
+            return "Bro, you forgot to give me my API key. Check the .env file."
+
+        system_prompt = f"""
+        You are Orbit, an advanced Life-OS assistant. 
+        Current user context: {context}.
+        Keep your responses concise, slightly Gen-Z, and highly pragmatic. 
+        If the user is over-leveraging in Forex, tell them to touch grass.
+        If they are avoiding Med School studying, roast them.
+        """
+        
+        full_prompt = f"{system_prompt}\nUser says: {prompt}"
+        
+        try:
+            response = self.model.generate_content(full_prompt)
+            return response.text
+        except Exception as e:
+            logger.error(f"Gemini API hit a stop loss: {e}")
+            return "My brain is fried right now (API Error). Ask me later."
+
+# Global instance
+orbit_brain = OrbitSpeak()
+
+ <<<--- END_FILE_BLOCK: backend/app/services/llm.py
+
+>>>--- START_FILE_BLOCK: backend/app/services/cate.py
+################################################################################
+FILE: backend/app/services/cate.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The AI Big Brother / CATE
+# FILEPATH: backend/app/services/cate.py
+# COMPONENT: Proactive Intelligence
+# ROLE: Decides WHEN to bother you based on your context.
+# VIBE: Your toxic but highly organized manager. 💅🧠
+# ==========================================
+
+import datetime
+import logging
+
+logger = logging.getLogger("CATE")
+
+class ContextAwareTriggerEngine:
+    def __init__(self):
+        self.user_status = "CHILLING" # Could be "TRADING", "STUDYING", "SLEEPING"
+    
+    def update_context(self, new_status: str):
+        self.user_status = new_status
+        logger.info(f"CATE updated user context to: {self.user_status}")
+
+    def evaluate_trigger(self, event_type: str, priority: str) -> bool:
+        """
+        Decides if an event should actually interrupt you.
+        Because we don't want a "Study Pharma" notification while you're
+        monitoring a heavy lot size on Gold (XAUUSD).
+        """
+        current_hour = datetime.datetime.now().hour
+        
+        # Rule 1: Never interrupt deep sleep unless it's a margin call 💀
+        if 2 <= current_hour <= 5 and priority != "CRITICAL":
+            logger.info("CATE blocked notification. Let bro sleep.")
+            return False
+            
+        # Rule 2: If we are trading, block low-priority study alerts
+        if self.user_status == "TRADING" and event_type == "STUDY_REMINDER":
+            logger.info("CATE blocked study reminder. Bro is watching the charts.")
+            return False
+            
+        # If it passes the vibe check, blast it
+        logger.info(f"CATE approved trigger: {event_type}")
+        return True
+
+# Initialize CATE
+cate = ContextAwareTriggerEngine()
+
+ <<<--- END_FILE_BLOCK: backend/app/services/cate.py
+
+>>>--- START_FILE_BLOCK: backend/app/worker/heartbeat.py
+################################################################################
+FILE: backend/app/worker/heartbeat.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Pacemaker / Background Worker
+# FILEPATH: backend/app/worker/heartbeat.py
+# COMPONENT: Async Task Scheduler
+# ROLE: Runs 24/7 loops checking MT5 and your schedule.
+# VIBE: The guy who stays awake during the Asian session so you don't have to. 🦉📈
+# ==========================================
+
+import asyncio
+import logging
+from services.governor import governor
+from services.cate import cate
+from services.blast import blast_engine
+
+logger = logging.getLogger("Orbit-Heartbeat")
+
+async def forex_market_watch():
+    """
+    Simulates a 24/7 background loop checking MT5 for spicy setups 
+    or blown accounts.
+    """
+    while True:
+        # In reality, this queries your MT5 Python bridge
+        logger.debug("Scanning Forex charts... XAUUSD looking mid.")
+        
+        # Example: Let's pretend a trade hit Take Profit
+        fake_tp_event = False 
+        
+        if fake_tp_event:
+            # Blast the phone and laptop!
+            await blast_engine.blast_event(
+                "TRADE_UPDATE", 
+                {"pair": "XAUUSD", "status": "TP_HIT", "pnl": "+$500", "message": "Bag secured. Go buy some fish."}
+            )
+        
+        await asyncio.sleep(60) # Check every minute
+
+async def study_nag_loop():
+    """
+    Checks the Governor to see if you should be studying, and if you aren't, it roasts you.
+    """
+    while True:
+        vibe = governor.get_current_recommendation()
+        if "DEEP_WORK" in vibe:
+            # Check CATE to see if we should interrupt
+            if cate.evaluate_trigger("STUDY_REMINDER", "HIGH"):
+                await blast_engine.blast_event(
+                    "MED_SCHOLAR",
+                    {"message": "Bro, Internal Med isn't going to read itself. Open the textbook."}
+                )
+        await asyncio.sleep(3600) # Check every hour
+
+async def start_heartbeat():
+    logger.info("Starting Orbit Heartbeat... 🫀")
+    asyncio.create_task(forex_market_watch())
+    asyncio.create_task(study_nag_loop())
+
+ <<<--- END_FILE_BLOCK: backend/app/worker/heartbeat.py
+
+>>>--- START_FILE_BLOCK: backend/app/models/study.py
+################################################################################
+FILE: backend/app/models/study.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Syllabus Vault / Models
+# FILEPATH: backend/app/models/study.py
+# COMPONENT: Database Schema
+# ROLE: Defines what a Study Task and Syllabus look like in the DB.
+# VIBE: The harsh reality of how much Anatomy you haven't read yet. 💀🩺
+# ==========================================
+
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum
+from sqlalchemy.orm import declarative_base
+from datetime import datetime
+import enum
+
+Base = declarative_base()
+
+class BrainRotLevel(enum.Enum):
+    CHILL = "chill"           # Just highlighting notes
+    MID = "mid"               # Actually trying to understand Pharmacology
+    COOKED = "cooked"         # 3 AM before the exam, straight panic
+
+class StudyTask(Base):
+    __tablename__ = "study_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True, nullable=False)
+    subject = Column(String, index=True, nullable=False) # e.g., "Internal Medicine"
+    
+    # Scheduling & Sync
+    due_date = Column(DateTime, nullable=True)
+    completed = Column(Boolean, default=False)
+    
+    # Chronotype-based scheduling hint
+    brain_rot_level = Column(Enum(BrainRotLevel), default=BrainRotLevel.MID)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<StudyTask(title='{self.title}', subject='{self.subject}', completed={self.completed})>"
+
+ <<<--- END_FILE_BLOCK: backend/app/models/study.py
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/build.gradle.kts
+################################################################################
+FILE: Pocket_Orbit/build.gradle.kts
+VERSION: 1.0.0 | SYSTEM: Android v3.0.1
+################################################################################
+
+// ==========================================
+// IDENTITY: The Top-Level Broker / Root Gradle
+// FILEPATH: Pocket_Orbit/build.gradle.kts
+// SYSTEM VERSION: Android v3.0.1
+// VIBE: Removed the 'libs' alias so Android Studio stops giving us margin calls. 📉->📈
+// ==========================================
+
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+plugins {
+    // Hardcoded versions so we don't need a version catalog (libs.versions.toml)
+    id("com.android.application") version "8.1.4" apply false
+    id("org.jetbrains.kotlin.android") version "2.0.0" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0" apply false
+}
+
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/build.gradle.kts
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/settings.gradle.kts
+################################################################################
+FILE: Pocket_Orbit/settings.gradle.kts
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "Pocket_Orbit"
+include(":app")
+ 
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/settings.gradle.kts
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/build.gradle.kts
+################################################################################
+FILE: Pocket_Orbit/app/build.gradle.kts
+VERSION: 1.0.0 | SYSTEM: Android v3.0.2
+################################################################################
+
+// ==========================================
+// IDENTITY: The Funding Account / App Gradle
+// FILEPATH: Pocket_Orbit/app/build.gradle.kts
+// SYSTEM VERSION: Android v3.0.2
+// VIBE: Kotlin 2.0 handles Compose natively now. Deleted the obsolete block. Funded Retrofit. 💰
+// ==========================================
+
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("kotlin-kapt")
+    id("org.jetbrains.kotlin.plugin.compose") 
+}
+
+android {
+    namespace = "com.example.pocket_orbit"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.example.pocket_orbit"
+        minSdk = 26
+        targetSdk = 34
+        versionCode = 1
+        versionName = "3.0-Jarvis"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+    buildFeatures {
+        compose = true
+    }
+}
+
+dependencies {
+    val room_version = "2.6.1"
+    val retrofit_version = "2.9.0"
+
+    // Android Core & Compose
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+    implementation("androidx.activity:activity-compose:1.8.1")
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+
+    // The Memory Card (Room DB)
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    kapt("androidx.room:room-compiler:$room_version")
+
+    // The Antenna (OkHttp for WebSockets)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // The Courier (Retrofit & GSON for API calls)
+    implementation("com.squareup.retrofit2:retrofit:$retrofit_version")
+    implementation("com.squareup.retrofit2:converter-gson:$retrofit_version")
+}
+
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/build.gradle.kts
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/AndroidManifest.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/AndroidManifest.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==========================================
+IDENTITY: The VIP Pass / Android Manifest
+FILEPATH: app/src/main/AndroidManifest.xml
+VIBE: "Mom, can I go out and play with the WebSocket?" 🙏
+==========================================
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Pocket Orbit"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.NoActionBar"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/AndroidManifest.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/values/strings.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/values/strings.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<resources>
+    <string name="app_name">Pocket_Orbit</string>
+</resources>
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/values/strings.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/values/colors.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/values/colors.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/values/colors.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/values/themes.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/values/themes.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Pocket_Orbit" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/values/themes.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/ic_launcher_foreground.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/drawable/ic_launcher_foreground.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="85.84757"
+                android:endY="92.4963"
+                android:startX="42.9492"
+                android:startY="49.59793"
+                android:type="linear">
+                <item
+                    android:color="#44000000"
+                    android:offset="0.0" />
+                <item
+                    android:color="#00000000"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="nonZero"
+        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
+        android:strokeWidth="1"
+        android:strokeColor="#00000000" />
+</vector>
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/ic_launcher_foreground.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/ic_launcher_background.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/drawable/ic_launcher_background.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#3DDC84"
+        android:pathData="M0,0h108v108h-108z" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M9,0L9,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,0L19,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M29,0L29,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M39,0L39,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M49,0L49,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M59,0L59,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M69,0L69,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M79,0L79,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M89,0L89,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M99,0L99,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,9L108,9"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,19L108,19"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,29L108,29"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,39L108,39"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,49L108,49"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,59L108,59"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,69L108,69"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,79L108,79"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,89L108,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,99L108,99"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,29L89,29"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,39L89,39"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,49L89,49"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,59L89,59"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,69L89,69"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,79L89,79"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M29,19L29,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M39,19L39,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M49,19L49,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M59,19L59,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M69,19L69,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M79,19L79,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+</vector>
+
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/ic_launcher_background.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/xml/backup_rules.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/xml/backup_rules.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?><!--
+   Sample backup rules file; uncomment and customize as necessary.
+   See https://developer.android.com/guide/topics/data/autobackup
+   for details.
+   Note: This file is ignored for devices older than API 31
+   See https://developer.android.com/about/versions/12/backup-restore
+-->
+<full-backup-content>
+    <!--
+   <include domain="sharedpref" path="."/>
+   <exclude domain="sharedpref" path="device.xml"/>
+-->
+</full-backup-content>
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/xml/backup_rules.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/xml/data_extraction_rules.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/xml/data_extraction_rules.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?><!--
+   Sample data extraction rules file; uncomment and customize as necessary.
+   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
+   for details.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- TODO: Use <include> and <exclude> to control what is backed up.
+        <include .../>
+        <exclude .../>
+        -->
+    </cloud-backup>
+    <!--
+    <device-transfer>
+        <include .../>
+        <exclude .../>
+    </device-transfer>
+    -->
+</data-extraction-rules>
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/xml/data_extraction_rules.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Front Door / MainActivity
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/MainActivity.kt
+// COMPONENT: Android Entry Point
+// VIBE: "Wake up Neo. The matrix has you." 💊
+// ==========================================
+
+package com.example.pocket_orbit
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import com.example.pocket_orbit.ui.theme.OrbitTheme
+import com.example.pocket_orbit.ui.screens.DashboardScreen
+import com.example.pocket_orbit.network.BlastClient
+
+class MainActivity : ComponentActivity() {
+
+    private lateinit var blastClient: BlastClient
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // 10.0.2.2 is the magic IP for Android Emulator to hit localhost
+        blastClient = BlastClient("ws://102.215.33.12:8000/ws/blast")
+        blastClient.connect()
+
+        setContent {
+            OrbitTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    DashboardScreen()
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        blastClient.disconnect()
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Engine Room / Retrofit Client
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
+// COMPONENT: Android Networking
+// ROLE: Builds the HTTP client that actually fires requests to your VM.
+// VIBE: Firing off API requests faster than a news candle spikes on NFP. 🕯️⚡
+// ==========================================
+
+package com.example.pocket_orbit.network
+
+import okhttp3.OkHttpClient
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
+
+object RetrofitClient {
+    // 10.0.2.2 is the Android Emulator's way of saying "localhost"
+    // Change this to your laptop's actual IP when testing on a real phone!
+    private const val BASE_URL = "http://10.0.2.2:8000/"
+
+    // We set strict timeouts because if the VM doesn't reply in 15 seconds,
+    // your trade is probably already in drawdown anyway. 💀
+    private val okHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
+
+    val apiService: ApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Courier / Retrofit API Service
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
+// COMPONENT: Android Networking
+// ROLE: The standard REST interface. When you pull-to-refresh, this guy fetches the data.
+// VIBE: "Hey VM, got any new Med School tasks for me?" 📦
+// ==========================================
+
+package com.example.pocket_orbit.network
+
+import com.example.pocket_orbit.data.StudyTaskEntity
+import retrofit2.Response
+import retrofit2.http.GET
+import retrofit2.http.Header
+
+interface ApiService {
+    // Fetches your pending study tasks from the FastAPI backend
+    @GET("api/v1/study/tasks/pending")
+    suspend fun getPendingTasks(
+        @Header("Authorization") token: String
+    ): Response<List<StudyTaskEntity>>
+
+    // Fetches the Governor's current vibe recommendation
+    @GET("api/v1/tasks/current-vibe")
+    suspend fun getCurrentVibe(
+        @Header("Authorization") token: String
+    ): Response<VibeResponse>
+}
+
+data class VibeResponse(
+    val governor_says: String
+)
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Antenna / Android WS Client
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt
+// VIBE: Ready to catch those TP hits and blast them to your phone. 🔔🚀
+// ==========================================
+
+package com.example.pocket_orbit.network
+
+import android.util.Log
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import org.json.JSONObject
+
+class BlastClient(private val url: String) {
+    private val client = OkHttpClient()
+    private var webSocket: WebSocket? = null
+
+    fun connect() {
+        val request = Request.Builder().url(url).build()
+        val listener = object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                Log.i("BlastClient", "Connected to Orbit VM! 🪐")
+            }
+
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                Log.i("BlastClient", "INCOMING BLAST: $text")
+                try {
+                    val json = JSONObject(text)
+                    val type = json.getString("type")
+                    val data = json.getJSONObject("data")
+
+                    if (type == "TRADE_UPDATE") {
+                        Log.w("Forex Guardian", data.getString("message"))
+                    }
+                } catch (e: Exception) {
+                    Log.e("BlastClient", "Failed to parse Blast: ${e.message}")
+                }
+            }
+
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                Log.i("BlastClient", "Disconnected. Reconnecting in 5s...")
+            }
+        }
+        webSocket = client.newWebSocket(request, listener)
+    }
+
+    fun disconnect() {
+        webSocket?.close(1000, "User went to sleep.")
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The HUD / Dashboard Screen
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
+// COMPONENT: Jetpack Compose UI
+// VIBE: Flexing on everyone else's basic to-do list apps. 💅
+// ==========================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+@Composable
+fun DashboardScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // --- HEADER ---
+        Text(
+            text = "🪐 ORBIT v3.0",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(top = 32.dp, bottom = 24.dp)
+        )
+
+        // --- FOREX GUARDIAN CARD ---
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "📈 Forex Guardian", fontWeight = FontWeight.Bold, color = Color.White)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = "Status: Monitoring XAUUSD", color = Color.Gray)
+                Text(text = "Risk Level: Chilling (0.5% Exposure)", color = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        // --- MED-SCHOLAR CARD ---
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "🩺 Med-Scholar", fontWeight = FontWeight.Bold, color = Color.White)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = "Pending: Internal Medicine (Cardiology)", color = Color.Gray)
+                Text(text = "Brain Rot Level: MID", color = MaterialTheme.colorScheme.tertiary)
+            }
+        }
+
+        // --- CATE / VIBE CHECK ---
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF222222))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text(text = "🤖 CATE Vibe Check:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Bro, it's almost 2 AM. The markets are dead. Go to sleep before you revenge trade.",
+                    color = Color.White,
+                    fontSize = 14.sp
+                )
+            }
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Translator / ViewModel
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
+// COMPONENT: Android Architecture (MVVM)
+// ROLE: Takes data from the Repository and feeds it to the UI. Survives screen rotations.
+// VIBE: The calm, collected manager who doesn't panic when you rotate your phone. 📱🔄
+// ==========================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.pocket_orbit.data.OrbitRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+class DashboardViewModel(
+    private val repository: OrbitRepository
+) : ViewModel() {
+
+    // The UI listens to this state. If the DB updates, the UI instantly redraws. W architecture.
+    val pendingTasks = repository.pendingTasks.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    init {
+        // As soon as the app opens, tell the repo to try and fetch fresh data from the VM
+        refreshData()
+    }
+
+    fun refreshData() {
+        viewModelScope.launch {
+            // We launch this in a coroutine so the UI doesn't freeze.
+            // Never block the main thread, or the app crashes like a margin call.
+            repository.refreshTasksFromVM()
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Color.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Color.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+package com.example.pocket_orbit.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+val Purple80 = Color(0xFFD0BCFF)
+val PurpleGrey80 = Color(0xFFCCC2DC)
+val Pink80 = Color(0xFFEFB8C8)
+
+val Purple40 = Color(0xFF6650a4)
+val PurpleGrey40 = Color(0xFF625b71)
+val Pink40 = Color(0xFF7D5260)
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Color.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Drip / Compose Theme
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt
+// COMPONENT: UI Aesthetics
+// VIBE: Strictly dark mode. Light mode is for sociopaths. 🦇
+// ==========================================
+
+package com.example.pocket_orbit.ui.theme
+
+import android.app.Activity
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+
+private val OrbitDarkColorScheme = darkColorScheme(
+    primary = Color(0xFF00FFCC), // Neon Cyan
+    secondary = Color(0xFF8A2BE2), // Deep Purple
+    tertiary = Color(0xFFFF3366), // Stop Loss Red
+    background = Color(0xFF0D0D0D), // Void Black
+    surface = Color(0xFF1A1A1A), // Dark Grey
+    onPrimary = Color.Black,
+    onBackground = Color.White,
+    onSurface = Color.White
+)
+
+@Composable
+fun OrbitTheme(
+    content: @Composable () -> Unit
+) {
+    val colorScheme = OrbitDarkColorScheme
+    val view = LocalView.current
+
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+        }
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        content = content
+    )
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Type.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Type.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+package com.example.pocket_orbit.ui.theme
+
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+
+// Set of Material typography styles to start with
+val Typography = Typography(
+    bodyLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    )
+    /* Other default text styles to override
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp
+    ),
+    labelSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
+    )
+    */
+)
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Type.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Pocket Vault / Android Room DB
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
+// VIBE: All imports included. Hit "Sync Now" in Gradle and watch the red lines disappear! 📉->📈
+// ==========================================
+
+package com.example.pocket_orbit.data
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+
+@Database(
+    entities = [StudyTaskEntity::class, ForexLogEntity::class],
+    version = 1,
+    exportSchema = false
+)
+@TypeConverters(DateConverter::class)
+abstract class AppDatabase : RoomDatabase() {
+
+    abstract fun studyTaskDao(): StudyTaskDao
+    abstract fun forexLogDao(): ForexLogDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getDatabase(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "pocket_orbit_db"
+                ).build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/DataConverter.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/DataConverter.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Timekeeper / Date Converter
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/data/DateConverter.kt
+// COMPONENT: Android Offline Database
+// ROLE: Converts standard Dates to Longs because SQLite databases can't hold Date objects natively.
+// VIBE: Time is money, especially during the New York crossover. 🕒💰
+// ==========================================
+
+package com.example.pocket_orbit.data
+
+import androidx.room.TypeConverter
+import java.util.Date
+
+class DateConverter {
+    @TypeConverter
+    fun fromTimestamp(value: Long?): Date? {
+        return value?.let { Date(it) }
+    }
+
+    @TypeConverter
+    fun dateToTimestamp(date: Date?): Long? {
+        return date?.time
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/DataConverter.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Daos.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Daos.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Guards / Room DB DAOs
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/data/Daos.kt
+// COMPONENT: Android Offline Database
+// ROLE: The SQL queries for your phone. How we read/write the data.
+// VIBE: Fetching data faster than a high-frequency trading bot. ⚡
+// ==========================================
+
+package com.example.pocket_orbit.data
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface StudyTaskDao {
+    // If a task already exists, just replace it (upsert)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTasks(tasks: List<StudyTaskEntity>)
+
+    // Flow emits real-time updates to the UI when the DB changes!
+    @Query("SELECT * FROM study_tasks WHERE isCompleted = 0")
+    fun getPendingTasks(): Flow<List<StudyTaskEntity>>
+
+    @Query("DELETE FROM study_tasks")
+    suspend fun clearTasks()
+}
+
+@Dao
+interface ForexLogDao {
+    @Insert
+    suspend fun insertLog(log: ForexLogEntity)
+
+    // Get the last 10 trades so you can review your bad decisions 💀
+    @Query("SELECT * FROM forex_logs ORDER BY timestamp DESC LIMIT 10")
+    fun getRecentLogs(): Flow<List<ForexLogEntity>>
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Daos.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Entities.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Entities.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Blueprints / Room DB Entities
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/data/Entities.kt
+// COMPONENT: Android Offline Database
+// ROLE: Defines the exact structure of your phone's memory.
+// VIBE: Structuring data so you can still read Med notes when Safaricom bundles vanish. 📵
+// ==========================================
+
+package com.example.pocket_orbit.data
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import java.util.Date
+
+@Entity(tableName = "study_tasks")
+data class StudyTaskEntity(
+    @PrimaryKey val id: Int,
+    val title: String,
+    val subject: String,
+    val brainRotLevel: String, // "chill", "mid", "cooked"
+    val isCompleted: Boolean,
+    val dueDate: Date?
+)
+
+@Entity(tableName = "forex_logs")
+data class ForexLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val pair: String,
+    val action: String, // "TP_HIT", "SL_HIT"
+    val pnl: Double,
+    val timestamp: Date
+)
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Entities.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Brain / Orbit Repository
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
+// COMPONENT: Android Data Management
+// ROLE: Decides whether to show you data from the local Room DB or fetch fresh data from the VM.
+// VIBE: The smartest guy in the room coordinating between offline and online modes. 🧠
+// ==========================================
+
+package com.example.pocket_orbit.data
+
+import android.util.Log
+import com.example.pocket_orbit.network.ApiService
+import kotlinx.coroutines.flow.Flow
+
+class OrbitRepository(
+    private val studyTaskDao: StudyTaskDao,
+    private val apiService: ApiService,
+    private val secretToken: String // Your SECRET_KEY from the .env
+) {
+    // The UI observes this. It instantly updates if the local database changes.
+    val pendingTasks: Flow<List<StudyTaskEntity>> = studyTaskDao.getPendingTasks()
+
+    suspend fun refreshTasksFromVM() {
+        try {
+            // Attempt to fetch fresh data from the FastAPI backend
+            val response = apiService.getPendingTasks("Bearer $secretToken")
+            
+            if (response.isSuccessful && response.body() != null) {
+                // If successful, wipe the old offline data and save the new data
+                val newTasks = response.body()!!
+                studyTaskDao.clearTasks()
+                studyTaskDao.insertTasks(newTasks)
+                Log.d("OrbitRepo", "Sync successful. Fresh tasks secured. 🎯")
+            } else {
+                Log.e("OrbitRepo", "VM rejected us. Opps activity? Code: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            // If the VM is offline or you have no bundles, it's chill.
+            // We just rely on the existing local Room DB data.
+            Log.w("OrbitRepo", "Network error. Relying on offline vault. Safaricom acting up again? 📵")
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/test/java/com/example/pocket_orbit/ExampleUnitTest.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/test/java/com/example/pocket_orbit/ExampleUnitTest.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+package com.example.pocket_orbit
+
+import org.junit.Test
+
+import org.junit.Assert.*
+
+/**
+ * Example local unit test, which will execute on the development machine (host).
+ *
+ * See [testing documentation](http://d.android.com/tools/testing).
+ */
+class ExampleUnitTest {
+    @Test
+    fun addition_isCorrect() {
+        assertEquals(4, 2 + 2)
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/test/java/com/example/pocket_orbit/ExampleUnitTest.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/androidTest/java/com/example/pocket_orbit/ExampleInstrumentedTest.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/androidTest/java/com/example/pocket_orbit/ExampleInstrumentedTest.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+package com.example.pocket_orbit
+
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.ext.junit.runners.AndroidJUnit4
+
+import org.junit.Test
+import org.junit.runner.RunWith
+
+import org.junit.Assert.*
+
+/**
+ * Instrumented test, which will execute on an Android device.
+ *
+ * See [testing documentation](http://d.android.com/tools/testing).
+ */
+@RunWith(AndroidJUnit4::class)
+class ExampleInstrumentedTest {
+    @Test
+    fun useAppContext() {
+        // Context of the app under test.
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        assertEquals("com.example.pocket_orbit", appContext.packageName)
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/androidTest/java/com/example/pocket_orbit/ExampleInstrumentedTest.kt
+
+>>>--- START_FILE_BLOCK: workstation/requirements.txt
+################################################################################
+FILE: workstation/requirements.txt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+#==========================================
+#IDENTITY: The Ubuntu Drip / Workstation Requirements
+#FILEPATH: workstation/requirements.txt
+#COMPONENT: Laptop Frontend
+#ROLE: The packages needed to make your laptop look like a hacker terminal.
+#VIBE: Dark mode CustomTkinter. Because we don't do basic UIs. 💻🦇
+#==========================================
+
+#The UI Framework (Makes Tkinter not look like Windows 95)
+
+customtkinter==5.2.1
+
+#Real-time WebSocket connection to the VM
+
+websockets==12.0
+
+#Async logic so the UI doesn't freeze while waiting for data
+
+asyncio==3.4.3
+psutil
+
+ <<<--- END_FILE_BLOCK: workstation/requirements.txt
+
+>>>--- START_FILE_BLOCK: workstation/main.py
+################################################################################
+FILE: workstation/main.py
+VERSION: 3.1.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Command Center / Ubuntu UI
+# FILE VERSION: 3.1.0
+# FILEPATH: workstation/main.py
+# COMPONENT: Laptop Frontend (CustomTkinter)
+# ROLE: The main dashboard you see when you open your laptop.
+# VIBE: Looks like a hacker movie, acts like a strict Med School professor. 💻👨‍⚕️
+# ==========================================
+
+
+import customtkinter as ctk
+from src.ui.panels.forex_guardian import ForexGuardianPanel
+from src.ui.panels.med_scholar import MedScholarPanel
+from src.hooks.vscode_sync import VSCodeSyncHook
+import threading
+import time
+
+class OrbitWorkstation(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+
+        # --- Window Config ---
+        self.title("ORBIT | COMMAND CENTER v3.0")
+        self.geometry("1100x700")
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
+
+        # --- Layout Grid ---
+        self.grid_columnconfigure(0, weight=1) # Sidebar/Panels
+        self.grid_columnconfigure(1, weight=3) # Main Feed
+        self.grid_rowconfigure(0, weight=1)
+
+        # --- Sidebar (Modular Panels) ---
+        self.sidebar = ctk.CTkFrame(self, corner_radius=0, fg_color="#1a1a1a")
+        self.sidebar.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        
+        # Heading
+        self.logo_label = ctk.CTkLabel(self.sidebar, text="ORBIT HUD", font=ctk.CTkFont(size=24, weight="bold"))
+        self.logo_label.pack(pady=20)
+
+        # Forex Guardian Integration
+        self.forex_panel = ForexGuardianPanel(self.sidebar)
+        self.forex_panel.pack(fill="x", padx=10, pady=10)
+
+        # Med-Scholar Integration
+        self.med_panel = MedScholarPanel(self.sidebar)
+        self.med_panel.pack(fill="x", padx=10, pady=10)
+
+        # --- Main Feed ---
+        self.main_feed_container = ctk.CTkFrame(self, corner_radius=15)
+        self.main_feed_container.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
+        
+        self.feed_title = ctk.CTkLabel(self.main_feed_container, text="SYSTEM_BLAST_LOG", font=ctk.CTkFont(family="Courier", size=14))
+        self.feed_title.pack(anchor="w", padx=20, pady=10)
+
+        self.feed_text = ctk.CTkTextbox(self.main_feed_container, font=ctk.CTkFont(family="Courier", size=12))
+        self.feed_text.pack(expand=True, fill="both", padx=20, pady=(0, 20))
+        self.feed_text.insert("0.0", "[SYSTEM] Orbit Workstation Booted...\n[SYSTEM] Connecting to VM Brain...\n")
+
+        # --- Hooks & Listeners ---
+        self.vscode_hook = VSCodeSyncHook(callback=self.log_to_feed)
+        
+        # Start background threads
+        threading.Thread(target=self.vscode_hook.start_monitoring, daemon=True).start()
+        threading.Thread(target=self.update_ui_loop, daemon=True).start()
+
+    def log_to_feed(self, message):
+        """Update the main log with new info from hooks."""
+        timestamp = time.strftime("%H:%M:%S")
+        self.feed_text.insert("end", f"[{timestamp}] {message}\n")
+        self.feed_text.see("end")
+
+    def update_ui_loop(self):
+        """Periodic UI updates for panels if they aren't event-driven yet."""
+        while True:
+            # Check for blast protocol messages here in the future
+            time.sleep(5)
+
+if __name__ == "__main__":
+    app = OrbitWorkstation()
+    app.mainloop()
+
+ <<<--- END_FILE_BLOCK: workstation/main.py
+
+>>>--- START_FILE_BLOCK: workstation/src/ui/panels/med_scholar.py
+################################################################################
+FILE: workstation/src/ui/panels/med_scholar.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+"""
+IDENTITY: med_scholar.py
+PATH: workstation/src/ui/panels/med_scholar.py
+FILE VERSION: 1.0.0
+STATUS: JARVIS ERA v3.0
+DESCRIPTION: Updated Med-Scholar UI panel. 
+Now capable of fetching real syllabus data from the VM Brain.
+"""
+
+import customtkinter as ctk
+import random # For simulating brain rot levels for now
+
+class MedScholarPanel(ctk.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        self.configure(fg_color="#2b2b2b", corner_radius=10)
+
+        # Title
+        self.title_label = ctk.CTkLabel(self, text="🩺 MED-SCHOLAR", font=ctk.CTkFont(size=18, weight="bold"), text_color="#FF3366")
+        self.title_label.grid(row=0, column=0, padx=15, pady=(15, 5), sticky="w")
+
+        # Dynamic Status
+        self.status_label = ctk.CTkLabel(self, text="Loading Syllabus...", font=ctk.CTkFont(size=14))
+        self.status_label.grid(row=1, column=0, padx=15, pady=5, sticky="w")
+
+        # Contextual Info
+        self.rot_label = ctk.CTkLabel(self, text="Brain Rot Level: CALIBRATING", text_color="gray")
+        self.rot_label.grid(row=2, column=0, padx=15, pady=(5, 10), sticky="w")
+
+        # Proactive Button
+        self.action_button = ctk.CTkButton(self, text="Fetch Next Lesson", fg_color="#8A2BE2", hover_color="#5c1c96", command=self.sync_syllabus)
+        self.action_button.grid(row=3, column=0, padx=15, pady=(0, 15), sticky="w")
+
+        # Start initial sync
+        self.after(2000, self.sync_syllabus)
+
+    def sync_syllabus(self):
+        """
+        Logic to pull from backend/app/models/study.py via API.
+        For now, we simulate the 'Jarvis' response.
+        """
+        # Mocking an API call result
+        subjects = ["Anatomy of Abdomen", "Pharmacology", "Internal Med", "Biochemistry"]
+        next_up = random.choice(subjects)
+        rot_levels = [("CHILL", "green"), ("MID", "orange"), ("COOKED", "red")]
+        rot_text, rot_color = random.choice(rot_levels)
+
+        self.status_label.configure(text=f"Next Up: {next_up}")
+        self.rot_label.configure(text=f"Brain Rot Level: {rot_text}", text_color=rot_color)
+        
+        # Integration point: Send update to VSCodeSyncHook if user starts studying
+        # self.master.master.log_to_feed(f"Med-Scholar: Syllabus synced. Locked into {next_up}.")
+
+    def update_task(self, subject, level):
+        """External update trigger (e.g. from a Blast notification)."""
+        self.status_label.configure(text=f"Next Up: {subject}")
+        color = "green" if level == "chill" else ("orange" if level == "mid" else "red")
+        self.rot_label.configure(text=f"Brain Rot Level: {level.upper()}", text_color=color)
+
+ <<<--- END_FILE_BLOCK: workstation/src/ui/panels/med_scholar.py
+
+>>>--- START_FILE_BLOCK: workstation/src/ui/panels/forex_guardian.py
+################################################################################
+FILE: workstation/src/ui/panels/forex_guardian.py
+VERSION: 1.0.1 | SYSTEM: N/A
+################################################################################
+
+"""
+IDENTITY: forex_guardian.py
+PATH: workstation/src/ui/panels/forex_guardian.py
+FILE VERSION: 1.0.1
+STATUS: JARVIS ERA v3.0
+DESCRIPTION: The risk management HUD for the Ubuntu Workstation.
+Monitors MT5 positions and equity in real-time. 
+Features a 'Panic Button' for emergency flatting of positions.
+Dual-Blast notification logic.
+"""
+
+import customtkinter as ctk
+import random # Placeholder for real MT5 bridge data integration
+
+class ForexGuardianPanel(ctk.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        # UI Styling - Dark Mode Hacker Aesthetic
+        self.configure(fg_color="#1e1e1e", corner_radius=10, border_width=1, border_color="#333333")
+
+        # --- Header ---
+        self.title_label = ctk.CTkLabel(
+            self, 
+            text="📉 FOREX GUARDIAN", 
+            font=ctk.CTkFont(size=18, weight="bold"), 
+            text_color="#00FFA3" # Neon Mint for that profit vibe
+        )
+        self.title_label.grid(row=0, column=0, padx=15, pady=(15, 5), sticky="w")
+
+        # --- Market Status & Equity ---
+        self.equity_label = ctk.CTkLabel(
+            self, 
+            text="Equity: $0.00", 
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        self.equity_label.grid(row=1, column=0, padx=15, pady=2, sticky="w")
+
+        self.drawdown_label = ctk.CTkLabel(
+            self, 
+            text="DD: 0.00%", 
+            font=ctk.CTkFont(family="Courier", size=12),
+            text_color="gray"
+        )
+        self.drawdown_label.grid(row=2, column=0, padx=15, pady=2, sticky="w")
+
+        # --- Active Trades List (Scrollable for scalability) ---
+        self.trades_frame = ctk.CTkFrame(self, fg_color="#121212", corner_radius=5)
+        self.trades_frame.grid(row=3, column=0, padx=10, pady=10, sticky="nsew")
+        
+        self.trades_info = ctk.CTkLabel(
+            self.trades_frame, 
+            text="NO OPEN POSITIONS", 
+            font=ctk.CTkFont(size=11, slant="italic"),
+            text_color="#555555"
+        )
+        self.trades_info.pack(pady=10, padx=10)
+
+        # --- Risk Controls ---
+        self.panic_button = ctk.CTkButton(
+            self, 
+            text="CLOSE ALL POSITIONS", 
+            fg_color="#FF3131", 
+            hover_color="#b32222",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self.emergency_flat
+        )
+        self.panic_button.grid(row=4, column=0, padx=15, pady=(0, 15), sticky="ew")
+
+        # Initial data simulation loop
+        self.update_market_data()
+
+    def update_market_data(self):
+        """
+        Polls the MT5 Bridge for current stats.
+        Connects to src/hooks/mt5_bridge.py via the VM Brain.
+        """
+        # Mocking data for the demo - replace with real API calls to Backend
+        balance = 10500.00 # Syncing with your snapshot's default
+        floating_pnl = random.uniform(-500.0, 800.0)
+        equity = balance + floating_pnl
+        drawdown = (abs(min(0, floating_pnl)) / balance) * 100
+
+        # Update UI Elements
+        self.equity_label.configure(
+            text=f"Equity: ${equity:,.2f}",
+            text_color="#00FFA3" if floating_pnl >= 0 else "#FF3131"
+        )
+        
+        dd_color = "gray" if drawdown < 5 else ("orange" if drawdown < 10 else "#FF3131")
+        self.drawdown_label.configure(text=f"DD: {drawdown:.2f}%", text_color=dd_color)
+
+        # Dual-Blast Logic: If DD is spicy, notify the workstation feed
+        if drawdown > 5.0:
+            self.broadcast_risk_alert(f"HIGH DRAWDOWN DETECTED: {drawdown:.2f}% Check XAUUSD positions.")
+
+        # Refresh loop (Every 2 seconds for high-frequency pairs like Gold)
+        self.after(2000, self.update_market_data)
+
+    def broadcast_risk_alert(self, message):
+        """Sends an alert to the main workstation log and potentially the phone."""
+        try:
+            # Reaching up to the Main App log via parent reference
+            # In production, this would also hit the Backend Blast service
+            self.master.master.log_to_feed(f"🛑 [FOREX_GUARDIAN] {message}")
+        except Exception:
+            # Fallback if UI hierarchy is still being initialized
+            print(f"DEBUG_RISK: {message}")
+
+    def emergency_flat(self):
+        """
+        The 'JARVIS_PANIC' protocol.
+        Sends a high-priority signal to the VM Brain to wipe all active MT5 trades.
+        """
+        self.broadcast_risk_alert("MANUAL PANIC TRIGGERED: Closing all positions...")
+        
+        # UI Feedback for user
+        self.equity_label.configure(text_color="white")
+        self.trades_info.configure(text="FLATTING ALL TRADES...", text_color="#FF3131")
+        
+        # This is where we'd call the backend:
+        # requests.post(f"{VM_URL}/api/v1/forex/panic", headers={"Authorization": f"Bearer {TOKEN}"})
+        
+        # Logic to clear the trade view after a delay
+        self.after(3000, lambda: self.trades_info.configure(text="NO OPEN POSITIONS", text_color="#555555"))
+
+ <<<--- END_FILE_BLOCK: workstation/src/ui/panels/forex_guardian.py
+
+>>>--- START_FILE_BLOCK: workstation/src/hooks/mt5_bridge.py
+################################################################################
+FILE: workstation/src/hooks/mt5_bridge.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+
+
+ <<<--- END_FILE_BLOCK: workstation/src/hooks/mt5_bridge.py
+
+>>>--- START_FILE_BLOCK: workstation/src/hooks/vscode_sync.py
+################################################################################
+FILE: workstation/src/hooks/vscode_sync.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+"""
+IDENTITY: vscode_sync.py
+FILE VERSION: 1.0.0
+STATUS: JARVIS ERA v3.0
+DESCRIPTION: Context-Aware Trigger Engine (CATE) logic. 
+Monitors VS Code activity to update Orbit's "Flow State" context.
+"""
+
+import psutil
+import time
+
+class VSCodeSyncHook:
+    def __init__(self, callback):
+        self.callback = callback
+        self.is_coding = False
+        self.last_state = None
+        self.project_context = "Unknown Project"
+
+    def check_vscode_status(self):
+        """Checks if VS Code is running and tries to guess context."""
+        for proc in psutil.process_iter(['name']):
+            try:
+                if 'code' in proc.info['name'].lower():
+                    # In a real scenario, we'd use an extension or check CLI args
+                    return True, "Project Orbit (Ubuntu)"
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        return False, None
+
+    def start_monitoring(self):
+        """Main loop for the hook."""
+        self.callback("CATE: Monitoring VS Code sync...")
+        
+        while True:
+            active, context = self.check_vscode_status()
+            
+            if active != self.is_coding:
+                self.is_coding = active
+                if active:
+                    msg = f"🔥 FLOW DETECTED: Coding on '{context}'"
+                    # Here we would send a POST request to VM Brain to update user state
+                else:
+                    msg = "❄️ FLOW ENDED: VS Code closed."
+                
+                self.callback(msg)
+            
+            # If active, heart-beat the context every minute to VM Brain
+            if active:
+                # self.sync_with_brain(context)
+                pass
+                
+            time.sleep(10) # Don't fry the CPU, we need those cycles for Forex charts
+
+    def sync_with_brain(self, context):
+        """Placeholder for API call to Backend VM."""
+        # requests.post(f"{VM_URL}/user/state", json={"activity": "coding", "project": context})
+        pass
+
+ <<<--- END_FILE_BLOCK: workstation/src/hooks/vscode_sync.py
+
+>>>--- START_FILE_BLOCK: infrastructure/docker-compose.yml
+################################################################################
+FILE: infrastructure/docker-compose.yml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Forge / Infrastructure
+# FILEPATH: infrastructure/docker-compose.yml
+# COMPONENT: VM Operations (Root)
+# ROLE: The God-level process manager. Keeps Postgres, Redis, and FastAPI breathing 24/7.
+# VIBE: If this goes down, Orbit goes to sleep, and your MT5 account is on its own. 💀
+# ==========================================
+
+version: '3.8'
+
+services:
+  # The Brain (FastAPI)
+  orbit-core:
+    build: 
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: orbit-fastapi
+    restart: always # Never stop the grind
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://orbit_user:super_secret_password@db:5432/orbit_db
+      - REDIS_URL=redis://cache:6379/0
+    depends_on:
+      - db
+      - cache
+    volumes:
+      - ../backend:/app # Hot reloading so we can code on the fly
+
+  # The Memory (Postgres)
+  db:
+    image: postgres:15-alpine
+    container_name: orbit-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: orbit_user
+      POSTGRES_PASSWORD: super_secret_password
+      POSTGRES_DB: orbit_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - orbit_pgdata:/var/lib/postgresql/data
+
+  # The Reflexes (Redis for caching vibe checks and quick tasks)
+  cache:
+    image: redis:7-alpine
+    container_name: orbit-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  orbit_pgdata: # Persistent memory, no amnesia here
+
+ <<<--- END_FILE_BLOCK: infrastructure/docker-compose.yml
+
+>>>--- START_FILE_BLOCK: infrastructure/nginx/nginx.conf
+################################################################################
+FILE: infrastructure/nginx/nginx.conf
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+# ==========================================
+# IDENTITY: The Bouncer / Reverse Proxy
+# FILEPATH: infrastructure/nginx/nginx.conf
+# COMPONENT: Web Server / Traffic Cop
+# ROLE: Sits in front of FastAPI. Blocks the opps.
+# VIBE: "You're not on the guest list, buddy." 🛑
+# ==========================================
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream orbit_backend {
+        # Points to our FastAPI Docker container
+        server orbit-core:8000;
+    }
+
+    server {
+        listen 80;
+        server_name orbit.local; # Change this when you deploy to a real VPS
+
+        # Route API traffic to the FastAPI brain
+        location /api/ {
+            proxy_pass http://orbit_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        # Route WebSocket traffic (The Blast Protocol)
+        location /ws/ {
+            proxy_pass http://orbit_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_set_header Host $host;
+            # Don't let the connection timeout like a bad trade
+            proxy_read_timeout 86400; 
+        }
+
+        # Reject everything else (Anti-snoop protection)
+        location / {
+            return 404;
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: infrastructure/nginx/nginx.conf
+
+>>>--- START_FILE_BLOCK: initiate_orbit.py
+################################################################################
+FILE: initiate_orbit.py
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+import os
+import time
+
+def create_structure():
+    print("🚀 INIT: Firing up the Jarvis Protocol (v3.0)...")
+    time.sleep(10)
+    print("💼 Checking Forex charts... Nah, we coding today. No cap.")
+    time.sleep(10)
+    
+    # The Map: Directories and Files
+    # Directories ending with '/' will only create the folder.
+    # Anything else will create the folder path AND a blank file.
+    structure = [
+        # 1. THE BRAIN (Backend / VM)
+        "backend/app/main.py",
+        "backend/app/api/v1/auth.py",
+        "backend/app/api/v1/medicine.py",
+        "backend/app/api/v1/forex.py",
+        "backend/app/api/v1/life.py",
+        "backend/app/agents/med_scholar/",
+        "backend/app/agents/forex_guardian/",
+        "backend/app/agents/life_governor/",
+        "backend/app/core/notifications.py",
+        "backend/app/core/config.py",
+        "backend/app/core/security.py",
+        "backend/app/db/session.py",
+        "backend/app/db/models.py",
+        "backend/app/db/redis_cache.py",
+        "backend/app/schemas/",
+        "backend/app/utils/",
+        "backend/migrations/",
+        "backend/tests/",
+        "backend/Dockerfile",
+        "backend/requirements.txt",
+
+        # 2. POCKET ORBIT (Android App)
+        "mobile/app/src/main/java/com/orbit/ui/theme/",
+        "mobile/app/src/main/java/com/orbit/ui/home/",
+        "mobile/app/src/main/java/com/orbit/ui/medicine/",
+        "mobile/app/src/main/java/com/orbit/ui/trading/",
+        "mobile/app/src/main/java/com/orbit/data/local/AppDatabase.kt",
+        "mobile/app/src/main/java/com/orbit/data/local/daos/",
+        "mobile/app/src/main/java/com/orbit/data/remote/OrbitApiService.kt",
+        "mobile/app/src/main/java/com/orbit/data/repository/TaskRepository.kt",
+        "mobile/app/src/main/java/com/orbit/di/",
+        "mobile/app/src/main/java/com/orbit/model/",
+        "mobile/app/src/main/java/com/orbit/workers/",
+
+        # 3. THE FORGE (Workstation Client)
+        "workstation/src/main.py",
+        "workstation/src/hooks/vscode_sync.py",
+        "workstation/src/hooks/mt5_bridge.py",
+        "workstation/src/ui/",
+        "workstation/config/",
+        "workstation/scripts/",
+
+        # 4. THE DEPLOYMENT (VM Operations)
+        "infrastructure/docker-compose.yml",
+        "infrastructure/nginx/",
+        "infrastructure/.env.example"
+    ]
+
+    for item in structure:
+        # Check if it's meant to be just a directory
+        if item.endswith("/"):
+            os.makedirs(item, exist_ok=True)
+            print(f"📁 Created folder: {item}")
+        else:
+            # It's a file, so we need the directory path first
+            dir_name = os.path.dirname(item)
+            if dir_name:
+                os.makedirs(dir_name, exist_ok=True)
+            
+            # Touch the file to keep it blank
+            with open(item, 'w') as f:
+                pass
+            print(f"📄 Touched file:  {item}")
+
+    print("\n" + "="*50)
+    print("🎀 RIBBON CUT! THE JARVIS ERA HAS BEGUN! 🎀")
+    print("="*50)
+    print("Orbit Repo Structure successfully generated.")
+    print("Time to secure the bag, pass Medicine, and code this beast!")
+    print("WAGMI. 📈✨")
+
+if __name__ == "__main__":
+    create_structure()
+
+ <<<--- END_FILE_BLOCK: initiate_orbit.py
+
+>>>--- START_FILE_BLOCK: mobile/app/src/main/java/com/orbit/data/local/AppDatabase.kt
+################################################################################
+FILE: mobile/app/src/main/java/com/orbit/data/local/AppDatabase.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+
+
+ <<<--- END_FILE_BLOCK: mobile/app/src/main/java/com/orbit/data/local/AppDatabase.kt
+
+>>>--- START_FILE_BLOCK: mobile/app/src/main/java/com/orbit/data/remote/OrbitApiService.kt
+################################################################################
+FILE: mobile/app/src/main/java/com/orbit/data/remote/OrbitApiService.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+
+
+ <<<--- END_FILE_BLOCK: mobile/app/src/main/java/com/orbit/data/remote/OrbitApiService.kt
+
+>>>--- START_FILE_BLOCK: mobile/app/src/main/java/com/orbit/data/repository/TaskRepository.kt
+################################################################################
+FILE: mobile/app/src/main/java/com/orbit/data/repository/TaskRepository.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+
+
+ <<<--- END_FILE_BLOCK: mobile/app/src/main/java/com/orbit/data/repository/TaskRepository.kt

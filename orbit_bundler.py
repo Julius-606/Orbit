@@ -8,145 +8,138 @@ from datetime import datetime
 # COMPONENT: Project Infrastructure
 # ROLE: The "Big Bang" script. Compiles all project files into a single context 
 #       snapshot for AI interaction.
-# VERSION: 1.0.2
-# SYSTEM VERSION: Backend v3.0.0
-# VIBE: The historian of your Life-OS. It remembers everything so you don't have to.
+# VERSION: 1.1.0
+# SYSTEM VERSION: Backend v3.1.0
+# VIBE: The historian of your Life-OS. No cap, this keeps the context window clean.
 # ==========================================
 
 # --- CONFIGURATION ---
-# The name of our massive source of truth
 OUTPUT_FILENAME = "ORBIT_SNAPSHOT.txt"
-
-# Folders to scan. Since we are in the root /Projects/Orbit/, we point to the main dirs.
-# We include '.' to catch files in the root (like this one).
 PROJECT_DIRECTORIES = ["backend", "android", "Pocket_Orbit", "workstation", "infrastructure", "."]
 
-# Extensions we actually care about (no junk allowed in the room)
 ALLOWED_EXTENSIONS = {
     '.py', '.kt', '.xml', '.yml', '.yaml', '.txt', 
     '.md', '.sql', '.gradle', '.kts', '.ini', '.conf', '.dockerfile'
 }
 
-# Folders to ignore (keep the noise out)
 IGNORE_DIRS = {
     '.git', '__pycache__', 'build', '.gradle', 'node_modules', 
     '.venv', 'venv', '.idea', 'bin', 'obj', 'outputs', 'intermediates'
 }
 
-AI_INSTRUCTIONS = f"""
+# --- AI PROTOCOL CONSTANTS ---
+# Using distinct symbols that are unlikely to appear in code logic
+START_DELIMITER = ">>>--- START_FILE_BLOCK: "
+END_DELIMITER = " <<<--- END_FILE_BLOCK: "
+
+AI_INSTRUCTIONS_TEMPLATE = """
 ================================================================================
 SYSTEM INSTRUCTIONS FOR PROJECT ORBIT (THE JARVIS PROTOCOL)
 ================================================================================
-DATE: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-STATUS: VERSION 3.0 (JARVIS ERA)
-
-
+DATE: {timestamp}
+STATUS: VERSION 3.1 (STABILITY UPGRADE)
 
 INSTRUCTIONS FOR THE AI ASSISTANT:
-1. SINGLE SOURCE OF TRUTH: This file contains the latest version of all files 
-   in the Orbit project. Treat this as the primary context for all decisions.
-2. EDIT PROTOCOL: Every time you make an edit, suggest a change, or generate 
-   new code, you MUST:
-   - Explicitly list which files have been modified.
-   - Increment the VERSION number (Major.Minor.Patch) in the IDENTITY header.
-   - If it's a core component, update the SYSTEM VERSION (e.g., Backend v3.x.x).
-3. PATHING INTEGRITY: Do not change the directory structure or file paths 
-   unless it is strictly necessary for the architecture. 
-4. CONTEXT AWARENESS: Remember that this is a distributed system (VM Brain, 
-   Android Pocket, Ubuntu Workstation). Ensure all logic stays synchronized.
-5. NO ARCHITECTURAL HALLUCINATIONS: If a file isn't in this snapshot, it 
-   either doesn't exist, or is intentionally left outdue to confidenciality.
-   If you create one, define its full path immediately.
-
-
+1. SINGLE SOURCE OF TRUTH: This snapshot is the Holy Grail. Use it for all context.
+2. EDIT PROTOCOL: 
+   - State the target file path clearly.
+   - Increment VERSION (Major.Minor.Patch) in the IDENTITY header.
+   - For files > 700 lines, use the "DIFF" approach (10 lines context).
+3. DELIMITER AWARENESS: Files are wrapped in unique delimiters:
+   {start_delim}[path] and {end_delim}[path].
+   Use these to anchor your parsing and avoid "fumbling" lines.
+4. VIBE CHECK: Maintain all comments, imports, and docstrings. No "creative deletion."
+5. PROJECT STRUCTURE: Refer to the FILE MANIFEST below for the full architecture.
 
 ================================================================================
-FILE MANIFEST & CONTENT BEGINS BELOW
+FILE MANIFEST (TABLE OF CONTENTS)
+================================================================================
+{manifest}
+
+================================================================================
+FULL PROJECT CONTENT BEGINS BELOW
 ================================================================================
 """
 
 def extract_versions(content):
-    """
-    Extracts versioning data from the IDENTITY block using regex.
-    Returns (file_version, system_version)
-    """
-    # Look for file version: VERSION: 1.2.3
+    """Extracts versioning data using regex."""
     f_match = re.search(r"VERSION:\s*(\d+\.\d+\.\d+)", content)
     file_version = f_match.group(1) if f_match else "1.0.0"
     
-    # Look for system version: SYSTEM VERSION: Backend v3.0.0
     s_match = re.search(r"SYSTEM VERSION:\s*([\w\s]+v\d+\.\d+\.\d+)", content)
     system_version = s_match.group(1) if s_match else "N/A"
     
     return file_version, system_version
 
-def bundle_project():
-    print(f"🚀 Initializing Orbit Bundler... Target: {OUTPUT_FILENAME}")
-    file_count = 0
-    bundled_paths = set() # Avoid double-bundling
-    
-    # Get the absolute path of the root to avoid issues
+def get_file_list():
+    """Walks the directories and returns a list of valid files."""
+    valid_files = []
     root_dir = os.getcwd()
-
-    with open(OUTPUT_FILENAME, "w", encoding="utf-8") as snapshot:
-        # Write the AI Instructions at the top
-        snapshot.write(AI_INSTRUCTIONS.strip() + "\n\n")
-        
-        # Walk through the directories defined in configuration
-        for target_dir in PROJECT_DIRECTORIES:
-            target_path = os.path.join(root_dir, target_dir)
+    
+    for target_dir in PROJECT_DIRECTORIES:
+        target_path = os.path.join(root_dir, target_dir)
+        if not os.path.exists(target_path):
+            continue
             
-            if not os.path.exists(target_path):
-                # Don't spam warnings for common variations (e.g., android vs Pocket_Orbit)
-                continue
+        for root, dirs, files in os.walk(target_path):
+            dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
+            for file in files:
+                if file == OUTPUT_FILENAME or file == "orbit_bundler.py":
+                    continue
                 
-            for root, dirs, files in os.walk(target_path):
-                # Prune ignored directories in-place
-                dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
-                
-                for file in files:
-                    # Skip the output file itself and the script if it's already bundled
-                    if file == OUTPUT_FILENAME:
-                        continue
-                        
-                    ext = os.path.splitext(file)[1].lower()
-                    if file.lower() == "dockerfile":
-                        ext = ".dockerfile"
-                        
-                    if ext in ALLOWED_EXTENSIONS or file == "Dockerfile":
-                        full_path = os.path.join(root, file)
-                        # Create a clean relative path from the project root
-                        rel_path = os.path.relpath(full_path, root_dir)
-                        
-                        if rel_path in bundled_paths:
-                            continue
-                            
-                        try:
-                            with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
-                                content = f.read()
-                            
-                            f_version, s_version = extract_versions(content)
-                                
-                            # Write File Header with Advanced Version Control
-                            snapshot.write(f"\n{'#'*80}\n")
-                            snapshot.write(f"FILE: {rel_path}\n")
-                            snapshot.write(f"IDENTITY: {file}\n")
-                            snapshot.write(f"FILE VERSION: {f_version}\n")
-                            snapshot.write(f"SYSTEM VERSION: {s_version}\n")
-                            snapshot.write(f"{'#'*80}\n\n")
-                            
-                            # Write Content
-                            snapshot.write(content)
-                            snapshot.write("\n\n")
-                            
-                            bundled_paths.add(rel_path)
-                            file_count += 1
-                            print(f"✅ Bundled [{f_version}]: {rel_path}")
-                        except Exception as e:
-                            print(f"❌ Error reading {rel_path}: {e}")
+                ext = os.path.splitext(file)[1].lower()
+                if file.lower() == "dockerfile" or ext in ALLOWED_EXTENSIONS:
+                    full_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(full_path, root_dir)
+                    if rel_path not in [f['rel_path'] for f in valid_files]:
+                        valid_files.append({'rel_path': rel_path, 'full_path': full_path})
+    return valid_files
 
-    print(f"\n✨ Mission Accomplished! {file_count} files bundled into {OUTPUT_FILENAME}")
-    print("📈 Pathing fixed. Versions locked. We're back in the game.")
+def bundle_project():
+    print(f"🚀 Launching Orbit Bundler v1.1.0... Target: {OUTPUT_FILENAME}")
+    
+    files_to_bundle = get_file_list()
+    manifest_lines = []
+    
+    # Prepare Manifest and Content
+    content_blocks = []
+    
+    for file_info in files_to_bundle:
+        try:
+            with open(file_info['full_path'], "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+            
+            f_version, s_version = extract_versions(content)
+            manifest_lines.append(f"- {file_info['rel_path']} [v{f_version}]")
+            
+            # Construct the Block
+            block = f"\n{START_DELIMITER}{file_info['rel_path']}\n"
+            block += f"{'#'*80}\n"
+            block += f"FILE: {file_info['rel_path']}\n"
+            block += f"VERSION: {f_version} | SYSTEM: {s_version}\n"
+            block += f"{'#'*80}\n\n"
+            block += content
+            block += f"\n\n{END_DELIMITER}{file_info['rel_path']}\n"
+            
+            content_blocks.append(block)
+            print(f"✅ Indexed: {file_info['rel_path']}")
+        except Exception as e:
+            print(f"❌ Failed to read {file_info['rel_path']}: {e}")
+
+    # Write everything
+    with open(OUTPUT_FILENAME, "w", encoding="utf-8") as snapshot:
+        header = AI_INSTRUCTIONS_TEMPLATE.format(
+            timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            manifest="\n".join(manifest_lines),
+            start_delim=START_DELIMITER,
+            end_delim=END_DELIMITER
+        )
+        snapshot.write(header.strip() + "\n")
+        for block in content_blocks:
+            snapshot.write(block)
+
+    print(f"\n✨ Manifested {len(content_blocks)} files into {OUTPUT_FILENAME}")
+    print("📈 The context is secured. AI is now fully operational.")
 
 if __name__ == "__main__":
     bundle_project()
