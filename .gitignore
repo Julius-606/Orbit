@@ -1,0 +1,77 @@
+==============================================================================
+
+PROJECT ORBIT (THE JARVIS PROTOCOL) - GITIGNORE
+
+"Protect the bag, hide the keys."
+
+==============================================================================
+
+--- Python / Environment ---
+
+.venv/
+venv/
+ENV/
+env/
+bin/
+lib64/
+lib/
+include/
+share/
+pyvenv.cfg
+*.pyc
+pycache/
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+--- Databases & Brain State ---
+
+.db
+.sqlite3
+postgres_data/
+redis_data/
+/artifacts//users//
+/artifacts/*/public/data/
+
+--- Secrets & Credentials (CRITICAL) ---
+
+.env
+secrets.json
+*.pem
+*.key
+credentials.ini
+confidential
+/backend/app/core/config_private.py
+
+--- Forex / MT5 Bridge Logs ---
+
+/workstation/logs/
+/backend/logs/
+mt5_history.json
+*.log
+
+--- Workstation / UI / OS Junk ---
+
+.DS_Store
+.directory
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+--- Build & Distribution ---
+
+dist/
+build/
+*.egg-info/
+*.spec
+
+--- Project Specific Scribbles ---
+
+temp_notes.txt
+TODO_PRIVATE.md
