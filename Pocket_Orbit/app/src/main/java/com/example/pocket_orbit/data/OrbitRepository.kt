@@ -1,9 +1,7 @@
 // ==========================================
 // IDENTITY: The Brain / Orbit Repository
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
-// COMPONENT: Android Data Management
-// ROLE: Decides whether to show you data from the local Room DB or fetch fresh data from the VM.
-// VIBE: The smartest guy in the room coordinating between offline and online modes. 🧠
+// VERSION: 1.0.1
 // ==========================================
 
 package com.example.pocket_orbit.data
@@ -15,18 +13,15 @@ import kotlinx.coroutines.flow.Flow
 class OrbitRepository(
     private val studyTaskDao: StudyTaskDao,
     private val apiService: ApiService,
-    private val secretToken: String // Your SECRET_KEY from the .env
+    private val secretToken: String
 ) {
-    // The UI observes this. It instantly updates if the local database changes.
     val pendingTasks: Flow<List<StudyTaskEntity>> = studyTaskDao.getPendingTasks()
 
     suspend fun refreshTasksFromVM() {
         try {
-            // Attempt to fetch fresh data from the FastAPI backend
             val response = apiService.getPendingTasks("Bearer $secretToken")
-            
+
             if (response.isSuccessful && response.body() != null) {
-                // If successful, wipe the old offline data and save the new data
                 val newTasks = response.body()!!
                 studyTaskDao.clearTasks()
                 studyTaskDao.insertTasks(newTasks)
@@ -35,9 +30,26 @@ class OrbitRepository(
                 Log.e("OrbitRepo", "VM rejected us. Opps activity? Code: ${response.code()}")
             }
         } catch (e: Exception) {
-            // If the VM is offline or you have no bundles, it's chill.
-            // We just rely on the existing local Room DB data.
             Log.w("OrbitRepo", "Network error. Relying on offline vault. Safaricom acting up again? 📵")
+        }
+    }
+
+    // 🔥 THE FIX: Executes the 'Take Profit' locally first, then syncs with the VM Brain
+    suspend fun markTaskComplete(taskId: Int) {
+        try {
+            // 1. Instant UI update (Offline First mentality)
+            studyTaskDao.markTaskCompleted(taskId)
+            Log.d("OrbitRepo", "Task $taskId marked complete locally. Good stuff.")
+
+            // 2. Tell the VM we secured the W
+            val response = apiService.completeTask("Bearer $secretToken", taskId)
+            if (response.isSuccessful) {
+                Log.d("OrbitRepo", "VM acknowledges the W! Task $taskId fully completed.")
+            } else {
+                Log.w("OrbitRepo", "VM sync failed for completion. Will retry next sync cycle.")
+            }
+        } catch (e: Exception) {
+            Log.e("OrbitRepo", "Failed to reach VM to mark complete: ${e.message}")
         }
     }
 }

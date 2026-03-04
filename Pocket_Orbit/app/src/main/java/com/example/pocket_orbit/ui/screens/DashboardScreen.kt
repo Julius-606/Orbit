@@ -1,6 +1,6 @@
 // ================================================================================
 // FILE: /Projects/Orbit/Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
-// VERSION: 3.1.4 | SYSTEM: Orbit (The Jarvis Protocol)
+// VERSION: 3.1.5 | SYSTEM: Orbit (The Jarvis Protocol)
 // ================================================================================
 
 package com.example.pocket_orbit.ui.screens
@@ -23,14 +23,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// We need to explicitly import your Entity so the UI knows what 'nextTask' is!
 import com.example.pocket_orbit.data.StudyTaskEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel) {
 
-    // 🧠 Collecting from your actual Flow in the ViewModel
     val pendingTasks by viewModel.pendingTasks.collectAsState()
     val nextTask: StudyTaskEntity? = pendingTasks.firstOrNull()
 
@@ -99,8 +97,6 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             // MED-SCHOLAR TASK CARD
             // ------------------------------------------------------------------
             if (nextTask != null) {
-
-                // Using safe calls in case Gson fed us a sneaky null from the backend!
                 val rotLevel = nextTask.brainRotLevel?.lowercase() ?: "chill"
 
                 val (rotColor, rotText) = when(rotLevel) {
@@ -160,11 +156,12 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Button(
-                            onClick = { /* TODO: Hook up complete action */ },
+                            // 🔥 THE FIX: Actually hitting the view model to secure the bag!
+                            onClick = { viewModel.markTaskCompleted(nextTask.id) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Text("Mark Completed W")
+                            Text("Mark Completed W", color = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
                 }
