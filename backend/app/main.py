@@ -1,9 +1,14 @@
+################################################################################
+#FILE: backend/app/main.py
+#VERSION: 3.1.1 | SYSTEM: Jarvis Protocol
+################################################################################
+
 # ==========================================
 # IDENTITY: The Brain / Central Hub
 # FILEPATH: backend/app/main.py
 # COMPONENT: Backend Entry Point
-# SYSTEM VERSION: 3.1.0
-# FILE VERSION: 1.0.0
+# SYSTEM VERSION: 3.1.1 (Import Path Patch)
+# FILE VERSION: 1.1.0
 # ROLE: The main server file. Routes traffic, handles the "Blast" WebSocket protocol.
 # VIBE: The Grand Central Station of your Life-OS. Everything passes through here.
 # ==========================================
@@ -15,8 +20,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 import time
 
-# The Holy Grail: Importing the Switchboard (Routers)
-from api.v1.api import api_router
+# 🚀 THE BIG FIX: We add 'app.' to the start of our internal imports!
+# This stops Python from getting liquidated when running from the parent 'backend' folder.
+from app.api.v1.api import api_router
 
 # -------------------------------------------------------------------
 # 🛠️ VM Logging Setup (Crucial for bare-metal debugging)
@@ -48,7 +54,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Project Orbit API (The Jarvis Era)",
     description="The Life-OS Brain for balancing Clinical Meds, SHOFCO ops, and sniping Forex setups. WAGMI 🚀📈",
-    version="3.1.0",
+    version="3.1.1",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
@@ -74,7 +80,7 @@ async def add_process_time_header(request: Request, call_next):
     response = await call_next(request)
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
-    
+
     # Log the request method, path, and how fast it processed
     logger.info(f"{request.method} {request.url.path} - {process_time:.4f}s")
     return response

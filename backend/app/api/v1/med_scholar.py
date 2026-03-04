@@ -1,22 +1,19 @@
-# ==========================================
-# IDENTITY: The Dean / Med-Scholar API
-# FILEPATH: backend/app/api/v1/med_scholar.py
-# COMPONENT: Backend API Routes
-# ROLE: CRUD operations for study tasks. Orbit-Speak hits this.
-# VIBE: "Bro, did you even study for the OSCE?" - Orbit, probably.
-# ==========================================
+################################################################################
+#FILE: backend/app/api/v1/med_scholar.py
+#VERSION: 1.0.1 | SYSTEM: Jarvis Protocol
+################################################################################
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from db.session import get_db
-from models.study import StudyTask
+# 🚀 FIX: Added 'app.' prefixes
+from app.db.session import get_db
+from app.models.study import StudyTask
 from pydantic import BaseModel
 from typing import List
 
 router = APIRouter()
 
-# Pydantic schema for input validation
 class TaskCreate(BaseModel):
     title: str
     subject: str
@@ -24,9 +21,7 @@ class TaskCreate(BaseModel):
 
 @router.post("/tasks/", response_model=dict)
 async def create_study_task(task: TaskCreate, db: AsyncSession = Depends(get_db)):
-    """
-    Drop a new task into the syllabus vault.
-    """
+    """Drop a new task into the syllabus vault."""
     new_task = StudyTask(
         title=task.title,
         subject=task.subject,
@@ -39,13 +34,11 @@ async def create_study_task(task: TaskCreate, db: AsyncSession = Depends(get_db)
 
 @router.get("/tasks/pending", response_model=List[dict])
 async def get_pending_tasks(db: AsyncSession = Depends(get_db)):
-    """
-    Shows you exactly how behind you are in Med School.
-    """
+    """Shows you exactly how behind you are in Med School."""
     result = await db.execute(select(StudyTask).where(StudyTask.completed == False))
     tasks = result.scalars().all()
-    
+
     if not tasks:
         return [{"message": "Zero pending tasks. You're either a genius or you forgot to write them down."}]
-        
+
     return [{"id": t.id, "title": t.title, "subject": t.subject} for t in tasks]

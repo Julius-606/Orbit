@@ -1,3 +1,8 @@
+# ################################################################################
+# FILE: backend/app/db/session.py
+# VERSION: 1.0.2 | SYSTEM: Jarvis Protocol
+# ################################################################################
+
 # ==========================================
 # IDENTITY: The Memory Card / DB Session
 # FILEPATH: backend/app/db/session.py
@@ -8,7 +13,9 @@
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from core.config import settings
+
+# 🚀 THE FIX: Slapped the 'app.' prefix right here so Python doesn't get liquidated.
+from app.core.config import settings
 import logging
 
 logger = logging.getLogger("Orbit-DB")
