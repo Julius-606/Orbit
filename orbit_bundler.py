@@ -43,7 +43,8 @@ INSTRUCTIONS FOR THE AI ASSISTANT:
 1. SINGLE SOURCE OF TRUTH: This snapshot is the Holy Grail. Use it for all context.
 2. EDIT PROTOCOL: 
    - State the target file path clearly.
-   - Increment VERSION (Major.Minor.Patch) in the IDENTITY header.
+   - Maintain the header Identity as this is what I use to distinguish between files.
+   - Increment VERSION (Major.Minor.Patch) in the IDENTITY header for each file.
    - For files > 700 lines, use the "DIFF" approach (10 lines context).
 3. DELIMITER AWARENESS: Files are wrapped in unique delimiters:
    {start_delim}[path] and {end_delim}[path].

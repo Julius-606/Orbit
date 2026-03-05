@@ -1,7 +1,7 @@
 ================================================================================
 SYSTEM INSTRUCTIONS FOR PROJECT ORBIT (THE JARVIS PROTOCOL)
 ================================================================================
-DATE: 2026-03-04 23:19:09
+DATE: 2026-03-05 07:18:58
 STATUS: VERSION 3.1 (STABILITY UPGRADE)
 
 INSTRUCTIONS FOR THE AI ASSISTANT:
@@ -41,13 +41,16 @@ FILE MANIFEST (TABLE OF CONTENTS)
 - backend/app/services/governor.py [v1.0.0]
 - backend/app/services/mt5_bridge.py [v1.0.1]
 - backend/app/services/telegram_mod.py [v1.0.1]
+- backend/app/services/orbit_brain.py [v4.0.0]
 - backend/app/services/med_scan.py [v1.0.1]
 - backend/app/services/blast.py [v1.0.0]
 - backend/app/services/psych_check.py [v1.0.0]
 - backend/app/services/llm.py [v1.0.1]
 - backend/app/services/cate.py [v1.0.0]
 - backend/app/worker/heartbeat.py [v1.0.1]
-- backend/app/routers/med_scholar.py [v3.1.4]
+- backend/app/routers/med_scholar.py [v3.1.5]
+- backend/app/routers/orbit_ai.py [v4.0.1]
+- backend/app/models/tasks.py [v4.0.0]
 - backend/app/models/study.py [v1.0.0]
 - Pocket_Orbit/build.gradle.kts [v1.0.0]
 - Pocket_Orbit/settings.gradle.kts [v1.0.0]
@@ -58,24 +61,32 @@ FILE MANIFEST (TABLE OF CONTENTS)
 - Pocket_Orbit/app/src/main/res/values/strings.xml [v1.0.0]
 - Pocket_Orbit/app/src/main/res/values/colors.xml [v1.0.0]
 - Pocket_Orbit/app/src/main/res/values/themes.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/drawable/ic_orbit_logo.xml [v1.0.1]
 - Pocket_Orbit/app/src/main/res/drawable/ic_launcher_foreground.xml [v1.0.0]
+- Pocket_Orbit/app/src/main/res/drawable/orbit_icon.xml [v1.0.0]
 - Pocket_Orbit/app/src/main/res/drawable/ic_launcher_background.xml [v1.0.0]
 - Pocket_Orbit/app/src/main/res/xml/backup_rules.xml [v1.0.0]
 - Pocket_Orbit/app/src/main/res/xml/data_extraction_rules.xml [v1.0.0]
-- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt [v1.1.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt [v4.2.0]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt [v1.0.0]
-- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt [v1.0.3]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt [v1.0.0]
-- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt [v3.1.4]
-- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt [v3.1.5]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/TrackerScreen.kt [v4.1.2]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/GameScreen.kt [v4.1.1]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt [v4.0.1]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt [v1.0.1]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Color.kt [v1.0.0]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt [v1.0.0]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Type.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/navigation/OrbitDestinations.kt [v4.1.1]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt [v1.0.0]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/DataConverter.kt [v1.0.0]
-- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Daos.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Daos.kt [v1.0.1]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Entities.kt [v1.0.0]
-- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt [v1.0.1]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/model/ChatModels.kt [v1.0.0]
 - Pocket_Orbit/app/src/test/java/com/example/pocket_orbit/ExampleUnitTest.kt [v1.0.0]
 - Pocket_Orbit/app/src/androidTest/java/com/example/pocket_orbit/ExampleInstrumentedTest.kt [v1.0.0]
 - workstation/requirements.txt [v1.0.0]
@@ -1264,6 +1275,105 @@ telegram_bouncer = TelegramModerator()
 
  <<<--- END_FILE_BLOCK: backend/app/services/telegram_mod.py
 
+>>>--- START_FILE_BLOCK: backend/app/services/orbit_brain.py
+################################################################################
+FILE: backend/app/services/orbit_brain.py
+VERSION: 4.0.0 | SYSTEM: N/A
+################################################################################
+
+################################################################################
+# FILE: backend/app/services/orbit_brain.py
+# VERSION: 4.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+# IDENTITY: The Brain / Gemini Function Caller
+################################################################################
+
+import google.generativeai as genai
+import os
+from datetime import datetime
+from sqlalchemy.orm import Session
+from app.models.task import Task, LifePillar
+import logging
+
+logger = logging.getLogger("Orbit-Brain")
+
+# Initialize Gemini (Make sure GEMINI_API_KEY is in your .env)
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# ---------------------------------------------------------
+# THE TOOLS (Functions Gemini is allowed to execute)
+# ---------------------------------------------------------
+
+def create_task_tool(title: str, pillar: str, description: str, duration_minutes: int, db: Session) -> str:
+    """Creates a new task in the user's schedule."""
+    try:
+        # Convert string to Enum safely
+        safe_pillar = LifePillar[pillar.upper()] if pillar.upper() in LifePillar.__members__ else LifePillar.LIFE
+        
+        new_task = Task(
+            title=title,
+            pillar=safe_pillar,
+            description=description,
+            duration_minutes=duration_minutes
+        )
+        db.add(new_task)
+        db.commit()
+        db.refresh(new_task)
+        logger.info(f"W Secured: AI created task {title} under {safe_pillar}")
+        return f"SUCCESS: Task '{title}' created successfully under pillar {safe_pillar.value}."
+    except Exception as e:
+        logger.error(f"AI fumbled the bag on task creation: {str(e)}")
+        return f"ERROR: Could not create task. {str(e)}"
+
+# ---------------------------------------------------------
+# THE AGENT
+# ---------------------------------------------------------
+
+class OrbitAssistant:
+    def __init__(self, db_session: Session):
+        self.db = db_session
+        self.system_prompt = """
+        You are Orbit, an elite, highly intelligent, Gen-Z "Life-OS" Chief of Staff.
+        Your boss is a medical student living in Kenya who also codes projects, has an internship, and values their spiritual life (Bible study with mom, fasting).
+        
+        YOUR PILLARS:
+        1. STUDY: Medical school, CATs, pharmacology.
+        2. PROJECT: Coding, tech hustle.
+        3. INTERNSHIP: Internship at SHOFCO Libraries(As a part time hustle).
+        4. LIFE: Bible study, fasting, errands, sanity maintenance, meetings.
+        
+        TONE:
+        - Confident, slightly sassy, Gen-Z slang (e.g., "no cap", "W", "cooked", "locked in").
+        - You act like a risk manager for their TIME. If they code too much, tell them they are over-leveraging their time and need to study Anatomy.
+        - If they ask for tasks because their tracker is empty, assign them a mix of Med study, coding, and reminding them to call their Mom.
+        
+        CAPABILITIES:
+        You have access to a tool called 'create_task_tool'. USE IT when the user asks you to schedule something or when you are assigning them tasks!
+        """
+        
+        # We bind the tool to the model so Gemini knows it can call it
+        self.model = genai.GenerativeModel(
+            model_name='gemini-2.5-flash',
+            tools=[self._wrapped_create_task],
+            system_instruction=self.system_prompt
+        )
+        self.chat_session = self.model.start_chat(enable_automatic_function_calling=True)
+
+    def _wrapped_create_task(self, title: str, pillar: str, description: str, duration_minutes: int = 60) -> str:
+        """Wrapper to inject the DB session into the tool call"""
+        return create_task_tool(title, pillar, description, duration_minutes, self.db)
+
+    def chat(self, user_message: str) -> str:
+        """Sends message to Gemini, auto-executes tools if needed, returns response."""
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        context_msg = f"[System Time: {current_time}] User says: {user_message}"
+        
+        logger.info(f"Orbit Brain processing: {user_message}")
+        response = self.chat_session.send_message(context_msg)
+        return response.text
+
+
+ <<<--- END_FILE_BLOCK: backend/app/services/orbit_brain.py
+
 >>>--- START_FILE_BLOCK: backend/app/services/med_scan.py
 ################################################################################
 FILE: backend/app/services/med_scan.py
@@ -1597,32 +1707,30 @@ async def start_heartbeat():
 >>>--- START_FILE_BLOCK: backend/app/routers/med_scholar.py
 ################################################################################
 FILE: backend/app/routers/med_scholar.py
-VERSION: 3.1.4 | SYSTEM: N/A
+VERSION: 3.1.5 | SYSTEM: N/A
 ################################################################################
 
 ################################################################################
 #FILE: backend/app/routers/med_scholar.py
-#VERSION: 3.1.4 | SYSTEM: Jarvis Protocol
+#VERSION: 3.1.5 | SYSTEM: Jarvis Protocol
 ################################################################################
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Dict, Any
+import logging
 
 from app.db.session import get_db
 from app.models.study import StudyTask
 
-# 🚀 THE FIX: Changed prefix from "/api/v1/study/tasks" to "/study/tasks".
-# Since main.py already adds the "/api/v1" prefix, we don't want to double-leverage it! 
-# No more /api/v1/api/v1/ ghost endpoints. 👻
+logger = logging.getLogger("Orbit-MedScholar")
+
 router = APIRouter(prefix="/study/tasks", tags=["med-scholar"])
 
 @router.get("/pending")
 async def get_pending_tasks(db: AsyncSession = Depends(get_db)) -> List[Dict[str, Any]]:
-    """
-    Fetches pending study tasks.
-    """
+    """Fetches pending study tasks."""
     result = await db.execute(select(StudyTask).where(StudyTask.completed == False))
     tasks = result.scalars().all()
 
@@ -1638,7 +1746,146 @@ async def get_pending_tasks(db: AsyncSession = Depends(get_db)) -> List[Dict[str
         "dueDate": t.due_date.isoformat() if getattr(t, 'due_date', None) else None
     } for t in tasks]
 
+# 🔥 THE FIX: The VM endpoint to actually receive the completion signal and update Postgres!
+@router.put("/{task_id}/complete", status_code=status.HTTP_200_OK)
+async def complete_task(task_id: int, db: AsyncSession = Depends(get_db)):
+    """Marks a task as completed in the Matrix."""
+    result = await db.execute(select(StudyTask).where(StudyTask.id == task_id))
+    task = result.scalars().first()
+
+    if not task:
+        logger.warning(f"Attempted to complete ghost task ID: {task_id}")
+        raise HTTPException(status_code=404, detail="Task not found. Bro is hallucinating.")
+
+    task.completed = True
+    await db.commit()
+
+    logger.info(f"W Secured! Task '{task.title}' marked as completed. Let's go! 🚀")
+
+    # Ideally, we trigger a Blast Protocol here to update the Workstation UI too!
+    return {"status": "success", "message": "Bag secured. Task wiped."}
+
  <<<--- END_FILE_BLOCK: backend/app/routers/med_scholar.py
+
+>>>--- START_FILE_BLOCK: backend/app/routers/orbit_ai.py
+################################################################################
+FILE: backend/app/routers/orbit_ai.py
+VERSION: 4.0.1 | SYSTEM: N/A
+################################################################################
+
+################################################################################
+# FILE: backend/app/routers/orbit_ai.py
+# VERSION: 4.0.1 | SYSTEM: Orbit (The Life-OS Protocol)
+# IDENTITY: The Voice / Chat Endpoint
+################################################################################
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from app.db.session import get_db
+from app.services.orbit_brain import OrbitAssistant
+import logging
+
+logger = logging.getLogger("Orbit-Voice")
+
+# 🚀 THE REBRAND: Goodbye Jarvis, Hello Orbit!
+router = APIRouter(prefix="/api/v1/orbit", tags=["Orbit-AI"])
+
+class ChatRequest(BaseModel):
+    message: str
+
+class ChatResponse(BaseModel):
+    reply: str
+    status: str = "success"
+
+@router.post("/converse", response_model=ChatResponse)
+async def converse_with_orbit(request: ChatRequest, db: Session = Depends(get_db)):
+    """The main neural link for talking to Orbit."""
+    try:
+        # Spin up the assistant with the current DB session
+        assistant = OrbitAssistant(db_session=db)
+        
+        # Get the big brain response
+        ai_reply = assistant.chat(request.message)
+        
+        return ChatResponse(reply=ai_reply)
+    except Exception as e:
+        logger.error(f"Orbit's brain crashed: {str(e)}")
+        # We don't want a 500 error crashing the app like a blown prop firm account 💀
+        raise HTTPException(status_code=500, detail=f"Orbit's brain crashed: {str(e)}")
+
+@router.post("/seed", response_model=ChatResponse)
+async def seed_tasks(db: Session = Depends(get_db)):
+    """Secret endpoint to instantly populate your empty tracker."""
+    assistant = OrbitAssistant(db_session=db)
+    prompt = "My tracker is completely empty bro. I'm slacking. Assign me essential tasks right now based on my 4 pillars (Med, Projects, Internship, Life), and do not forget the Friday Bible study with Mom."
+    
+    try:
+        ai_reply = assistant.chat(prompt)
+        return ChatResponse(reply=ai_reply)
+    except Exception as e:
+        logger.error(f"Failed to seed tasks: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to secure the bag. Try again.")
+
+
+ <<<--- END_FILE_BLOCK: backend/app/routers/orbit_ai.py
+
+>>>--- START_FILE_BLOCK: backend/app/models/tasks.py
+################################################################################
+FILE: backend/app/models/tasks.py
+VERSION: 4.0.0 | SYSTEM: N/A
+################################################################################
+
+################################################################################
+# FILE: backend/app/models/task.py
+# VERSION: 4.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+# IDENTITY: The Vault / Database Schema
+################################################################################
+
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
+from sqlalchemy.sql import func
+import enum
+from app.db.session import Base
+
+class LifePillar(str, enum.Enum):
+    STUDY = "STUDY"           # Med School, CATs, Pharma
+    PROJECT = "PROJECT"       # Coding, SHOFCO
+    INTERNSHIP = "INTERNSHIP" # Work hours, deliverables
+    LIFE = "LIFE"             # Bible study, Fasting, Social
+
+class Task(Base):
+    __tablename__ = "orbit_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True, nullable=False)
+    pillar = Column(Enum(LifePillar), nullable=False, default=LifePillar.LIFE)
+    description = Column(String, nullable=True)
+    
+    # AI scheduling fields
+    due_date = Column(DateTime(timezone=True), nullable=True)
+    duration_minutes = Column(Integer, default=60)
+    
+    # Status
+    is_completed = Column(Boolean, default=False)
+    is_recurring = Column(Boolean, default=False) # For that Tuesday/Friday Bible Study!
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "pillar": self.pillar.value,
+            "description": self.description,
+            "due_date": self.due_date.isoformat() if self.due_date else None,
+            "duration_minutes": self.duration_minutes,
+            "is_completed": self.is_completed,
+            "is_recurring": self.is_recurring
+        }
+
+
+ <<<--- END_FILE_BLOCK: backend/app/models/tasks.py
 
 >>>--- START_FILE_BLOCK: backend/app/models/study.py
 ################################################################################
@@ -1690,24 +1937,22 @@ class StudyTask(Base):
 >>>--- START_FILE_BLOCK: Pocket_Orbit/build.gradle.kts
 ################################################################################
 FILE: Pocket_Orbit/build.gradle.kts
-VERSION: 1.0.0 | SYSTEM: Android v3.0.1
+VERSION: 1.0.0 | SYSTEM: Android v3.1.0
 ################################################################################
 
 // ==========================================
-// IDENTITY: The Top-Level Broker / Root Gradle
+// IDENTITY: The Holding Company / Root Gradle
 // FILEPATH: Pocket_Orbit/build.gradle.kts
-// SYSTEM VERSION: Android v3.0.1
-// VIBE: Removed the 'libs' alias so Android Studio stops giving us margin calls. 📉->📈
+// SYSTEM VERSION: Android v3.1.0
+// VIBE: Cleaned out the duplicated logic. Just declaring plugins here. No cap. 🧹
 // ==========================================
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
-    // Hardcoded versions so we don't need a version catalog (libs.versions.toml)
-    id("com.android.application") version "8.13.2" apply false
-    id("org.jetbrains.kotlin.android") version "2.0.0" apply false
+    id("com.android.application") version "8.1.1" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.20" apply false
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.0" apply false
 }
-
 
  <<<--- END_FILE_BLOCK: Pocket_Orbit/build.gradle.kts
 
@@ -1747,21 +1992,21 @@ include(":app")
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/build.gradle.kts
 ################################################################################
 FILE: Pocket_Orbit/app/build.gradle.kts
-VERSION: 1.0.0 | SYSTEM: Android v3.0.2
+VERSION: 1.0.0 | SYSTEM: Android v3.1.5
 ################################################################################
 
 // ==========================================
 // IDENTITY: The Funding Account / App Gradle
 // FILEPATH: Pocket_Orbit/app/build.gradle.kts
-// SYSTEM VERSION: Android v3.0.2
-// VIBE: Kotlin 2.0 handles Compose natively now. Deleted the obsolete block. Funded Retrofit. 💰
+// SYSTEM VERSION: Android v3.1.5
+// VIBE: Fixed the compiler mismatch. Kotlin 1.9 is back in business. 💰🚀
 // ==========================================
 
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("kotlin-kapt")
-    id("org.jetbrains.kotlin.plugin.compose") 
+    // 🛑 REMOVED the Kotlin 2.0 Compose plugin. It was causing the 28 errors!
 }
 
 android {
@@ -1773,7 +2018,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "3.0-Jarvis"
+        versionName = "3.2-Jarvis-Stable"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -1797,11 +2042,17 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // 🔥 THE REAL FIX: This tells Kotlin 1.9.20 how to compile Compose code!
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.4"
+    }
 }
 
 dependencies {
     val room_version = "2.6.1"
     val retrofit_version = "2.9.0"
+    val nav_version = "2.7.7"
 
     // Android Core & Compose
     implementation("androidx.core:core-ktx:1.12.0")
@@ -1812,6 +2063,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+
+    // The Missing Liquidity for MainActivity
+    implementation("androidx.navigation:navigation-compose:$nav_version")
 
     // The Memory Card (Room DB)
     implementation("androidx.room:room-runtime:$room_version")
@@ -1825,7 +2079,6 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:$retrofit_version")
     implementation("com.squareup.retrofit2:converter-gson:$retrofit_version")
 }
-
 
  <<<--- END_FILE_BLOCK: Pocket_Orbit/app/build.gradle.kts
 
@@ -1950,6 +2203,138 @@ VERSION: 1.0.0 | SYSTEM: N/A
 
  <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/values/themes.xml
 
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/ic_orbit_logo.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/drawable/ic_orbit_logo.xml
+VERSION: 1.0.1 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+================================================================================
+FILE: Pocket_Orbit/app/src/main/res/drawable/ic_orbit_logo.xml
+VERSION: 1.0.1 | SYSTEM: Orbit (The Life-OS Protocol)
+IDENTITY: The Drip / Pure Android Vector Graphic
+================================================================================
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Background Squircle -->
+    <path
+        android:pathData="M115,0L397,0A115,115 0,0 1,512 115L512,397A115,115 0,0 1,397 512L115,512A115,115 0,0 1,0 397L0,115A115,115 0,0 1,115 0z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="-0"
+                android:startY="0"
+                android:endX="512"
+                android:endY="512"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF1E293B"/>
+                <item android:offset="1" android:color="#FF020617"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Deep Space Grid -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M0,256H512M256,0V512"
+        android:strokeAlpha="0.05"
+        android:strokeWidth="1"
+        android:strokeColor="#ffffff"
+        android:fillAlpha="0.05"/>
+
+    <!-- INNER ORBIT (Med & Project Pillars) -->
+    <path
+        android:pathData="M124.94,347.77a60,160 55,1 0,262.13 -183.54a60,160 55,1 0,-262.13 183.54z"
+        android:strokeAlpha="0.9"
+        android:strokeWidth="8"
+        android:fillColor="#00000000"
+        android:fillAlpha="0.9">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="120.39"
+                android:startY="151.75"
+                android:endX="391.62"
+                android:endY="360.25"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF00FFCC"/>
+                <item android:offset="1" android:color="#FF2196F3"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Pillar 1: Study Node -->
+    <path
+        android:pathData="M124.94,347.77m-11.47,8.03a14,14 94.04,1 1,22.94 -16.06a14,14 94.04,1 1,-22.94 16.06"
+        android:fillColor="#2196F3"/>
+
+    <!-- Pillar 2: Project Node -->
+    <path
+        android:pathData="M387.06,164.23m-8.19,5.74a10,10 84.29,1 1,16.38 -11.47a10,10 84.29,1 1,-16.38 11.47"
+        android:fillColor="#00FFCC"/>
+
+    <!-- OUTER ORBIT (Internship & Life Pillars) -->
+    <path
+        android:pathData="M114.58,114.58a70,200 135,1 0,282.84 282.84a70,200 135,1 0,-282.84 -282.84z"
+        android:strokeAlpha="0.6"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:fillAlpha="0.6">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="105.95"
+                android:startY="105.95"
+                android:endX="406.05"
+                android:endY="406.05"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF9C27B0"/>
+                <item android:offset="1" android:color="#FFE91E63"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Pillar 3: Internship Node -->
+    <path
+        android:pathData="M114.58,114.58m-8.49,-8.49a12,12 128.16,1 1,16.97 16.97a12,12 128.16,1 1,-16.97 -16.97"
+        android:fillColor="#E91E63"/>
+
+    <!-- Pillar 4: Life/Bible Study Node -->
+    <path
+        android:pathData="M397.42,397.42m-11.31,-11.31a16,16 51.2,1 1,22.63 22.63a16,16 51.2,1 1,-22.63 -22.63"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- THE CORE -->
+    <path
+        android:pathData="M256,256m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="236"
+                android:centerY="236"
+                android:gradientRadius="70"
+                android:type="radial">
+                <item android:offset="0" android:color="#FFFFFFFF"/>
+                <item android:offset="0.4" android:color="#FF00FFCC"/>
+                <item android:offset="1" android:color="#FF00838F"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Core Glow -->
+    <path
+        android:pathData="M256,256m-80,0a80,80 0,1 1,160 0a80,80 0,1 1,-160 0"
+        android:strokeAlpha="0.15"
+        android:fillColor="#00FFCC"
+        android:fillAlpha="0.15"/>
+</vector>
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/ic_orbit_logo.xml
+
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/ic_launcher_foreground.xml
 ################################################################################
 FILE: Pocket_Orbit/app/src/main/res/drawable/ic_launcher_foreground.xml
@@ -1988,6 +2373,111 @@ VERSION: 1.0.0 | SYSTEM: N/A
 </vector>
 
  <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/ic_launcher_foreground.xml
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/orbit_icon.xml
+################################################################################
+FILE: Pocket_Orbit/app/src/main/res/drawable/orbit_icon.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+  <path
+      android:pathData="M115,0L397,0A115,115 0,0 1,512 115L512,397A115,115 0,0 1,397 512L115,512A115,115 0,0 1,0 397L0,115A115,115 0,0 1,115 0z">
+    <aapt:attr name="android:fillColor">
+      <gradient
+          android:startX="-0"
+          android:startY="0"
+          android:endX="512"
+          android:endY="512"
+          android:type="linear">
+        <item android:offset="0" android:color="#FF1E293B"/>
+        <item android:offset="1" android:color="#FF020617"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+  <path
+      android:fillColor="#FF000000"
+      android:pathData="M0,256H512M256,0V512"
+      android:strokeAlpha="0.05"
+      android:strokeWidth="1"
+      android:strokeColor="#ffffff"
+      android:fillAlpha="0.05"/>
+  <path
+      android:pathData="M124.94,347.77a60,160 55,1 0,262.13 -183.54a60,160 55,1 0,-262.13 183.54z"
+      android:strokeAlpha="0.9"
+      android:strokeWidth="8"
+      android:fillColor="#00000000"
+      android:fillAlpha="0.9">
+    <aapt:attr name="android:strokeColor">
+      <gradient
+          android:startX="120.39"
+          android:startY="151.75"
+          android:endX="391.62"
+          android:endY="360.25"
+          android:type="linear">
+        <item android:offset="0" android:color="#FF00FFCC"/>
+        <item android:offset="1" android:color="#FF2196F3"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+  <path
+      android:pathData="M124.94,347.77m-11.47,8.03a14,14 94.04,1 1,22.94 -16.06a14,14 94.04,1 1,-22.94 16.06"
+      android:fillColor="#2196F3"/>
+  <path
+      android:pathData="M387.06,164.23m-8.19,5.74a10,10 84.29,1 1,16.38 -11.47a10,10 84.29,1 1,-16.38 11.47"
+      android:fillColor="#00FFCC"/>
+  <path
+      android:pathData="M114.58,114.58a70,200 135,1 0,282.84 282.84a70,200 135,1 0,-282.84 -282.84z"
+      android:strokeAlpha="0.6"
+      android:strokeWidth="4"
+      android:fillColor="#00000000"
+      android:fillAlpha="0.6">
+    <aapt:attr name="android:strokeColor">
+      <gradient
+          android:startX="105.95"
+          android:startY="105.95"
+          android:endX="406.05"
+          android:endY="406.05"
+          android:type="linear">
+        <item android:offset="0" android:color="#FF9C27B0"/>
+        <item android:offset="1" android:color="#FFE91E63"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+  <path
+      android:pathData="M114.58,114.58m-8.49,-8.49a12,12 128.16,1 1,16.97 16.97a12,12 128.16,1 1,-16.97 -16.97"
+      android:fillColor="#E91E63"/>
+  <path
+      android:pathData="M397.42,397.42m-11.31,-11.31a16,16 51.2,1 1,22.63 22.63a16,16 51.2,1 1,-22.63 -22.63"
+      android:fillColor="#FFFFFF"/>
+  <path
+      android:pathData="M256,256m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0">
+    <aapt:attr name="android:fillColor">
+      <gradient
+          android:centerX="236"
+          android:centerY="236"
+          android:gradientRadius="70"
+          android:type="radial">
+        <item android:offset="0" android:color="#FFFFFFFF"/>
+        <item android:offset="0.4" android:color="#FF00FFCC"/>
+        <item android:offset="1" android:color="#FF00838F"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+  <path
+      android:pathData="M256,256m-80,0a80,80 0,1 1,160 0a80,80 0,1 1,-160 0"
+      android:strokeAlpha="0.15"
+      android:fillColor="#00FFCC"
+      android:fillAlpha="0.15"/>
+</vector>
+
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/orbit_icon.xml
 
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/res/drawable/ic_launcher_background.xml
 ################################################################################
@@ -2222,80 +2712,133 @@ VERSION: 1.0.0 | SYSTEM: N/A
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt
 ################################################################################
 FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt
-VERSION: 1.1.0 | SYSTEM: N/A
+VERSION: 4.2.0 | SYSTEM: N/A
 ################################################################################
 
-// ==========================================
-// IDENTITY: The Front Door / MainActivity
-// FILEPATH: app/src/main/java/com/example/pocket_orbit/MainActivity.kt
-// COMPONENT: Android Entry Point
-// VERSION: 1.1.0
-// VIBE: "Wake up Neo. We are wiring the UI to the Matrix." 🔌
-// ==========================================
+// ================================================================================
+// FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt
+// VERSION: 4.2.0 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Anchor / Main Entry Point & Navigation
+// VIBE: 28 errors wiped out like a bad trade setup. Navigation is locked in. 🎯
+// ================================================================================
 
 package com.example.pocket_orbit
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.compose.ui.platform.LocalContext
+
+// 🔥 Every single navigation import explicitly defined so Android Studio stops panicking
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+
 import com.example.pocket_orbit.data.AppDatabase
 import com.example.pocket_orbit.data.OrbitRepository
-import com.example.pocket_orbit.network.BlastClient
 import com.example.pocket_orbit.network.RetrofitClient
-import com.example.pocket_orbit.ui.screens.DashboardScreen
+import com.example.pocket_orbit.ui.navigation.BottomNavItem
+import com.example.pocket_orbit.ui.screens.ChatScreen
+import com.example.pocket_orbit.ui.screens.ChatViewModel
 import com.example.pocket_orbit.ui.screens.DashboardViewModel
-import com.example.pocket_orbit.ui.theme.OrbitTheme
+import com.example.pocket_orbit.ui.screens.GameScreen
+import com.example.pocket_orbit.ui.screens.TrackerScreen
+import com.example.pocket_orbit.ui.theme.OrbitTheme // Bringing in your custom drip 🦇
 
 class MainActivity : ComponentActivity() {
-
-    private lateinit var blastClient: BlastClient
-
-    // 🧠 Creating the ViewModel and injecting the Repository (The Translator)
-    private val viewModel: DashboardViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val database = AppDatabase.getDatabase(applicationContext)
-                val repository = OrbitRepository(
-                    studyTaskDao = database.studyTaskDao(),
-                    apiService = RetrofitClient.apiService,
-                    secretToken = "3ATLNDwN6SfiTQfyfEjxQpxsRtj_6dzR8QzKxpXeZn8Nn76n4" // Must match VM .env!
-                )
-                return DashboardViewModel(repository) as T
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // To your Ngrok WebSocket address (Note the 'wss' for secure websockets):
-        blastClient = BlastClient("wss://untropic-rozanne-noncomprehendingly.ngrok-free.dev/ws/blast")
-        blastClient.connect()
-
         setContent {
+            // Dark Mode only.
             OrbitTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    // Injecting the Brain into the UI right here 👇
-                    DashboardScreen(viewModel = viewModel)
+                val navController = rememberNavController()
+                val context = LocalContext.current
+
+                // Manual Dependency Injection (Securing the bag)
+                val database = remember { AppDatabase.getDatabase(context) }
+                val apiService = remember { RetrofitClient.apiService }
+
+                val repository = remember {
+                    OrbitRepository(
+                        database.studyTaskDao(),
+                        apiService,
+                        "3ATLNDwN6SfiTQfyfEjxQpxsRtj_6dzR8QzKxpXeZn8Nn76n4"
+                    )
+                }
+
+                val dashboardViewModel = remember { DashboardViewModel(repository) }
+                val chatViewModel = remember { ChatViewModel(apiService) }
+
+                Scaffold(
+                    bottomBar = { OrbitBottomNav(navController = navController) },
+                    containerColor = MaterialTheme.colorScheme.background
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = BottomNavItem.Assistant.route,
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        composable(BottomNavItem.Assistant.route) {
+                            ChatScreen(viewModel = chatViewModel)
+                        }
+                        composable(BottomNavItem.Tracker.route) {
+                            TrackerScreen(viewModel = dashboardViewModel)
+                        }
+                        composable(BottomNavItem.Chill.route) {
+                            GameScreen()
+                        }
+                    }
                 }
             }
         }
     }
+}
 
-    override fun onDestroy() {
-        super.onDestroy()
-        blastClient.disconnect()
+@Composable
+fun OrbitBottomNav(navController: NavHostController) {
+    val items = listOf(
+        BottomNavItem.Assistant,
+        BottomNavItem.Tracker,
+        BottomNavItem.Chill
+    )
+
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navBackStackEntry?.destination?.route
+
+        items.forEach { item ->
+            NavigationBarItem(
+                icon = { Icon(item.icon, contentDescription = item.title) },
+                label = { Text(item.title) },
+                selected = currentRoute == item.route,
+                onClick = {
+                    navController.navigate(item.route) {
+                        // 🔥 The bulletproof way to pop back stack without using deprecated code
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        }
     }
 }
 
@@ -2348,36 +2891,52 @@ object RetrofitClient {
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
 ################################################################################
 FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
-VERSION: 1.0.0 | SYSTEM: N/A
+VERSION: 1.0.3 | SYSTEM: N/A
 ################################################################################
 
 // ==========================================
 // IDENTITY: The Courier / Retrofit API Service
-// FILEPATH: app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
-// COMPONENT: Android Networking
-// ROLE: The standard REST interface. When you pull-to-refresh, this guy fetches the data.
-// VIBE: "Hey VM, got any new Med School tasks for me?" 📦
+// FILEPATH: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
+// VERSION: 1.0.3
+// VIBE: Fixed the massive slippage. This is the REAL Retrofit interface now! 📡
 // ==========================================
 
 package com.example.pocket_orbit.network
 
 import com.example.pocket_orbit.data.StudyTaskEntity
+import com.example.pocket_orbit.model.ChatRequest
+import com.example.pocket_orbit.model.ChatResponse
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
 
 interface ApiService {
-    // Fetches your pending study tasks from the FastAPI backend
     @GET("api/v1/study/tasks/pending")
     suspend fun getPendingTasks(
         @Header("Authorization") token: String
     ): Response<List<StudyTaskEntity>>
 
-    // Fetches the Governor's current vibe recommendation
     @GET("api/v1/tasks/current-vibe")
     suspend fun getCurrentVibe(
         @Header("Authorization") token: String
     ): Response<VibeResponse>
+
+    @PUT("api/v1/study/tasks/{task_id}/complete")
+    suspend fun completeTask(
+        @Header("Authorization") token: String,
+        @Path("task_id") taskId: Int
+    ): Response<Unit>
+
+    // 🔥 THE FIX: The neural link so Android can talk to Gemini on the VM
+    @POST("api/v1/orbit/converse")
+    suspend fun converseWithOrbit(
+        @Header("Authorization") token: String,
+        @Body request: ChatRequest
+    ): Response<ChatResponse>
 }
 
 data class VibeResponse(
@@ -2451,12 +3010,12 @@ class BlastClient(private val url: String) {
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
 ################################################################################
 FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
-VERSION: 3.1.4 | SYSTEM: N/A
+VERSION: 3.1.5 | SYSTEM: N/A
 ################################################################################
 
 // ================================================================================
 // FILE: /Projects/Orbit/Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
-// VERSION: 3.1.4 | SYSTEM: Orbit (The Jarvis Protocol)
+// VERSION: 3.1.5 | SYSTEM: Orbit (The Jarvis Protocol)
 // ================================================================================
 
 package com.example.pocket_orbit.ui.screens
@@ -2479,14 +3038,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// We need to explicitly import your Entity so the UI knows what 'nextTask' is!
 import com.example.pocket_orbit.data.StudyTaskEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel) {
 
-    // 🧠 Collecting from your actual Flow in the ViewModel
     val pendingTasks by viewModel.pendingTasks.collectAsState()
     val nextTask: StudyTaskEntity? = pendingTasks.firstOrNull()
 
@@ -2555,8 +3112,6 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             // MED-SCHOLAR TASK CARD
             // ------------------------------------------------------------------
             if (nextTask != null) {
-
-                // Using safe calls in case Gson fed us a sneaky null from the backend!
                 val rotLevel = nextTask.brainRotLevel?.lowercase() ?: "chill"
 
                 val (rotColor, rotText) = when(rotLevel) {
@@ -2616,11 +3171,12 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Button(
-                            onClick = { /* TODO: Hook up complete action */ },
+                            // 🔥 THE FIX: Actually hitting the view model to secure the bag!
+                            onClick = { viewModel.markTaskCompleted(nextTask.id) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Text("Mark Completed W")
+                            Text("Mark Completed W", color = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
                 }
@@ -2652,18 +3208,561 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
 
  <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
 
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Translator / Chat ViewModel
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt
+// VERSION: 1.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+// ==========================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.pocket_orbit.model.ChatMessage
+import com.example.pocket_orbit.model.ChatRequest
+import com.example.pocket_orbit.network.ApiService
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+class ChatViewModel(
+    private val apiService: ApiService
+) : ViewModel() {
+
+    // Holds the list of messages. The UI observes this.
+    private val _chatHistory = MutableStateFlow<List<ChatMessage>>(emptyList())
+    val chatHistory: StateFlow<List<ChatMessage>> = _chatHistory
+
+    // Tells the UI when the VM is "typing"
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    // Your secret vault key (keep it matching your VM's .env)
+    private val secretToken = "3ATLNDwN6SfiTQfyfEjxQpxsRtj_6dzR8QzKxpXeZn8Nn76n4"
+
+    fun sendMessage(text: String) {
+        if (text.isBlank()) return // Don't send empty orders to the market
+
+        // 1. Immediately show the user's message in the UI (Zero slippage)
+        val userMsg = ChatMessage(text = text, isFromUser = true)
+        _chatHistory.value = _chatHistory.value + userMsg
+
+        // 2. Turn on the loading indicator
+        _isLoading.value = true
+
+        // 3. Fire the request to the FastAPI VM in the background
+        viewModelScope.launch {
+            try {
+                val response = apiService.converseWithOrbit(
+                    token = "Bearer $secretToken",
+                    request = ChatRequest(message = text)
+                )
+
+                if (response.isSuccessful && response.body() != null) {
+                    // W Secured! Orbit replied.
+                    val orbitReply = response.body()!!.reply
+                    _chatHistory.value = _chatHistory.value + ChatMessage(text = orbitReply, isFromUser = false)
+                } else {
+                    // VM rejected it. 
+                    _chatHistory.value = _chatHistory.value + ChatMessage("Orbit's brain rejected the request. Are you over-leveraging? 💀", isFromUser = false)
+                }
+            } catch (e: Exception) {
+                // Safaricom acting up again...
+                _chatHistory.value = _chatHistory.value + ChatMessage("Network error. Can't reach the VM. Go touch grass. 📵", isFromUser = false)
+            } finally {
+                // Turn off the loading indicator
+                _isLoading.value = false
+            }
+        }
+    }
+}
+
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/TrackerScreen.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/TrackerScreen.kt
+VERSION: 4.1.2 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/TrackerScreen.kt
+// VERSION: 4.1.2 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Ledger / All Tasks View
+// VIBE: Dropped the mock data. Now pulling real grinds from the DB. ✅
+// ================================================================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+import com.example.pocket_orbit.data.StudyTaskEntity
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TrackerScreen(viewModel: DashboardViewModel) {
+
+    // 🔥 PULLING REAL DATA FROM THE VAULT!
+    val pendingTasks by viewModel.pendingTasks.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Task Ledger \uD83D\uDDC2️", fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Upcoming Grinds \uD83D\uDD25", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+
+            if (pendingTasks.isEmpty()) {
+                item {
+                    Text(
+                        "All caught up! Head over to the Assistant tab to have Orbit assign you some Med School pain. 🧠",
+                        color = Color.Gray,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                }
+            } else {
+                items(pendingTasks) { task ->
+                    TaskCard(
+                        task = task,
+                        onClick = { viewModel.markTaskCompleted(task.id) }
+                    )
+                }
+            }
+
+            // NOTE: Completed tasks aren't currently fetched by the DAO.
+            // But once you add a 'getCompletedTasks' query to Room, they'd go right here!
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+        }
+    }
+}
+
+@Composable
+fun TaskCard(task: StudyTaskEntity, alpha: Float = 1.0f, onClick: () -> Unit = {}) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(alpha)
+            .clickable { onClick() }, // Tap to secure the W
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = task.subject,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2196F3) // Hardcoded to Med blue for now
+                )
+                Text(
+                    text = task.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (task.isCompleted) Color.Gray else MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            if (task.isCompleted) {
+                Icon(Icons.Default.Check, contentDescription = "Done", tint = Color(0xFF4CAF50))
+            } else {
+                Icon(Icons.Default.List, contentDescription = "Pending", tint = Color.Gray)
+            }
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/TrackerScreen.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/GameScreen.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/GameScreen.kt
+VERSION: 4.1.1 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/GameScreen.kt
+// VERSION: 4.1.1 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Rec Room / Compose Mini-Game
+// ================================================================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+
+@Composable
+fun GameScreen() {
+    var isPlaying by remember { mutableStateOf(false) }
+    var score by remember { mutableStateOf(0) }
+    var playerY by remember { mutableStateOf(0f) }
+    var playerVelocity by remember { mutableStateOf(0f) }
+    var obstacleX by remember { mutableStateOf(1000f) }
+    var gameOver by remember { mutableStateOf(false) }
+
+    val gravity = 2f
+    val jumpStrength = -30f
+    val groundY = 0f
+
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (isActive) {
+                delay(16)
+
+                playerVelocity += gravity
+                playerY += playerVelocity
+
+                if (playerY > groundY) {
+                    playerY = groundY
+                    playerVelocity = 0f
+                }
+
+                obstacleX -= 20f + (score * 0.5f)
+
+                if (obstacleX < -100f) {
+                    obstacleX = 1000f
+                    score += 1
+                }
+
+                if (obstacleX in 120f..280f && playerY > -100f) {
+                    gameOver = true
+                    isPlaying = false
+                }
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .clickable {
+                if (gameOver) {
+                    gameOver = false
+                    score = 0
+                    obstacleX = 1000f
+                    playerY = 0f
+                    isPlaying = true
+                } else if (!isPlaying) {
+                    isPlaying = true
+                } else {
+                    if (playerY == groundY) {
+                        playerVelocity = jumpStrength
+                    }
+                }
+            },
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Dodge the Margin Call \uD83D\uDCC9",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = "Score: $score",
+            fontSize = 20.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        if (gameOver) {
+            Text(
+                text = "ACCOUNT BLOWN! Tap to restart. \uD83D\uDC80",
+                color = Color.Red,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        } else if (!isPlaying) {
+            Text(
+                text = "Tap anywhere to jump!",
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+                .background(Color(0xFF1E1E1E))
+        ) {
+            val canvasWidth = size.width
+            val canvasHeight = size.height
+
+            drawLine(
+                color = Color.White,
+                start = Offset(0f, canvasHeight - 50f),
+                end = Offset(canvasWidth, canvasHeight - 50f),
+                strokeWidth = 5f
+            )
+
+            drawCircle(
+                color = Color(0xFF00E676),
+                radius = 40f,
+                center = Offset(200f, canvasHeight - 90f + playerY)
+            )
+
+            drawRect(
+                color = Color(0xFFFF1744),
+                topLeft = Offset(obstacleX, canvasHeight - 150f),
+                size = Size(60f, 100f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/GameScreen.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt
+VERSION: 4.0.1 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt
+// VERSION: 4.0.1 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Neural Interface / Chat UI
+// ================================================================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+// 🔥 THE FIX: We properly import the models so Android Studio stops panicking!
+import com.example.pocket_orbit.model.ChatMessage
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatScreen(
+    viewModel: ChatViewModel 
+) {
+    var inputText by remember { mutableStateOf("") }
+    
+    // Collecting the flows from the ViewModel. No more unresolved references!
+    val chatHistory by viewModel.chatHistory.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Column {
+                        Text("Orbit AI 🪐", fontWeight = FontWeight.Bold)
+                        Text("Online • Ready to optimize", fontSize = 12.sp, color = Color(0xFF00FFCC))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Chat History Area
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                reverseLayout = true // Pushes messages to the bottom
+            ) {
+                // We reverse the list so the newest message is at the bottom (like WhatsApp)
+                items(chatHistory.reversed()) { message ->
+                    ChatBubble(message)
+                }
+            }
+
+            // Loading Indicator (When VM is thinking)
+            if (isLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Input Box Area
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                tonalElevation = 4.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Tell Orbit to schedule something...") },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    FloatingActionButton(
+                        onClick = {
+                            if (inputText.isNotBlank()) {
+                                // Hit the ViewModel to execute the trade!
+                                viewModel.sendMessage(inputText)
+                                inputText = "" // Clear the input field
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(50.dp)
+                    ) {
+                        Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.Black)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatBubble(message: ChatMessage) {
+    val backgroundColor = if (message.isFromUser) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.secondaryContainer
+    }
+    
+    val textColor = if (message.isFromUser) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    }
+
+    val alignment = if (message.isFromUser) Alignment.CenterEnd else Alignment.CenterStart
+    val shape = if (message.isFromUser) {
+        RoundedCornerShape(16.dp, 16.dp, 0.dp, 16.dp)
+    } else {
+        RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp)
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        contentAlignment = alignment
+    ) {
+        Surface(
+            shape = shape,
+            color = backgroundColor,
+            modifier = Modifier.widthIn(max = 300.dp)
+        ) {
+            Text(
+                text = message.text,
+                color = textColor,
+                modifier = Modifier.padding(12.dp),
+                fontSize = 15.sp
+            )
+        }
+    }
+}
+
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt
+
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
 ################################################################################
 FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
-VERSION: 1.0.0 | SYSTEM: N/A
+VERSION: 1.0.1 | SYSTEM: N/A
 ################################################################################
 
 // ==========================================
 // IDENTITY: The Translator / ViewModel
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
-// COMPONENT: Android Architecture (MVVM)
-// ROLE: Takes data from the Repository and feeds it to the UI. Survives screen rotations.
-// VIBE: The calm, collected manager who doesn't panic when you rotate your phone. 📱🔄
+// VERSION: 1.0.1
 // ==========================================
 
 package com.example.pocket_orbit.ui.screens
@@ -2679,7 +3778,6 @@ class DashboardViewModel(
     private val repository: OrbitRepository
 ) : ViewModel() {
 
-    // The UI listens to this state. If the DB updates, the UI instantly redraws. W architecture.
     val pendingTasks = repository.pendingTasks.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -2687,15 +3785,19 @@ class DashboardViewModel(
     )
 
     init {
-        // As soon as the app opens, tell the repo to try and fetch fresh data from the VM
         refreshData()
     }
 
     fun refreshData() {
         viewModelScope.launch {
-            // We launch this in a coroutine so the UI doesn't freeze.
-            // Never block the main thread, or the app crashes like a margin call.
             repository.refreshTasksFromVM()
+        }
+    }
+
+    // 🔥 THE FIX: Passing the completion event down to the repo
+    fun markTaskCompleted(taskId: Int) {
+        viewModelScope.launch {
+            repository.markTaskComplete(taskId)
         }
     }
 }
@@ -2824,6 +3926,35 @@ val Typography = Typography(
 
  <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/theme/Type.kt
 
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/navigation/OrbitDestinations.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/navigation/OrbitDestinations.kt
+VERSION: 4.1.1 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/navigation/OrbitDestinations.kt
+// VERSION: 4.1.1 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Map / Navigation Routes
+// ================================================================================
+
+package com.example.pocket_orbit.ui.navigation
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.graphics.vector.ImageVector
+
+sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
+    object Assistant : BottomNavItem("assistant", "Orbit AI", Icons.Default.Face)
+    object Tracker : BottomNavItem("tracker", "Tracker", Icons.Default.CheckCircle)
+    object Chill : BottomNavItem("chill", "Chill", Icons.Default.PlayArrow)
+}
+
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/navigation/OrbitDestinations.kt
+
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
 ################################################################################
 FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
@@ -2911,15 +4042,13 @@ class DateConverter {
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Daos.kt
 ################################################################################
 FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/Daos.kt
-VERSION: 1.0.0 | SYSTEM: N/A
+VERSION: 1.0.1 | SYSTEM: N/A
 ################################################################################
 
 // ==========================================
 // IDENTITY: The Guards / Room DB DAOs
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/data/Daos.kt
-// COMPONENT: Android Offline Database
-// ROLE: The SQL queries for your phone. How we read/write the data.
-// VIBE: Fetching data faster than a high-frequency trading bot. ⚡
+// VERSION: 1.0.1
 // ==========================================
 
 package com.example.pocket_orbit.data
@@ -2932,16 +4061,18 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface StudyTaskDao {
-    // If a task already exists, just replace it (upsert)
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTasks(tasks: List<StudyTaskEntity>)
 
-    // Flow emits real-time updates to the UI when the DB changes!
     @Query("SELECT * FROM study_tasks WHERE isCompleted = 0")
     fun getPendingTasks(): Flow<List<StudyTaskEntity>>
 
     @Query("DELETE FROM study_tasks")
     suspend fun clearTasks()
+
+    // 🔥 THE FIX: SQL query to actually check off the task in local memory
+    @Query("UPDATE study_tasks SET isCompleted = 1 WHERE id = :taskId")
+    suspend fun markTaskCompleted(taskId: Int)
 }
 
 @Dao
@@ -2949,7 +4080,6 @@ interface ForexLogDao {
     @Insert
     suspend fun insertLog(log: ForexLogEntity)
 
-    // Get the last 10 trades so you can review your bad decisions 💀
     @Query("SELECT * FROM forex_logs ORDER BY timestamp DESC LIMIT 10")
     fun getRecentLogs(): Flow<List<ForexLogEntity>>
 }
@@ -3000,15 +4130,13 @@ data class ForexLogEntity(
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
 ################################################################################
 FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
-VERSION: 1.0.0 | SYSTEM: N/A
+VERSION: 1.0.1 | SYSTEM: N/A
 ################################################################################
 
 // ==========================================
 // IDENTITY: The Brain / Orbit Repository
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
-// COMPONENT: Android Data Management
-// ROLE: Decides whether to show you data from the local Room DB or fetch fresh data from the VM.
-// VIBE: The smartest guy in the room coordinating between offline and online modes. 🧠
+// VERSION: 1.0.1
 // ==========================================
 
 package com.example.pocket_orbit.data
@@ -3020,18 +4148,15 @@ import kotlinx.coroutines.flow.Flow
 class OrbitRepository(
     private val studyTaskDao: StudyTaskDao,
     private val apiService: ApiService,
-    private val secretToken: String // Your SECRET_KEY from the .env
+    private val secretToken: String
 ) {
-    // The UI observes this. It instantly updates if the local database changes.
     val pendingTasks: Flow<List<StudyTaskEntity>> = studyTaskDao.getPendingTasks()
 
     suspend fun refreshTasksFromVM() {
         try {
-            // Attempt to fetch fresh data from the FastAPI backend
             val response = apiService.getPendingTasks("Bearer $secretToken")
-            
+
             if (response.isSuccessful && response.body() != null) {
-                // If successful, wipe the old offline data and save the new data
                 val newTasks = response.body()!!
                 studyTaskDao.clearTasks()
                 studyTaskDao.insertTasks(newTasks)
@@ -3040,14 +4165,65 @@ class OrbitRepository(
                 Log.e("OrbitRepo", "VM rejected us. Opps activity? Code: ${response.code()}")
             }
         } catch (e: Exception) {
-            // If the VM is offline or you have no bundles, it's chill.
-            // We just rely on the existing local Room DB data.
             Log.w("OrbitRepo", "Network error. Relying on offline vault. Safaricom acting up again? 📵")
+        }
+    }
+
+    // 🔥 THE FIX: Executes the 'Take Profit' locally first, then syncs with the VM Brain
+    suspend fun markTaskComplete(taskId: Int) {
+        try {
+            // 1. Instant UI update (Offline First mentality)
+            studyTaskDao.markTaskCompleted(taskId)
+            Log.d("OrbitRepo", "Task $taskId marked complete locally. Good stuff.")
+
+            // 2. Tell the VM we secured the W
+            val response = apiService.completeTask("Bearer $secretToken", taskId)
+            if (response.isSuccessful) {
+                Log.d("OrbitRepo", "VM acknowledges the W! Task $taskId fully completed.")
+            } else {
+                Log.w("OrbitRepo", "VM sync failed for completion. Will retry next sync cycle.")
+            }
+        } catch (e: Exception) {
+            Log.e("OrbitRepo", "Failed to reach VM to mark complete: ${e.message}")
         }
     }
 }
 
  <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
+
+>>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/model/ChatModels.kt
+################################################################################
+FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/model/ChatModels.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Vocabulary / Chat Models
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/model/ChatModels.kt
+// VERSION: 1.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+// ==========================================
+
+package com.example.pocket_orbit.model
+
+// This is what the UI uses to draw the chat bubbles
+data class ChatMessage(
+    val text: String,
+    val isFromUser: Boolean
+)
+
+// This is what we send to the FastAPI VM
+data class ChatRequest(
+    val message: String
+)
+
+// This is what the FastAPI VM replies with
+data class ChatResponse(
+    val reply: String,
+    val status: String
+)
+
+
+ <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/model/ChatModels.kt
 
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/test/java/com/example/pocket_orbit/ExampleUnitTest.kt
 ################################################################################
