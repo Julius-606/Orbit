@@ -1,0 +1,2418 @@
+================================================================================
+SYSTEM INSTRUCTIONS FOR PROJECT ORBIT (THE JARVIS PROTOCOL)
+================================================================================
+DATE: 2026-03-06 10:04:39
+STATUS: VERSION 3.1 (STABILITY UPGRADE)
+
+INSTRUCTIONS FOR THE AI ASSISTANT:
+1. SINGLE SOURCE OF TRUTH: This snapshot is the Holy Grail. Use it for all context.
+2. EDIT PROTOCOL: 
+   - State the target file path clearly.
+   - Maintain the header Identity as this is what I use to distinguish between files.
+   - Increment VERSION (Major.Minor.Patch) in the IDENTITY header for each file.
+   - For files > 700 lines, use the "DIFF" approach (10 lines context).
+3. DELIMITER AWARENESS: Files are wrapped in unique delimiters:
+   >>>--- START_FILE_BLOCK: [path] and  <<<--- END_FILE_BLOCK: [path].
+   Use these to anchor your parsing and avoid "fumbling" lines.
+4. VIBE CHECK: Maintain all comments, imports, and docstrings. No "creative deletion."
+5. PROJECT STRUCTURE: Refer to the FILE MANIFEST below for the full architecture.
+
+================================================================================
+FILE MANIFEST (TABLE OF CONTENTS)
+================================================================================
+- build.gradle.kts [v1.0.1]
+- settings.gradle.kts [v1.0.0]
+- app/build.gradle.kts [v1.0.1]
+- app/src/main/AndroidManifest.xml [v1.0.0]
+- app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml [v1.0.0]
+- app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml [v1.0.0]
+- app/src/main/res/values/strings.xml [v1.0.0]
+- app/src/main/res/values/colors.xml [v1.0.0]
+- app/src/main/res/values/themes.xml [v1.0.0]
+- app/src/main/res/drawable/ic_orbit_logo.xml [v1.0.1]
+- app/src/main/res/drawable/ic_launcher_foreground.xml [v1.0.0]
+- app/src/main/res/drawable/orbit_icon.xml [v1.0.0]
+- app/src/main/res/drawable/ic_launcher_background.xml [v1.0.0]
+- app/src/main/res/xml/backup_rules.xml [v1.0.0]
+- app/src/main/res/xml/data_extraction_rules.xml [v1.0.0]
+- app/src/main/java/com/example/pocket_orbit/MainActivity.kt [v4.2.0]
+- app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt [v1.0.0]
+- app/src/main/java/com/example/pocket_orbit/network/ApiService.kt [v1.0.3]
+- app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt [v1.0.0]
+- app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt [v3.1.5]
+- app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt [v1.0.0]
+- app/src/main/java/com/example/pocket_orbit/ui/screens/TrackerScreen.kt [v4.1.2]
+- app/src/main/java/com/example/pocket_orbit/ui/screens/GameScreen.kt [v4.1.1]
+- app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt [v4.0.1]
+- app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt [v1.0.1]
+- app/src/main/java/com/example/pocket_orbit/ui/theme/Color.kt [v1.0.0]
+- app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt [v1.0.0]
+- app/src/main/java/com/example/pocket_orbit/ui/theme/Type.kt [v1.0.0]
+- app/src/main/java/com/example/pocket_orbit/ui/navigation/OrbitDestinations.kt [v4.1.1]
+- app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt [v1.0.0]
+- app/src/main/java/com/example/pocket_orbit/data/DataConverter.kt [v1.0.0]
+- app/src/main/java/com/example/pocket_orbit/data/Daos.kt [v1.0.1]
+- app/src/main/java/com/example/pocket_orbit/data/Entities.kt [v1.0.0]
+- app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt [v1.0.1]
+- app/src/main/java/com/example/pocket_orbit/model/ChatModels.kt [v1.0.0]
+- app/src/test/java/com/example/pocket_orbit/ExampleUnitTest.kt [v1.0.0]
+- app/src/androidTest/java/com/example/pocket_orbit/ExampleInstrumentedTest.kt [v1.0.0]
+
+================================================================================
+FULL PROJECT CONTENT BEGINS BELOW
+================================================================================
+
+>>>--- START_FILE_BLOCK: build.gradle.kts
+################################################################################
+FILE: build.gradle.kts
+VERSION: 1.0.1 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: Pocket_Orbit/build.gradle.kts
+// VERSION: 1.0.1 | SYSTEM: Orbit Life-OS v4.0.0
+// IDENTITY: The Holding Company / Root Gradle
+// VIBE: Upgraded to Kotlin 2.0.0 to dodge that compiler margin call. 🚀
+// ================================================================================
+
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+plugins {
+    id("com.android.application") version "8.1.1" apply false
+
+    // 🔥 THE FIX: Moving the trendline up to Kotlin 2.0.0
+    id("org.jetbrains.kotlin.android") version "2.0.0" apply false
+
+    // 🔥 THE NEW SAUCE: Kotlin 2.0 requires this specific Compose Compiler plugin
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0" apply false
+}
+
+ <<<--- END_FILE_BLOCK: build.gradle.kts
+
+>>>--- START_FILE_BLOCK: settings.gradle.kts
+################################################################################
+FILE: settings.gradle.kts
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "Pocket_Orbit"
+include(":app")
+ 
+
+ <<<--- END_FILE_BLOCK: settings.gradle.kts
+
+>>>--- START_FILE_BLOCK: app/build.gradle.kts
+################################################################################
+FILE: app/build.gradle.kts
+VERSION: 1.0.1 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: Pocket_Orbit/app/build.gradle.kts
+// VERSION: 1.0.1 | SYSTEM: Orbit Life-OS v4.0.0
+// IDENTITY: The Funding Account / App Gradle
+// VIBE: Kotlin 2.0 is the new resistance level. We ride the bull market. 📈
+// ================================================================================
+
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    // 🔥 Bringing the Kotlin 2.0 Compose plugin into the module
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("kotlin-kapt")
+}
+
+android {
+    namespace = "com.example.pocket_orbit"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.example.pocket_orbit"
+        minSdk = 26
+        targetSdk = 34
+        versionCode = 2
+        versionName = "4.0-Orbit-Life-OS"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+    buildFeatures {
+        compose = true
+    }
+
+    // 🛑 STOP LOSS HIT: The 'composeOptions' block is DELETED!
+    // Kotlin 2.0 handles the compiler natively now. No more version mismatch slippage.
+}
+
+dependencies {
+    val room_version = "2.6.1"
+    val retrofit_version = "2.9.0"
+    val nav_version = "2.7.7"
+
+    // Android Core & Compose
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+    implementation("androidx.activity:activity-compose:1.8.1")
+
+    // Bumped the BOM slightly to play nice with the 2.0 upgrade
+    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+
+    // The Missing Liquidity for MainActivity
+    implementation("androidx.navigation:navigation-compose:$nav_version")
+
+    // The Memory Card (Room DB)
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    kapt("androidx.room:room-compiler:$room_version")
+
+    // The Antenna (OkHttp for WebSockets)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // The Courier (Retrofit & GSON for API calls)
+    implementation("com.squareup.retrofit2:retrofit:$retrofit_version")
+    implementation("com.squareup.retrofit2:converter-gson:$retrofit_version")
+}
+
+ <<<--- END_FILE_BLOCK: app/build.gradle.kts
+
+>>>--- START_FILE_BLOCK: app/src/main/AndroidManifest.xml
+################################################################################
+FILE: app/src/main/AndroidManifest.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==========================================
+IDENTITY: The VIP Pass / Android Manifest
+FILEPATH: app/src/main/AndroidManifest.xml
+VIBE: "Mom, can I go out and play with the WebSocket?" 🙏
+==========================================
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Pocket Orbit"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.NoActionBar"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+
+ <<<--- END_FILE_BLOCK: app/src/main/AndroidManifest.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+################################################################################
+FILE: app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+################################################################################
+FILE: app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/values/strings.xml
+################################################################################
+FILE: app/src/main/res/values/strings.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<resources>
+    <string name="app_name">Pocket_Orbit</string>
+</resources>
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/values/strings.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/values/colors.xml
+################################################################################
+FILE: app/src/main/res/values/colors.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/values/colors.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/values/themes.xml
+################################################################################
+FILE: app/src/main/res/values/themes.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Pocket_Orbit" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/values/themes.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/drawable/ic_orbit_logo.xml
+################################################################################
+FILE: app/src/main/res/drawable/ic_orbit_logo.xml
+VERSION: 1.0.1 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+================================================================================
+FILE: Pocket_Orbit/app/src/main/res/drawable/ic_orbit_logo.xml
+VERSION: 1.0.1 | SYSTEM: Orbit (The Life-OS Protocol)
+IDENTITY: The Drip / Pure Android Vector Graphic
+================================================================================
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Background Squircle -->
+    <path
+        android:pathData="M115,0L397,0A115,115 0,0 1,512 115L512,397A115,115 0,0 1,397 512L115,512A115,115 0,0 1,0 397L0,115A115,115 0,0 1,115 0z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="-0"
+                android:startY="0"
+                android:endX="512"
+                android:endY="512"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF1E293B"/>
+                <item android:offset="1" android:color="#FF020617"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Deep Space Grid -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M0,256H512M256,0V512"
+        android:strokeAlpha="0.05"
+        android:strokeWidth="1"
+        android:strokeColor="#ffffff"
+        android:fillAlpha="0.05"/>
+
+    <!-- INNER ORBIT (Med & Project Pillars) -->
+    <path
+        android:pathData="M124.94,347.77a60,160 55,1 0,262.13 -183.54a60,160 55,1 0,-262.13 183.54z"
+        android:strokeAlpha="0.9"
+        android:strokeWidth="8"
+        android:fillColor="#00000000"
+        android:fillAlpha="0.9">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="120.39"
+                android:startY="151.75"
+                android:endX="391.62"
+                android:endY="360.25"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF00FFCC"/>
+                <item android:offset="1" android:color="#FF2196F3"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Pillar 1: Study Node -->
+    <path
+        android:pathData="M124.94,347.77m-11.47,8.03a14,14 94.04,1 1,22.94 -16.06a14,14 94.04,1 1,-22.94 16.06"
+        android:fillColor="#2196F3"/>
+
+    <!-- Pillar 2: Project Node -->
+    <path
+        android:pathData="M387.06,164.23m-8.19,5.74a10,10 84.29,1 1,16.38 -11.47a10,10 84.29,1 1,-16.38 11.47"
+        android:fillColor="#00FFCC"/>
+
+    <!-- OUTER ORBIT (Internship & Life Pillars) -->
+    <path
+        android:pathData="M114.58,114.58a70,200 135,1 0,282.84 282.84a70,200 135,1 0,-282.84 -282.84z"
+        android:strokeAlpha="0.6"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:fillAlpha="0.6">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="105.95"
+                android:startY="105.95"
+                android:endX="406.05"
+                android:endY="406.05"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF9C27B0"/>
+                <item android:offset="1" android:color="#FFE91E63"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Pillar 3: Internship Node -->
+    <path
+        android:pathData="M114.58,114.58m-8.49,-8.49a12,12 128.16,1 1,16.97 16.97a12,12 128.16,1 1,-16.97 -16.97"
+        android:fillColor="#E91E63"/>
+
+    <!-- Pillar 4: Life/Bible Study Node -->
+    <path
+        android:pathData="M397.42,397.42m-11.31,-11.31a16,16 51.2,1 1,22.63 22.63a16,16 51.2,1 1,-22.63 -22.63"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- THE CORE -->
+    <path
+        android:pathData="M256,256m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="236"
+                android:centerY="236"
+                android:gradientRadius="70"
+                android:type="radial">
+                <item android:offset="0" android:color="#FFFFFFFF"/>
+                <item android:offset="0.4" android:color="#FF00FFCC"/>
+                <item android:offset="1" android:color="#FF00838F"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Core Glow -->
+    <path
+        android:pathData="M256,256m-80,0a80,80 0,1 1,160 0a80,80 0,1 1,-160 0"
+        android:strokeAlpha="0.15"
+        android:fillColor="#00FFCC"
+        android:fillAlpha="0.15"/>
+</vector>
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/drawable/ic_orbit_logo.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/drawable/ic_launcher_foreground.xml
+################################################################################
+FILE: app/src/main/res/drawable/ic_launcher_foreground.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="85.84757"
+                android:endY="92.4963"
+                android:startX="42.9492"
+                android:startY="49.59793"
+                android:type="linear">
+                <item
+                    android:color="#44000000"
+                    android:offset="0.0" />
+                <item
+                    android:color="#00000000"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="nonZero"
+        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
+        android:strokeWidth="1"
+        android:strokeColor="#00000000" />
+</vector>
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/drawable/ic_launcher_foreground.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/drawable/orbit_icon.xml
+################################################################################
+FILE: app/src/main/res/drawable/orbit_icon.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+  <path
+      android:pathData="M115,0L397,0A115,115 0,0 1,512 115L512,397A115,115 0,0 1,397 512L115,512A115,115 0,0 1,0 397L0,115A115,115 0,0 1,115 0z">
+    <aapt:attr name="android:fillColor">
+      <gradient
+          android:startX="-0"
+          android:startY="0"
+          android:endX="512"
+          android:endY="512"
+          android:type="linear">
+        <item android:offset="0" android:color="#FF1E293B"/>
+        <item android:offset="1" android:color="#FF020617"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+  <path
+      android:fillColor="#FF000000"
+      android:pathData="M0,256H512M256,0V512"
+      android:strokeAlpha="0.05"
+      android:strokeWidth="1"
+      android:strokeColor="#ffffff"
+      android:fillAlpha="0.05"/>
+  <path
+      android:pathData="M124.94,347.77a60,160 55,1 0,262.13 -183.54a60,160 55,1 0,-262.13 183.54z"
+      android:strokeAlpha="0.9"
+      android:strokeWidth="8"
+      android:fillColor="#00000000"
+      android:fillAlpha="0.9">
+    <aapt:attr name="android:strokeColor">
+      <gradient
+          android:startX="120.39"
+          android:startY="151.75"
+          android:endX="391.62"
+          android:endY="360.25"
+          android:type="linear">
+        <item android:offset="0" android:color="#FF00FFCC"/>
+        <item android:offset="1" android:color="#FF2196F3"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+  <path
+      android:pathData="M124.94,347.77m-11.47,8.03a14,14 94.04,1 1,22.94 -16.06a14,14 94.04,1 1,-22.94 16.06"
+      android:fillColor="#2196F3"/>
+  <path
+      android:pathData="M387.06,164.23m-8.19,5.74a10,10 84.29,1 1,16.38 -11.47a10,10 84.29,1 1,-16.38 11.47"
+      android:fillColor="#00FFCC"/>
+  <path
+      android:pathData="M114.58,114.58a70,200 135,1 0,282.84 282.84a70,200 135,1 0,-282.84 -282.84z"
+      android:strokeAlpha="0.6"
+      android:strokeWidth="4"
+      android:fillColor="#00000000"
+      android:fillAlpha="0.6">
+    <aapt:attr name="android:strokeColor">
+      <gradient
+          android:startX="105.95"
+          android:startY="105.95"
+          android:endX="406.05"
+          android:endY="406.05"
+          android:type="linear">
+        <item android:offset="0" android:color="#FF9C27B0"/>
+        <item android:offset="1" android:color="#FFE91E63"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+  <path
+      android:pathData="M114.58,114.58m-8.49,-8.49a12,12 128.16,1 1,16.97 16.97a12,12 128.16,1 1,-16.97 -16.97"
+      android:fillColor="#E91E63"/>
+  <path
+      android:pathData="M397.42,397.42m-11.31,-11.31a16,16 51.2,1 1,22.63 22.63a16,16 51.2,1 1,-22.63 -22.63"
+      android:fillColor="#FFFFFF"/>
+  <path
+      android:pathData="M256,256m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0">
+    <aapt:attr name="android:fillColor">
+      <gradient
+          android:centerX="236"
+          android:centerY="236"
+          android:gradientRadius="70"
+          android:type="radial">
+        <item android:offset="0" android:color="#FFFFFFFF"/>
+        <item android:offset="0.4" android:color="#FF00FFCC"/>
+        <item android:offset="1" android:color="#FF00838F"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+  <path
+      android:pathData="M256,256m-80,0a80,80 0,1 1,160 0a80,80 0,1 1,-160 0"
+      android:strokeAlpha="0.15"
+      android:fillColor="#00FFCC"
+      android:fillAlpha="0.15"/>
+</vector>
+
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/drawable/orbit_icon.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/drawable/ic_launcher_background.xml
+################################################################################
+FILE: app/src/main/res/drawable/ic_launcher_background.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#3DDC84"
+        android:pathData="M0,0h108v108h-108z" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M9,0L9,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,0L19,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M29,0L29,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M39,0L39,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M49,0L49,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M59,0L59,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M69,0L69,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M79,0L79,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M89,0L89,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M99,0L99,108"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,9L108,9"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,19L108,19"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,29L108,29"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,39L108,39"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,49L108,49"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,59L108,59"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,69L108,69"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,79L108,79"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,89L108,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,99L108,99"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,29L89,29"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,39L89,39"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,49L89,49"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,59L89,59"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,69L89,69"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M19,79L89,79"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M29,19L29,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M39,19L39,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M49,19L49,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M59,19L59,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M69,19L69,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M79,19L79,89"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
+</vector>
+
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/drawable/ic_launcher_background.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/xml/backup_rules.xml
+################################################################################
+FILE: app/src/main/res/xml/backup_rules.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?><!--
+   Sample backup rules file; uncomment and customize as necessary.
+   See https://developer.android.com/guide/topics/data/autobackup
+   for details.
+   Note: This file is ignored for devices older than API 31
+   See https://developer.android.com/about/versions/12/backup-restore
+-->
+<full-backup-content>
+    <!--
+   <include domain="sharedpref" path="."/>
+   <exclude domain="sharedpref" path="device.xml"/>
+-->
+</full-backup-content>
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/xml/backup_rules.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/res/xml/data_extraction_rules.xml
+################################################################################
+FILE: app/src/main/res/xml/data_extraction_rules.xml
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+<?xml version="1.0" encoding="utf-8"?><!--
+   Sample data extraction rules file; uncomment and customize as necessary.
+   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
+   for details.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- TODO: Use <include> and <exclude> to control what is backed up.
+        <include .../>
+        <exclude .../>
+        -->
+    </cloud-backup>
+    <!--
+    <device-transfer>
+        <include .../>
+        <exclude .../>
+    </device-transfer>
+    -->
+</data-extraction-rules>
+
+ <<<--- END_FILE_BLOCK: app/src/main/res/xml/data_extraction_rules.xml
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/MainActivity.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/MainActivity.kt
+VERSION: 4.2.0 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt
+// VERSION: 4.2.0 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Anchor / Main Entry Point & Navigation
+// VIBE: 28 errors wiped out like a bad trade setup. Navigation is locked in. 🎯
+// ================================================================================
+
+package com.example.pocket_orbit
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+
+// 🔥 Every single navigation import explicitly defined so Android Studio stops panicking
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+
+import com.example.pocket_orbit.data.AppDatabase
+import com.example.pocket_orbit.data.OrbitRepository
+import com.example.pocket_orbit.network.RetrofitClient
+import com.example.pocket_orbit.ui.navigation.BottomNavItem
+import com.example.pocket_orbit.ui.screens.ChatScreen
+import com.example.pocket_orbit.ui.screens.ChatViewModel
+import com.example.pocket_orbit.ui.screens.DashboardViewModel
+import com.example.pocket_orbit.ui.screens.GameScreen
+import com.example.pocket_orbit.ui.screens.TrackerScreen
+import com.example.pocket_orbit.ui.theme.OrbitTheme // Bringing in your custom drip 🦇
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        setContent {
+            // Dark Mode only.
+            OrbitTheme {
+                val navController = rememberNavController()
+                val context = LocalContext.current
+
+                // Manual Dependency Injection (Securing the bag)
+                val database = remember { AppDatabase.getDatabase(context) }
+                val apiService = remember { RetrofitClient.apiService }
+
+                val repository = remember {
+                    OrbitRepository(
+                        database.studyTaskDao(),
+                        apiService,
+                        "3ATLNDwN6SfiTQfyfEjxQpxsRtj_6dzR8QzKxpXeZn8Nn76n4"
+                    )
+                }
+
+                val dashboardViewModel = remember { DashboardViewModel(repository) }
+                val chatViewModel = remember { ChatViewModel(apiService) }
+
+                Scaffold(
+                    bottomBar = { OrbitBottomNav(navController = navController) },
+                    containerColor = MaterialTheme.colorScheme.background
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = BottomNavItem.Assistant.route,
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        composable(BottomNavItem.Assistant.route) {
+                            ChatScreen(viewModel = chatViewModel)
+                        }
+                        composable(BottomNavItem.Tracker.route) {
+                            TrackerScreen(viewModel = dashboardViewModel)
+                        }
+                        composable(BottomNavItem.Chill.route) {
+                            GameScreen()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OrbitBottomNav(navController: NavHostController) {
+    val items = listOf(
+        BottomNavItem.Assistant,
+        BottomNavItem.Tracker,
+        BottomNavItem.Chill
+    )
+
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navBackStackEntry?.destination?.route
+
+        items.forEach { item ->
+            NavigationBarItem(
+                icon = { Icon(item.icon, contentDescription = item.title) },
+                label = { Text(item.title) },
+                selected = currentRoute == item.route,
+                onClick = {
+                    navController.navigate(item.route) {
+                        // 🔥 The bulletproof way to pop back stack without using deprecated code
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/MainActivity.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Engine Room / Retrofit Client
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
+// COMPONENT: Android Networking
+// ROLE: Builds the HTTP client that actually fires requests to your VM.
+// VIBE: Firing off API requests faster than a news candle spikes on NFP. 🕯️⚡
+// ==========================================
+
+package com.example.pocket_orbit.network
+
+import okhttp3.OkHttpClient
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
+
+object RetrofitClient {
+    // To your active Ngrok URL (must include the https:// and trailing slash):
+    private const val BASE_URL = "https://untropic-rozanne-noncomprehendingly.ngrok-free.dev/"
+
+    // We set strict timeouts because if the VM doesn't reply in 15 seconds,
+    // your trade is probably already in drawdown anyway. 💀
+    private val okHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
+
+    val apiService: ApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
+VERSION: 1.0.3 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Courier / Retrofit API Service
+// FILEPATH: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
+// VERSION: 1.0.3
+// VIBE: Fixed the massive slippage. This is the REAL Retrofit interface now! 📡
+// ==========================================
+
+package com.example.pocket_orbit.network
+
+import com.example.pocket_orbit.data.StudyTaskEntity
+import com.example.pocket_orbit.model.ChatRequest
+import com.example.pocket_orbit.model.ChatResponse
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
+
+interface ApiService {
+    @GET("api/v1/study/tasks/pending")
+    suspend fun getPendingTasks(
+        @Header("Authorization") token: String
+    ): Response<List<StudyTaskEntity>>
+
+    @GET("api/v1/tasks/current-vibe")
+    suspend fun getCurrentVibe(
+        @Header("Authorization") token: String
+    ): Response<VibeResponse>
+
+    @PUT("api/v1/study/tasks/{task_id}/complete")
+    suspend fun completeTask(
+        @Header("Authorization") token: String,
+        @Path("task_id") taskId: Int
+    ): Response<Unit>
+
+    // 🔥 THE FIX: The neural link so Android can talk to Gemini on the VM
+    @POST("api/v1/orbit/converse")
+    suspend fun converseWithOrbit(
+        @Header("Authorization") token: String,
+        @Body request: ChatRequest
+    ): Response<ChatResponse>
+}
+
+data class VibeResponse(
+    val governor_says: String
+)
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Antenna / Android WS Client
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt
+// VIBE: Ready to catch those TP hits and blast them to your phone. 🔔🚀
+// ==========================================
+
+package com.example.pocket_orbit.network
+
+import android.util.Log
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import org.json.JSONObject
+
+class BlastClient(private val url: String) {
+    private val client = OkHttpClient()
+    private var webSocket: WebSocket? = null
+
+    fun connect() {
+        val request = Request.Builder().url(url).build()
+        val listener = object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                Log.i("BlastClient", "Connected to Orbit VM! 🪐")
+            }
+
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                Log.i("BlastClient", "INCOMING BLAST: $text")
+                try {
+                    val json = JSONObject(text)
+                    val type = json.getString("type")
+                    val data = json.getJSONObject("data")
+
+                    if (type == "TRADE_UPDATE") {
+                        Log.w("Forex Guardian", data.getString("message"))
+                    }
+                } catch (e: Exception) {
+                    Log.e("BlastClient", "Failed to parse Blast: ${e.message}")
+                }
+            }
+
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                Log.i("BlastClient", "Disconnected. Reconnecting in 5s...")
+            }
+        }
+        webSocket = client.newWebSocket(request, listener)
+    }
+
+    fun disconnect() {
+        webSocket?.close(1000, "User went to sleep.")
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
+VERSION: 3.1.5 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: /Projects/Orbit/Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
+// VERSION: 3.1.5 | SYSTEM: Orbit (The Jarvis Protocol)
+// ================================================================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+import com.example.pocket_orbit.data.StudyTaskEntity
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardScreen(viewModel: DashboardViewModel) {
+
+    val pendingTasks by viewModel.pendingTasks.collectAsState()
+    val nextTask: StudyTaskEntity? = pendingTasks.firstOrNull()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Pocket Orbit 🪐",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.refreshData() }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Sync VM",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            // ------------------------------------------------------------------
+            // FOREX GUARDIAN WIDGET
+            // ------------------------------------------------------------------
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Forex Guardian 📈", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("XAUUSD: Monitoring...", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    }
+                    Badge(containerColor = Color(0xFF4CAF50)) {
+                        Text("Active", modifier = Modifier.padding(4.dp))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Med-Scholar Queue 🧠", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+
+            // ------------------------------------------------------------------
+            // MED-SCHOLAR TASK CARD
+            // ------------------------------------------------------------------
+            if (nextTask != null) {
+                val rotLevel = nextTask.brainRotLevel?.lowercase() ?: "chill"
+
+                val (rotColor, rotText) = when(rotLevel) {
+                    "cooked" -> Pair(Color(0xFFF44336), "Cooked (Brain is fried 💀)")
+                    "mid" -> Pair(Color(0xFFFF9800), "Mid (Simmering 🔥)")
+                    "chill" -> Pair(Color(0xFF4CAF50), "Chill (Chilling 🧊)")
+                    else -> Pair(Color.Gray, "Unknown Territory")
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = nextTask.subject ?: "General Med",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = rotColor.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = rotText,
+                                    color = rotColor,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = nextTask.title ?: "Untitled Task",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        val dateText = nextTask.dueDate?.toString() ?: "No deadline. Just vibes."
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Due: $dateText",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            // 🔥 THE FIX: Actually hitting the view model to secure the bag!
+                            onClick = { viewModel.markTaskCompleted(nextTask.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("Mark Completed W", color = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                }
+            } else {
+                // Empty State
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "No Tasks",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Zero pending tasks.\nGo touch grass or analyze some MT5 charts. 📉✨",
+                        textAlign = TextAlign.Center,
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Translator / Chat ViewModel
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt
+// VERSION: 1.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+// ==========================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.pocket_orbit.model.ChatMessage
+import com.example.pocket_orbit.model.ChatRequest
+import com.example.pocket_orbit.network.ApiService
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+class ChatViewModel(
+    private val apiService: ApiService
+) : ViewModel() {
+
+    // Holds the list of messages. The UI observes this.
+    private val _chatHistory = MutableStateFlow<List<ChatMessage>>(emptyList())
+    val chatHistory: StateFlow<List<ChatMessage>> = _chatHistory
+
+    // Tells the UI when the VM is "typing"
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    // Your secret vault key (keep it matching your VM's .env)
+    private val secretToken = "3ATLNDwN6SfiTQfyfEjxQpxsRtj_6dzR8QzKxpXeZn8Nn76n4"
+
+    fun sendMessage(text: String) {
+        if (text.isBlank()) return // Don't send empty orders to the market
+
+        // 1. Immediately show the user's message in the UI (Zero slippage)
+        val userMsg = ChatMessage(text = text, isFromUser = true)
+        _chatHistory.value = _chatHistory.value + userMsg
+
+        // 2. Turn on the loading indicator
+        _isLoading.value = true
+
+        // 3. Fire the request to the FastAPI VM in the background
+        viewModelScope.launch {
+            try {
+                val response = apiService.converseWithOrbit(
+                    token = "Bearer $secretToken",
+                    request = ChatRequest(message = text)
+                )
+
+                if (response.isSuccessful && response.body() != null) {
+                    // W Secured! Orbit replied.
+                    val orbitReply = response.body()!!.reply
+                    _chatHistory.value = _chatHistory.value + ChatMessage(text = orbitReply, isFromUser = false)
+                } else {
+                    // VM rejected it. 
+                    _chatHistory.value = _chatHistory.value + ChatMessage("Orbit's brain rejected the request. Are you over-leveraging? 💀", isFromUser = false)
+                }
+            } catch (e: Exception) {
+                // Safaricom acting up again...
+                _chatHistory.value = _chatHistory.value + ChatMessage("Network error. Can't reach the VM. Go touch grass. 📵", isFromUser = false)
+            } finally {
+                // Turn off the loading indicator
+                _isLoading.value = false
+            }
+        }
+    }
+}
+
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/TrackerScreen.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/ui/screens/TrackerScreen.kt
+VERSION: 4.1.2 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/TrackerScreen.kt
+// VERSION: 4.1.2 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Ledger / All Tasks View
+// VIBE: Dropped the mock data. Now pulling real grinds from the DB. ✅
+// ================================================================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+import com.example.pocket_orbit.data.StudyTaskEntity
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TrackerScreen(viewModel: DashboardViewModel) {
+
+    // 🔥 PULLING REAL DATA FROM THE VAULT!
+    val pendingTasks by viewModel.pendingTasks.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Task Ledger \uD83D\uDDC2️", fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Upcoming Grinds \uD83D\uDD25", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+
+            if (pendingTasks.isEmpty()) {
+                item {
+                    Text(
+                        "All caught up! Head over to the Assistant tab to have Orbit assign you some Med School pain. 🧠",
+                        color = Color.Gray,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                }
+            } else {
+                items(pendingTasks) { task ->
+                    TaskCard(
+                        task = task,
+                        onClick = { viewModel.markTaskCompleted(task.id) }
+                    )
+                }
+            }
+
+            // NOTE: Completed tasks aren't currently fetched by the DAO.
+            // But once you add a 'getCompletedTasks' query to Room, they'd go right here!
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+        }
+    }
+}
+
+@Composable
+fun TaskCard(task: StudyTaskEntity, alpha: Float = 1.0f, onClick: () -> Unit = {}) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(alpha)
+            .clickable { onClick() }, // Tap to secure the W
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = task.subject,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2196F3) // Hardcoded to Med blue for now
+                )
+                Text(
+                    text = task.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (task.isCompleted) Color.Gray else MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            if (task.isCompleted) {
+                Icon(Icons.Default.Check, contentDescription = "Done", tint = Color(0xFF4CAF50))
+            } else {
+                Icon(Icons.Default.List, contentDescription = "Pending", tint = Color.Gray)
+            }
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/TrackerScreen.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/GameScreen.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/ui/screens/GameScreen.kt
+VERSION: 4.1.1 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/GameScreen.kt
+// VERSION: 4.1.1 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Rec Room / Compose Mini-Game
+// ================================================================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+
+@Composable
+fun GameScreen() {
+    var isPlaying by remember { mutableStateOf(false) }
+    var score by remember { mutableStateOf(0) }
+    var playerY by remember { mutableStateOf(0f) }
+    var playerVelocity by remember { mutableStateOf(0f) }
+    var obstacleX by remember { mutableStateOf(1000f) }
+    var gameOver by remember { mutableStateOf(false) }
+
+    val gravity = 2f
+    val jumpStrength = -30f
+    val groundY = 0f
+
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (isActive) {
+                delay(16)
+
+                playerVelocity += gravity
+                playerY += playerVelocity
+
+                if (playerY > groundY) {
+                    playerY = groundY
+                    playerVelocity = 0f
+                }
+
+                obstacleX -= 20f + (score * 0.5f)
+
+                if (obstacleX < -100f) {
+                    obstacleX = 1000f
+                    score += 1
+                }
+
+                if (obstacleX in 120f..280f && playerY > -100f) {
+                    gameOver = true
+                    isPlaying = false
+                }
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .clickable {
+                if (gameOver) {
+                    gameOver = false
+                    score = 0
+                    obstacleX = 1000f
+                    playerY = 0f
+                    isPlaying = true
+                } else if (!isPlaying) {
+                    isPlaying = true
+                } else {
+                    if (playerY == groundY) {
+                        playerVelocity = jumpStrength
+                    }
+                }
+            },
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Dodge the Margin Call \uD83D\uDCC9",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = "Score: $score",
+            fontSize = 20.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        if (gameOver) {
+            Text(
+                text = "ACCOUNT BLOWN! Tap to restart. \uD83D\uDC80",
+                color = Color.Red,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        } else if (!isPlaying) {
+            Text(
+                text = "Tap anywhere to jump!",
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+                .background(Color(0xFF1E1E1E))
+        ) {
+            val canvasWidth = size.width
+            val canvasHeight = size.height
+
+            drawLine(
+                color = Color.White,
+                start = Offset(0f, canvasHeight - 50f),
+                end = Offset(canvasWidth, canvasHeight - 50f),
+                strokeWidth = 5f
+            )
+
+            drawCircle(
+                color = Color(0xFF00E676),
+                radius = 40f,
+                center = Offset(200f, canvasHeight - 90f + playerY)
+            )
+
+            drawRect(
+                color = Color(0xFFFF1744),
+                topLeft = Offset(obstacleX, canvasHeight - 150f),
+                size = Size(60f, 100f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/GameScreen.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt
+VERSION: 4.0.1 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt
+// VERSION: 4.0.1 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Neural Interface / Chat UI
+// ================================================================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+// 🔥 THE FIX: We properly import the models so Android Studio stops panicking!
+import com.example.pocket_orbit.model.ChatMessage
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatScreen(
+    viewModel: ChatViewModel 
+) {
+    var inputText by remember { mutableStateOf("") }
+    
+    // Collecting the flows from the ViewModel. No more unresolved references!
+    val chatHistory by viewModel.chatHistory.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Column {
+                        Text("Orbit AI 🪐", fontWeight = FontWeight.Bold)
+                        Text("Online • Ready to optimize", fontSize = 12.sp, color = Color(0xFF00FFCC))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Chat History Area
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                reverseLayout = true // Pushes messages to the bottom
+            ) {
+                // We reverse the list so the newest message is at the bottom (like WhatsApp)
+                items(chatHistory.reversed()) { message ->
+                    ChatBubble(message)
+                }
+            }
+
+            // Loading Indicator (When VM is thinking)
+            if (isLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Input Box Area
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                tonalElevation = 4.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Tell Orbit to schedule something...") },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    FloatingActionButton(
+                        onClick = {
+                            if (inputText.isNotBlank()) {
+                                // Hit the ViewModel to execute the trade!
+                                viewModel.sendMessage(inputText)
+                                inputText = "" // Clear the input field
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(50.dp)
+                    ) {
+                        Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.Black)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatBubble(message: ChatMessage) {
+    val backgroundColor = if (message.isFromUser) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.secondaryContainer
+    }
+    
+    val textColor = if (message.isFromUser) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    }
+
+    val alignment = if (message.isFromUser) Alignment.CenterEnd else Alignment.CenterStart
+    val shape = if (message.isFromUser) {
+        RoundedCornerShape(16.dp, 16.dp, 0.dp, 16.dp)
+    } else {
+        RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp)
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        contentAlignment = alignment
+    ) {
+        Surface(
+            shape = shape,
+            color = backgroundColor,
+            modifier = Modifier.widthIn(max = 300.dp)
+        ) {
+            Text(
+                text = message.text,
+                color = textColor,
+                modifier = Modifier.padding(12.dp),
+                fontSize = 15.sp
+            )
+        }
+    }
+}
+
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
+VERSION: 1.0.1 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Translator / ViewModel
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
+// VERSION: 1.0.1
+// ==========================================
+
+package com.example.pocket_orbit.ui.screens
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.pocket_orbit.data.OrbitRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+class DashboardViewModel(
+    private val repository: OrbitRepository
+) : ViewModel() {
+
+    val pendingTasks = repository.pendingTasks.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    init {
+        refreshData()
+    }
+
+    fun refreshData() {
+        viewModelScope.launch {
+            repository.refreshTasksFromVM()
+        }
+    }
+
+    // 🔥 THE FIX: Passing the completion event down to the repo
+    fun markTaskCompleted(taskId: Int) {
+        viewModelScope.launch {
+            repository.markTaskComplete(taskId)
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardViewModel.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/theme/Color.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/ui/theme/Color.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+package com.example.pocket_orbit.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+val Purple80 = Color(0xFFD0BCFF)
+val PurpleGrey80 = Color(0xFFCCC2DC)
+val Pink80 = Color(0xFFEFB8C8)
+
+val Purple40 = Color(0xFF6650a4)
+val PurpleGrey40 = Color(0xFF625b71)
+val Pink40 = Color(0xFF7D5260)
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/theme/Color.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Drip / Compose Theme
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt
+// COMPONENT: UI Aesthetics
+// VIBE: Strictly dark mode. Light mode is for sociopaths. 🦇
+// ==========================================
+
+package com.example.pocket_orbit.ui.theme
+
+import android.app.Activity
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+
+private val OrbitDarkColorScheme = darkColorScheme(
+    primary = Color(0xFF00FFCC), // Neon Cyan
+    secondary = Color(0xFF8A2BE2), // Deep Purple
+    tertiary = Color(0xFFFF3366), // Stop Loss Red
+    background = Color(0xFF0D0D0D), // Void Black
+    surface = Color(0xFF1A1A1A), // Dark Grey
+    onPrimary = Color.Black,
+    onBackground = Color.White,
+    onSurface = Color.White
+)
+
+@Composable
+fun OrbitTheme(
+    content: @Composable () -> Unit
+) {
+    val colorScheme = OrbitDarkColorScheme
+    val view = LocalView.current
+
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+        }
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        content = content
+    )
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/theme/Theme.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/theme/Type.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/ui/theme/Type.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+package com.example.pocket_orbit.ui.theme
+
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+
+// Set of Material typography styles to start with
+val Typography = Typography(
+    bodyLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    )
+    /* Other default text styles to override
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp
+    ),
+    labelSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
+    )
+    */
+)
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/theme/Type.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/navigation/OrbitDestinations.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/ui/navigation/OrbitDestinations.kt
+VERSION: 4.1.1 | SYSTEM: N/A
+################################################################################
+
+// ================================================================================
+// FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/navigation/OrbitDestinations.kt
+// VERSION: 4.1.1 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Map / Navigation Routes
+// ================================================================================
+
+package com.example.pocket_orbit.ui.navigation
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.graphics.vector.ImageVector
+
+sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
+    object Assistant : BottomNavItem("assistant", "Orbit AI", Icons.Default.Face)
+    object Tracker : BottomNavItem("tracker", "Tracker", Icons.Default.CheckCircle)
+    object Chill : BottomNavItem("chill", "Chill", Icons.Default.PlayArrow)
+}
+
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/ui/navigation/OrbitDestinations.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Pocket Vault / Android Room DB
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
+// VIBE: All imports included. Hit "Sync Now" in Gradle and watch the red lines disappear! 📉->📈
+// ==========================================
+
+package com.example.pocket_orbit.data
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+
+@Database(
+    entities = [StudyTaskEntity::class, ForexLogEntity::class],
+    version = 1,
+    exportSchema = false
+)
+@TypeConverters(DateConverter::class)
+abstract class AppDatabase : RoomDatabase() {
+
+    abstract fun studyTaskDao(): StudyTaskDao
+    abstract fun forexLogDao(): ForexLogDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getDatabase(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "pocket_orbit_db"
+                ).build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/data/DataConverter.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/data/DataConverter.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Timekeeper / Date Converter
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/data/DateConverter.kt
+// COMPONENT: Android Offline Database
+// ROLE: Converts standard Dates to Longs because SQLite databases can't hold Date objects natively.
+// VIBE: Time is money, especially during the New York crossover. 🕒💰
+// ==========================================
+
+package com.example.pocket_orbit.data
+
+import androidx.room.TypeConverter
+import java.util.Date
+
+class DateConverter {
+    @TypeConverter
+    fun fromTimestamp(value: Long?): Date? {
+        return value?.let { Date(it) }
+    }
+
+    @TypeConverter
+    fun dateToTimestamp(date: Date?): Long? {
+        return date?.time
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/data/DataConverter.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/data/Daos.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/data/Daos.kt
+VERSION: 1.0.1 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Guards / Room DB DAOs
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/data/Daos.kt
+// VERSION: 1.0.1
+// ==========================================
+
+package com.example.pocket_orbit.data
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface StudyTaskDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTasks(tasks: List<StudyTaskEntity>)
+
+    @Query("SELECT * FROM study_tasks WHERE isCompleted = 0")
+    fun getPendingTasks(): Flow<List<StudyTaskEntity>>
+
+    @Query("DELETE FROM study_tasks")
+    suspend fun clearTasks()
+
+    // 🔥 THE FIX: SQL query to actually check off the task in local memory
+    @Query("UPDATE study_tasks SET isCompleted = 1 WHERE id = :taskId")
+    suspend fun markTaskCompleted(taskId: Int)
+}
+
+@Dao
+interface ForexLogDao {
+    @Insert
+    suspend fun insertLog(log: ForexLogEntity)
+
+    @Query("SELECT * FROM forex_logs ORDER BY timestamp DESC LIMIT 10")
+    fun getRecentLogs(): Flow<List<ForexLogEntity>>
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/data/Daos.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/data/Entities.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/data/Entities.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Blueprints / Room DB Entities
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/data/Entities.kt
+// COMPONENT: Android Offline Database
+// ROLE: Defines the exact structure of your phone's memory.
+// VIBE: Structuring data so you can still read Med notes when Safaricom bundles vanish. 📵
+// ==========================================
+
+package com.example.pocket_orbit.data
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import java.util.Date
+
+@Entity(tableName = "study_tasks")
+data class StudyTaskEntity(
+    @PrimaryKey val id: Int,
+    val title: String,
+    val subject: String,
+    val brainRotLevel: String, // "chill", "mid", "cooked"
+    val isCompleted: Boolean,
+    val dueDate: Date?
+)
+
+@Entity(tableName = "forex_logs")
+data class ForexLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val pair: String,
+    val action: String, // "TP_HIT", "SL_HIT"
+    val pnl: Double,
+    val timestamp: Date
+)
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/data/Entities.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
+VERSION: 1.0.1 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Brain / Orbit Repository
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
+// VERSION: 1.0.1
+// ==========================================
+
+package com.example.pocket_orbit.data
+
+import android.util.Log
+import com.example.pocket_orbit.network.ApiService
+import kotlinx.coroutines.flow.Flow
+
+class OrbitRepository(
+    private val studyTaskDao: StudyTaskDao,
+    private val apiService: ApiService,
+    private val secretToken: String
+) {
+    val pendingTasks: Flow<List<StudyTaskEntity>> = studyTaskDao.getPendingTasks()
+
+    suspend fun refreshTasksFromVM() {
+        try {
+            val response = apiService.getPendingTasks("Bearer $secretToken")
+
+            if (response.isSuccessful && response.body() != null) {
+                val newTasks = response.body()!!
+                studyTaskDao.clearTasks()
+                studyTaskDao.insertTasks(newTasks)
+                Log.d("OrbitRepo", "Sync successful. Fresh tasks secured. 🎯")
+            } else {
+                Log.e("OrbitRepo", "VM rejected us. Opps activity? Code: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.w("OrbitRepo", "Network error. Relying on offline vault. Safaricom acting up again? 📵")
+        }
+    }
+
+    // 🔥 THE FIX: Executes the 'Take Profit' locally first, then syncs with the VM Brain
+    suspend fun markTaskComplete(taskId: Int) {
+        try {
+            // 1. Instant UI update (Offline First mentality)
+            studyTaskDao.markTaskCompleted(taskId)
+            Log.d("OrbitRepo", "Task $taskId marked complete locally. Good stuff.")
+
+            // 2. Tell the VM we secured the W
+            val response = apiService.completeTask("Bearer $secretToken", taskId)
+            if (response.isSuccessful) {
+                Log.d("OrbitRepo", "VM acknowledges the W! Task $taskId fully completed.")
+            } else {
+                Log.w("OrbitRepo", "VM sync failed for completion. Will retry next sync cycle.")
+            }
+        } catch (e: Exception) {
+            Log.e("OrbitRepo", "Failed to reach VM to mark complete: ${e.message}")
+        }
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
+
+>>>--- START_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/model/ChatModels.kt
+################################################################################
+FILE: app/src/main/java/com/example/pocket_orbit/model/ChatModels.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+// ==========================================
+// IDENTITY: The Vocabulary / Chat Models
+// FILEPATH: app/src/main/java/com/example/pocket_orbit/model/ChatModels.kt
+// VERSION: 1.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+// ==========================================
+
+package com.example.pocket_orbit.model
+
+// This is what the UI uses to draw the chat bubbles
+data class ChatMessage(
+    val text: String,
+    val isFromUser: Boolean
+)
+
+// This is what we send to the FastAPI VM
+data class ChatRequest(
+    val message: String
+)
+
+// This is what the FastAPI VM replies with
+data class ChatResponse(
+    val reply: String,
+    val status: String
+)
+
+
+ <<<--- END_FILE_BLOCK: app/src/main/java/com/example/pocket_orbit/model/ChatModels.kt
+
+>>>--- START_FILE_BLOCK: app/src/test/java/com/example/pocket_orbit/ExampleUnitTest.kt
+################################################################################
+FILE: app/src/test/java/com/example/pocket_orbit/ExampleUnitTest.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+package com.example.pocket_orbit
+
+import org.junit.Test
+
+import org.junit.Assert.*
+
+/**
+ * Example local unit test, which will execute on the development machine (host).
+ *
+ * See [testing documentation](http://d.android.com/tools/testing).
+ */
+class ExampleUnitTest {
+    @Test
+    fun addition_isCorrect() {
+        assertEquals(4, 2 + 2)
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/test/java/com/example/pocket_orbit/ExampleUnitTest.kt
+
+>>>--- START_FILE_BLOCK: app/src/androidTest/java/com/example/pocket_orbit/ExampleInstrumentedTest.kt
+################################################################################
+FILE: app/src/androidTest/java/com/example/pocket_orbit/ExampleInstrumentedTest.kt
+VERSION: 1.0.0 | SYSTEM: N/A
+################################################################################
+
+package com.example.pocket_orbit
+
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.ext.junit.runners.AndroidJUnit4
+
+import org.junit.Test
+import org.junit.runner.RunWith
+
+import org.junit.Assert.*
+
+/**
+ * Instrumented test, which will execute on an Android device.
+ *
+ * See [testing documentation](http://d.android.com/tools/testing).
+ */
+@RunWith(AndroidJUnit4::class)
+class ExampleInstrumentedTest {
+    @Test
+    fun useAppContext() {
+        // Context of the app under test.
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        assertEquals("com.example.pocket_orbit", appContext.packageName)
+    }
+}
+
+ <<<--- END_FILE_BLOCK: app/src/androidTest/java/com/example/pocket_orbit/ExampleInstrumentedTest.kt

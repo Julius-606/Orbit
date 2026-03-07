@@ -1,89 +1,103 @@
 ################################################################################
 # FILE: backend/app/services/orbit_brain.py
-# VERSION: 4.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+# VERSION: 4.1.4 | SYSTEM: Orbit (The Life-OS Protocol)
 # IDENTITY: The Brain / Gemini Function Caller
 ################################################################################
 
 import google.generativeai as genai
-import os
 from datetime import datetime
-from sqlalchemy.orm import Session
-from app.models.task import Task, LifePillar
 import logging
+import asyncio  # 🚀 BUG FIX: We need this to pacify Gemini's gRPC threads
+
+from app.models.study import BrainRotLevel
+from app.core.config import settings
 
 logger = logging.getLogger("Orbit-Brain")
 
-# Initialize Gemini (Make sure GEMINI_API_KEY is in your .env)
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-# ---------------------------------------------------------
-# THE TOOLS (Functions Gemini is allowed to execute)
-# ---------------------------------------------------------
-
-def create_task_tool(title: str, pillar: str, description: str, duration_minutes: int, db: Session) -> str:
-    """Creates a new task in the user's schedule."""
-    try:
-        # Convert string to Enum safely
-        safe_pillar = LifePillar[pillar.upper()] if pillar.upper() in LifePillar.__members__ else LifePillar.LIFE
-        
-        new_task = Task(
-            title=title,
-            pillar=safe_pillar,
-            description=description,
-            duration_minutes=duration_minutes
-        )
-        db.add(new_task)
-        db.commit()
-        db.refresh(new_task)
-        logger.info(f"W Secured: AI created task {title} under {safe_pillar}")
-        return f"SUCCESS: Task '{title}' created successfully under pillar {safe_pillar.value}."
-    except Exception as e:
-        logger.error(f"AI fumbled the bag on task creation: {str(e)}")
-        return f"ERROR: Could not create task. {str(e)}"
+# Initialize Gemini safely
+if settings.GEMINI_API_KEY:
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+else:
+    logger.error("GEMINI_API_KEY is missing! Orbit is clinically brain dead. 💀")
 
 # ---------------------------------------------------------
 # THE AGENT
 # ---------------------------------------------------------
 
 class OrbitAssistant:
-    def __init__(self, db_session: Session):
-        self.db = db_session
+    def __init__(self, db_session=None):
+        # Queue up tasks here instead of crashing the DB with async locks
+        self.tasks_to_create = []
+
         self.system_prompt = """
         You are Orbit, an elite, highly intelligent, Gen-Z "Life-OS" Chief of Staff.
-        Your boss is a medical student living in Kenya who also codes projects, has an internship, and values their spiritual life (Bible study with mom, fasting).
+        Your boss is a medical student living in Kisumu, Kenya who also codes projects, has an internship, and values their spiritual life (Bible study with mom, fasting).
         
-        YOUR PILLARS:
-        1. STUDY: Medical school, CATs, pharmacology.
-        2. PROJECT: Coding, tech hustle.
-        3. INTERNSHIP: Internship at SHOFCO Libraries(As a part time hustle).
-        4. LIFE: Bible study, fasting, errands, sanity maintenance, meetings.
+        YOUR PILLARS (Use these exact strings as the 'subject' when creating tasks):
+        1. "Med-Scholar": Medical school, CATs, pharmacology, Anatomy.
+        2. "Projects": Coding, tech hustle, VM maintenance.
+        3. "Internship": SHOFCO Libraries.
+        4. "Life Admin": Bible study, fasting, errands, laundry.
+        5. "Forex Guardian": Charting XAUUSD, backtesting, avoiding margin calls.
+        
+        BRAIN ROT LEVELS (Energy required):
+        - "chill": Easy tasks.
+        - "mid": Standard focus.
+        - "cooked": Hardcore grind (e.g., Anatomy Marathon).
         
         TONE:
-        - Confident, slightly sassy, Gen-Z slang (e.g., "no cap", "W", "cooked", "locked in").
-        - You act like a risk manager for their TIME. If they code too much, tell them they are over-leveraging their time and need to study Anatomy.
-        - If they ask for tasks because their tracker is empty, assign them a mix of Med study, coding, and reminding them to call their Mom.
+        - Confident, slightly sassy, Gen-Z slang (e.g., "no cap", "W", "cooked", "locked in", "slippage").
+        - Throw in lots of jokes. If they are over-leveraging on Forex, tell them to go outside and look at Lake Victoria.
+        - You act like a risk manager for their TIME.
         
         CAPABILITIES:
-        You have access to a tool called 'create_task_tool'. USE IT when the user asks you to schedule something or when you are assigning them tasks!
+        You have access to a tool called 'create_task_tool'. USE IT whenever the user asks you to schedule something or complains about an empty tracker!
         """
-        
-        # We bind the tool to the model so Gemini knows it can call it
+
         self.model = genai.GenerativeModel(
             model_name='gemini-2.5-flash',
-            tools=[self._wrapped_create_task],
+            tools=[self.create_task_tool],
             system_instruction=self.system_prompt
         )
         self.chat_session = self.model.start_chat(enable_automatic_function_calling=True)
 
-    def _wrapped_create_task(self, title: str, pillar: str, description: str, duration_minutes: int = 60) -> str:
-        """Wrapper to inject the DB session into the tool call"""
-        return create_task_tool(title, pillar, description, duration_minutes, self.db)
+    def create_task_tool(self, title: str, subject: str, brain_rot_level: str = "mid") -> str:
+        """Creates a new task directly in the Android-synced Syllabus Vault."""
+        try:
+            rot_map = {
+                "chill": BrainRotLevel.CHILL,
+                "mid": BrainRotLevel.MID,
+                "cooked": BrainRotLevel.COOKED
+            }
+            safe_rot = rot_map.get(brain_rot_level.lower(), BrainRotLevel.MID)
+
+            # We just queue it up. No async/sync SQLAlchemy crashes!
+            self.tasks_to_create.append({
+                "title": title,
+                "subject": subject,
+                "brain_rot_level": safe_rot
+            })
+
+            logger.info(f"AI prepared task '{title}' under '{subject}'")
+            return f"SUCCESS: Task '{title}' prepared successfully for subject '{subject}'. No cap."
+
+        except Exception as e:
+            logger.error(f"AI fumbled the bag on task creation: {str(e)}")
+            return f"ERROR: Could not create task. {str(e)}"
 
     def chat(self, user_message: str) -> str:
         """Sends message to Gemini, auto-executes tools if needed, returns response."""
+
+        # 🚀 BUG FIX: Give this background thread a dummy event loop
+        # so Gemini's underlying gRPC architecture doesn't panic when calling tools!
+        try:
+            asyncio.get_event_loop()
+        except RuntimeError:
+            asyncio.set_event_loop(asyncio.new_event_loop())
+
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         context_msg = f"[System Time: {current_time}] User says: {user_message}"
-        
+
         logger.info(f"Orbit Brain processing: {user_message}")
         response = self.chat_session.send_message(context_msg)
         return response.text
