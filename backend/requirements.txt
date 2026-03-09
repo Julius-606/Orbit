@@ -1,42 +1,38 @@
-==============================================================================
+#--- START_FILE_BLOCK: backend/requirements.txt
+################################################################################
 
-PROJECT ORBIT: THE JARVIS PROTOCOL
+#FILE: backend/requirements.txt
 
-VERSION 3.1.0
+#VERSION: 1.0.2 | SYSTEM: Clean Execution
 
-==============================================================================
+################################################################################
 
---- Core Backend ---
+#Core Framework
 
 fastapi==0.104.1
 uvicorn[standard]==0.24.0.post1
 python-dotenv==1.0.0
 
---- Database & ORM (Neon Postgres + Async) ---
+#Database & ORM
 
 sqlalchemy==2.0.23
 asyncpg==0.29.0
 alembic==1.12.1
 
---- Security & Configuration ---
+#Security
 
 pydantic==2.5.2
 pydantic-settings==2.1.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
---- The Agents & AI (Orbit Brain) ---
-
-🔥 THE FIX: Updated to a modern version so function calling actually works!
+#AI & Agents
 
 google-generativeai>=0.8.0
 
---- Forex Guardian 📈 ---
+#Data & Integrations
 
 pandas==2.1.3
-
-MetaTrader5==5.0.45  # Uncomment when you deploy to the Windows VM
-
---- CATE (Context-Aware Trigger Engine) ---
-
 redis==5.0.1
+
+#<<<--- END_FILE_BLOCK: backend/requirements.txt
