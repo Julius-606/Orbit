@@ -1,10 +1,7 @@
-# ==========================================
-# IDENTITY: The Time Machine Engine / Alembic Env
-# FILEPATH: backend/alembic/env.py
-# COMPONENT: DB Migrations
-# ROLE: Looks at your Python models and your actual Postgres DB and figures out what changed.
-# VIBE: The ultimate "Ctrl+Z" for when you accidentally drop a production database table. ⏪💀
-# ==========================================
+################################################################################
+# FILE: backend/alembic/env.py
+# VERSION: 1.0.1 | SYSTEM: Neon DB Auto-Correct
+################################################################################
 
 import asyncio
 from logging.config import fileConfig
@@ -19,8 +16,8 @@ from app.models.study import Base
 
 config = context.config
 
-# Overwrite the empty URL in alembic.ini with the real one from our .env vault
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# 🚀 THE FIX: Use the safely formatted async_database_url so migrations don't crash
+config.set_main_option("sqlalchemy.url", settings.async_database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
