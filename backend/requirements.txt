@@ -1,42 +1,42 @@
-#==========================================
-#IDENTITY: The Arsenal / Dependencies Matrix
-#FILEPATH: backend/requirements.txt
-#COMPONENT: Backend Environment
-#ROLE: All the sauce needed to make Python go brrrr.
-#VIBE: Installing these is like funding your broker account. Necessary for the W.
-#==========================================
+==============================================================================
 
-#Core Framework - Fast and Furious
+PROJECT ORBIT: THE JARVIS PROTOCOL
+
+VERSION 3.1.0
+
+==============================================================================
+
+--- Core Backend ---
 
 fastapi==0.104.1
-uvicorn[standard]==0.24.0
+uvicorn[standard]==0.24.0.post1
+python-dotenv==1.0.0
 
-#Database & ORM - The Vault
+--- Database & ORM (Neon Postgres + Async) ---
 
 sqlalchemy==2.0.23
 asyncpg==0.29.0
 alembic==1.12.1
 
-#Real-time Comms - The Blast Protocol
-
-websockets==12.0
-
-#Security & Data Validation
+--- Security & Configuration ---
 
 pydantic==2.5.2
 pydantic-settings==2.1.0
-python-jose[cryptography]==3.3.0 # For that AES-256 vibe
+python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
-#The Agents & AI
+--- The Agents & AI (Orbit Brain) ---
 
-google-generativeai==0.3.1 # Gemini 2.5 Flash for Orbit-Speak
+🔥 THE FIX: Updated to a modern version so function calling actually works!
 
-#Forex Guardian 📈
+google-generativeai>=0.8.0
 
-#MetaTrader5==5.0.45
+--- Forex Guardian 📈 ---
+
 pandas==2.1.3
 
-#Redis & Celery for Background Sync
+MetaTrader5==5.0.45  # Uncomment when you deploy to the Windows VM
+
+--- CATE (Context-Aware Trigger Engine) ---
 
 redis==5.0.1
