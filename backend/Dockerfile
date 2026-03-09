@@ -1,35 +1,43 @@
-# ==========================================
-# IDENTITY: The Spaceship / VM Container
-# FILEPATH: backend/Dockerfile
-# COMPONENT: Infrastructure
-# ROLE: Packages the whole Python backend into an unkillable container.
-# VIBE: If this builds successfully on the first try, you should buy a lottery ticket. 🎟️
-# ==========================================
+################################################################################
+# FILE: backend/Dockerfile
+# VERSION: 1.0.1 | SYSTEM: Render Deployment Optimization
+################################################################################
+#
+# Changes:
+# - Added a non-root user for security (Render likes this).
+# - Updated CMD to use the dynamic $PORT variable provided by Render.
+# - If $PORT isn't set (e.g., local testing), it defaults to 8000.
 
-# Using a slim version so it doesn't eat all your RAM
 FROM python:3.11-slim
 
-# Set environment variables so Python doesn't buffer text and crash quietly
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-
-# Create the working directory
+# Set working directory
 WORKDIR /app
 
-# Install system dependencies (needed for compiling some Python packages)
-RUN apt-get update \
-    && apt-get install -y gcc libpq-dev \
-    && apt-get clean
+# Prevent Python from writing .pyc files and enable unbuffered output
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Copy the dependency matrix and install
+# Install system dependencies (needed for Postgres and compiling certain packages)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install them
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the actual brain into the container
-COPY ./app /app
+# Copy the entire backend directory into the container
+COPY . .
 
-# Expose the FastAPI port
+# Create a non-root user to run the app (Security Best Practice)
+RUN adduser --disabled-password --gecos '' orbituser
+USER orbituser
+
+# Expose port (Documentation purposes, Render ignores this and uses its own)
 EXPOSE 8000
 
-# Start the engine! Uvicorn handles the FastAPI requests
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Start command utilizing the dynamic port binding
+# Using shell form so the environment variable is evaluated
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
