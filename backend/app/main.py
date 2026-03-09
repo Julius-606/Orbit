@@ -1,6 +1,6 @@
 ################################################################################
-FILE: backend/app/main.py
-VERSION: 1.0.4 | SYSTEM: API Router Integration & Full Restoration
+#FILE: backend/app/main.py
+#VERSION: 1.0.4 | SYSTEM: API Router Integration & Full Restoration
 ################################################################################
 #
 # Changes:
