@@ -36,8 +36,8 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           
           # ⚠️ EDIT THESE VARIABLES BEFORE PUSHING ⚠️
-          HF_USERNAME: "YourHuggingFaceUsername"
-          HF_SPACE_NAME: "orbit-brain"
+          HF_USERNAME: "Agent606"
+          HF_SPACE_NAME: "Orbit"
         run: |
           echo "🪐 Booting up the Orbit Deployment EA..."
           
