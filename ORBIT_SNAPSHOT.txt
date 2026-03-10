@@ -1,7 +1,7 @@
 ================================================================================
 SYSTEM INSTRUCTIONS FOR PROJECT ORBIT (THE JARVIS PROTOCOL)
 ================================================================================
-DATE: 2026-03-09 14:21:49
+DATE: 2026-03-10 04:34:26
 STATUS: VERSION 3.1 (STABILITY UPGRADE)
 
 INSTRUCTIONS FOR THE AI ASSISTANT:
@@ -23,22 +23,23 @@ FILE MANIFEST (TABLE OF CONTENTS)
 - backend/inject_task.py [v1.0.0]
 - backend/README.md [v1.0.0]
 - backend/alembic.ini [v1.0.0]
-- backend/requirements.txt [v1.0.0]
+- backend/requirements.txt [v1.0.2]
 - backend/Dockerfile [v1.0.2]
 - backend/render.yaml [v1.0.0]
-- backend/alembic/env.py [v1.0.0]
+- backend/test_neon_db.py [v1.0.0]
+- backend/alembic/env.py [v1.0.1]
 - backend/alembic/versions/0252b66d5ffd_initial_orbit_schema.py [v1.0.0]
-- backend/app/main.py [v1.0.2]
+- backend/app/main.py [v1.0.7]
 - backend/app/db/init_db.py [v1.0.1]
 - backend/app/db/redis_cache.py [v1.0.0]
-- backend/app/db/session.py [v1.0.2]
+- backend/app/db/session.py [v1.0.3]
 - backend/app/api/deps.py [v1.0.1]
 - backend/app/api/v1/med_scholar.py [v1.0.1]
 - backend/app/api/v1/api.py [v1.2.0]
 - backend/app/api/v1/auth.py [v1.0.1]
 - backend/app/api/v1/forex.py [v1.0.0]
 - backend/app/api/v1/tasks.py [v3.1.7]
-- backend/app/core/config.py [v1.1.1]
+- backend/app/core/config.py [v1.1.2]
 - backend/app/core/security.py [v1.0.0]
 - backend/app/core/notifications.py [v1.0.0]
 - backend/app/services/governor.py [v1.0.0]
@@ -71,7 +72,7 @@ FILE MANIFEST (TABLE OF CONTENTS)
 - Pocket_Orbit/app/src/main/res/xml/backup_rules.xml [v1.0.0]
 - Pocket_Orbit/app/src/main/res/xml/data_extraction_rules.xml [v1.0.0]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt [v4.2.0]
-- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt [v1.0.0]
+- Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt [v1.1.0]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt [v1.0.3]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/BlastClient.kt [v1.0.0]
 - Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/DashboardScreen.kt [v3.1.5]
@@ -255,51 +256,47 @@ datefmt = %H:%M:%S
 >>>--- START_FILE_BLOCK: backend/requirements.txt
 ################################################################################
 FILE: backend/requirements.txt
-VERSION: 1.0.0 | SYSTEM: N/A
+VERSION: 1.0.2 | SYSTEM: N/A
 ################################################################################
 
-#==========================================
-#IDENTITY: The Arsenal / Dependencies Matrix
-#FILEPATH: backend/requirements.txt
-#COMPONENT: Backend Environment
-#ROLE: All the sauce needed to make Python go brrrr.
-#VIBE: Installing these is like funding your broker account. Necessary for the W.
-#==========================================
+#--- START_FILE_BLOCK: backend/requirements.txt
+################################################################################
 
-#Core Framework - Fast and Furious
+#FILE: backend/requirements.txt 
+
+#VERSION: 1.0.2 | SYSTEM: Clean Execution
+
+################################################################################
+
+#Core Framework
 
 fastapi==0.104.1
-uvicorn[standard]==0.24.0
+uvicorn[standard]==0.24.0.post1
+python-dotenv==1.0.0
 
-#Database & ORM - The Vault
+#Database & ORM
 
 sqlalchemy==2.0.23
 asyncpg==0.29.0
 alembic==1.12.1
 
-#Real-time Comms - The Blast Protocol
-
-websockets==12.0
-
-#Security & Data Validation
+#Security
 
 pydantic==2.5.2
 pydantic-settings==2.1.0
-python-jose[cryptography]==3.3.0 # For that AES-256 vibe
+python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
-#The Agents & AI
+#AI & Agents
 
-google-generativeai==0.3.1 # Gemini 2.5 Flash for Orbit-Speak
+google-generativeai>=0.8.0
 
-#Forex Guardian 📈
+#Data & Integrations
 
-#MetaTrader5==5.0.45
 pandas==2.1.3
-
-#Redis & Celery for Background Sync
-
 redis==5.0.1
+
+#<<<--- END_FILE_BLOCK: backend/requirements.txt
 
 
  <<<--- END_FILE_BLOCK: backend/requirements.txt
@@ -413,19 +410,116 @@ services:
 
  <<<--- END_FILE_BLOCK: backend/render.yaml
 
->>>--- START_FILE_BLOCK: backend/alembic/env.py
+>>>--- START_FILE_BLOCK: backend/test_neon_db.py
 ################################################################################
-FILE: backend/alembic/env.py
+FILE: backend/test_neon_db.py
 VERSION: 1.0.0 | SYSTEM: N/A
 ################################################################################
 
-# ==========================================
-# IDENTITY: The Time Machine Engine / Alembic Env
-# FILEPATH: backend/alembic/env.py
-# COMPONENT: DB Migrations
-# ROLE: Looks at your Python models and your actual Postgres DB and figures out what changed.
-# VIBE: The ultimate "Ctrl+Z" for when you accidentally drop a production database table. ⏪💀
-# ==========================================
+#>>>--- START_FILE_BLOCK: backend/test_neon_db.py
+################################################################################
+# FILE: backend/test_neon_db.py
+# VERSION: 1.0.0 | SYSTEM: Neon DB Snitch / Diagnostic EA
+################################################################################
+#
+# PURPOSE: 
+# Bypasses the main app to interrogate the Neon Postgres Database directly.
+# Detects cold-starts, invalid passwords, SSL tantrums, and connection drops.
+
+import asyncio
+import asyncpg
+import os
+import time
+from urllib.parse import urlparse, unquote
+
+async def run_snitch():
+    print("==================================================")
+    print(" 🕵️‍♂️ NEON DB SNITCH v1.0 (INITIALIZING PROBE) ")
+    print("==================================================")
+
+    # 1. Fetch the raw liquidity (Environment Variable)
+    raw_url = os.getenv("DATABASE_URL")
+    
+    if not raw_url:
+        print("❌ FATAL: DATABASE_URL is completely missing! Mr. Hugging Face's vault is empty.")
+        return
+
+    # Hide the password so we don't leak it on the public blockchain (logs)
+    parsed = urlparse(raw_url)
+    safe_url = raw_url.replace(parsed.password, "********") if parsed.password else raw_url
+    print(f"🔍 RAW URL DETECTED: {safe_url}")
+
+    # 2. Apply the Anti-Slippage Fixes exactly like config.py
+    # Remove SQLAlchemy's '+asyncpg' because pure asyncpg hates it
+    clean_url = raw_url.replace("postgresql+asyncpg://", "postgresql://")
+    
+    # Strip Neon's weird parameters
+    if "?" in clean_url:
+        clean_url = clean_url.split("?")[0]
+        
+    # Force pure SSL
+    clean_url += "?ssl=require"
+
+    clean_parsed = urlparse(clean_url)
+    safe_clean_url = clean_url.replace(clean_parsed.password, "********") if clean_parsed.password else clean_url
+    print(f"🛠️ CLEANED URL (Executing Trade): {safe_clean_url}")
+    print("--------------------------------------------------")
+
+    # 3. Execution Phase: Attempt Connection & Time the Cold Start
+    print("⏳ Sending Ping to Neon Postgres... Waiting for DB to put its boots on...")
+    start_time = time.time()
+
+    try:
+        # We establish a raw connection, zero intermediaries.
+        conn = await asyncpg.connect(clean_url, timeout=15.0)
+        
+        latency = round((time.time() - start_time) * 1000, 2)
+        print(f"✅ CONNECTION SECURED! (Latency: {latency} ms)")
+        
+        if latency > 2000:
+            print("⚠️ WARNING: High latency detected! Neon was definitely sleeping. That's a cold start.")
+        else:
+            print("⚡ DB is wide awake and routing fast!")
+
+        # 4. Take Profit: Run a test query
+        version = await conn.fetchval('SELECT version();')
+        print(f"📊 NEON POSTGRES VERSION: {version[:50]}...")
+        
+        await conn.close()
+        print("==================================================")
+        print(" 🟢 ALL SYSTEMS GO. THE VAULT IS OPEN. ")
+        print("==================================================")
+
+    except asyncpg.exceptions.InvalidAuthorizationSpecificationError:
+        print("❌ ERROR: Invalid Password or Username! Neon rejected your credentials. Check your Hugging Face secrets.")
+    except asyncpg.exceptions.InvalidCatalogNameError:
+        print(f"❌ ERROR: Database name '{clean_parsed.path[1:]}' does not exist on this Neon server!")
+    except asyncio.TimeoutError:
+        print("❌ ERROR: Connection Timed Out! Neon took too long to wake up, or Safaricom dropped the packet somewhere over Thika.")
+    except Exception as e:
+        print(f"❌ UNKNOWN SLIPPAGE DETECTED: {str(e)}")
+        print("   -> Tip: Check if the error mentions 'ssl' or 'channel_binding'.")
+    finally:
+        print("\n[Snitch execution finished]")
+
+if __name__ == "__main__":
+    asyncio.run(run_snitch())
+
+#<<<--- END_FILE_BLOCK: backend/test_neon_db.py
+
+
+ <<<--- END_FILE_BLOCK: backend/test_neon_db.py
+
+>>>--- START_FILE_BLOCK: backend/alembic/env.py
+################################################################################
+FILE: backend/alembic/env.py
+VERSION: 1.0.1 | SYSTEM: N/A
+################################################################################
+
+################################################################################
+# FILE: backend/alembic/env.py
+# VERSION: 1.0.1 | SYSTEM: Neon DB Auto-Correct
+################################################################################
 
 import asyncio
 from logging.config import fileConfig
@@ -440,8 +534,8 @@ from app.models.study import Base
 
 config = context.config
 
-# Overwrite the empty URL in alembic.ini with the real one from our .env vault
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# 🚀 THE FIX: Use the safely formatted async_database_url so migrations don't crash
+config.set_main_option("sqlalchemy.url", settings.async_database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -470,6 +564,7 @@ def run_migrations_online() -> None:
     asyncio.run(run_async_migrations())
 
 run_migrations_online()
+
 
  <<<--- END_FILE_BLOCK: backend/alembic/env.py
 
@@ -527,56 +622,78 @@ def downgrade():
 >>>--- START_FILE_BLOCK: backend/app/main.py
 ################################################################################
 FILE: backend/app/main.py
-VERSION: 1.0.2 | SYSTEM: N/A
+VERSION: 1.0.7 | SYSTEM: N/A
 ################################################################################
 
+#>>>--- START_FILE_BLOCK: backend/app/main.py
 ################################################################################
 # FILE: backend/app/main.py
-# VERSION: 1.0.2 | SYSTEM: Dynamic Port Binding & Full Restoration
+# VERSION: 1.0.7 | SYSTEM: Swagger UI Aesthetic Update & Stability
 ################################################################################
 #
 # Changes:
-# - Restored the full 120+ line architecture (Med-Scholar, Forex Guardian, CATE).
-# - Added dynamic port binding at the bottom for Render compatibility.
+# - 🧹 SWAGGER COLLAPSE: Injected `swagger_ui_parameters={"docExpansion": "none"}` 
+#   so the UI loads clean and collapsed, exactly like your Assistant Orbit journal requested!
 
 import os
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Any
 import uvicorn
 from datetime import datetime
 
+# 🔥 THE MISSING LIQUIDITY: Master router for Orbit-AI, Forex, etc.
+from app.api.v1.api import api_router
+
 # Configure logging for the VM
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("OrbitBrain")
 
-# --- System Lifespan (Startup & Shutdown) ---
+# ===============================================================================
+# BACKGROUND TASKS & LIFESPAN
+# ===============================================================================
+
+async def forex_guardian_monitor():
+    """Simulates the 24/7 Forex MT5 monitor. Never sleeps. Just like the markets."""
+    try:
+        while True:
+            await asyncio.sleep(3600) # Check every hour in mock mode
+    except asyncio.CancelledError:
+        logger.info("Forex Guardian gracefully shutting down. Securing the bag.")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup logic: Connect to Postgres & Redis
-    logger.info("🪐 Orbit Brain booting up... Waking up the Forex Guardian and Med-Scholar modules.")
+    # Startup logic: Connect to Postgres, Redis, and start workers
+    logger.info("🪐 Orbit Brain booting up... Waking up Med-Scholar modules.")
     logger.info("Checking Redis cache for pending CATE triggers...")
-    # TODO: Initialize async database engines and Redis connection pools here
+    
+    forex_task = asyncio.create_task(forex_guardian_monitor())
     yield
-    # Shutdown logic: Close connections
-    logger.info("Shutting down Orbit. Securing the bag and closing DB connections safely.")
+    
+    logger.info("Shutting down Orbit. Liquidating pending tasks and closing DB safely.")
+    forex_task.cancel()
 
-# Initialize FastAPI app (Orbit Brain)
+# ===============================================================================
+# APP INITIALIZATION (THE FIX IS HERE)
+# ===============================================================================
+
 app = FastAPI(
     title="Project Orbit API",
     description="The Life-OS backend for Med-Scholar, Forex Guardian, and CATE.",
     version="3.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    # 🚀 THE SWAGGER FIX: Forces all endpoints to be collapsed by default!
+    swagger_ui_parameters={"docExpansion": "none"} 
 )
 
-# --- CORS Configuration ---
-# Must allow the Android app (Pocket Orbit) and Ubuntu Workstation
 origins = [
     "http://localhost",
     "http://localhost:8080",
-    "*"  # Allows all origins for now. Make sure to lock this down in prod!
+    "*"  # Allows all origins for now.
 ]
 
 app.add_middleware(
@@ -591,92 +708,71 @@ app.add_middleware(
 # CORE ENDPOINTS
 # ===============================================================================
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def root():
-    return {"message": "Orbit API is online and vibing. 🪐", "status": "active"}
+    """Instantly redirects you to the beautiful Swagger UI."""
+    return RedirectResponse(url="/docs")
 
-@app.get("/health")
+@app.get("/health", tags=["System"])
 async def health_check():
-    """Render uses this to verify the deployment didn't crash."""
+    """Render/HF uses this to verify the deployment didn't crash."""
     return {"status": "healthy", "brain": "locked in", "timestamp": datetime.utcnow().isoformat()}
 
-# ===============================================================================
-# MED-SCHOLAR ENDPOINTS
-# ===============================================================================
+# Mount the real endpoints
+app.include_router(api_router, prefix="/api/v1")
 
-@app.get("/api/v1/med-scholar/tasks")
-async def get_study_tasks():
-    """Fetches upcoming Medicine/Pathology syllabus tasks."""
-    logger.info("Fetching Med-Scholar tasks for the day...")
-    # Mock data - integrate with Postgres later
-    return {
-        "tasks": [
-            {"id": 1, "subject": "Pathology", "topic": "Cellular Injury", "due": "14:00"},
-            {"id": 2, "subject": "Pharmacology", "topic": "Autonomic Nervous System", "due": "18:00"}
-        ]
-    }
-
-# ===============================================================================
-# FOREX GUARDIAN ENDPOINTS
-# ===============================================================================
-
-@app.post("/api/v1/forex/webhook")
-async def forex_webhook(request: Request):
-    """Listens for MT5 triggers (e.g., SL hit, TP hit, Margin alerts)."""
-    payload = await request.json()
-    logger.warning(f"Forex Guardian Alert: {payload}")
-
-    # Check if a trade hit SL
-    if payload.get("event") == "stop_loss":
-        logger.error("Stop loss hit! Sending blast notification to Ubuntu & Pocket Orbit.")
-        # TODO: Trigger push notification pipeline
-
-    return {"status": "received", "action": "monitoring"}
 
 # ===============================================================================
 # CONTEXT-AWARE TRIGGER ENGINE (CATE)
 # ===============================================================================
 
-@app.post("/api/v1/cate/sync")
+@app.post("/api/v1/cate/sync", tags=["CATE"])
 async def sync_offline_messages(request: Request, background_tasks: BackgroundTasks):
-    """
-    Handles staged offline messages from the phone.
-    Crucial for when Safaricom drops connection in Thika.
-    """
     data = await request.json()
     staged_messages = data.get("messages", [])
 
     if not staged_messages:
-        return {"status": "no_data", "message": "Nothing to sync."}
+        return {"status": "no_data", "message": "Nothing to sync. We are chilling."}
 
     logger.info(f"Received {len(staged_messages)} offline staged messages. Processing...")
 
     for msg in staged_messages:
         timestamp = msg.get("timestamp")
         content = msg.get("content")
-        msg_type = msg.get("type", "task") # task vs reminder
-
-        # Log the historical context so Orbit AI knows this isn't a *new* request
+        msg_type = msg.get("type", "task")
         logger.info(f"Processing delayed {msg_type} from {timestamp}: {content}")
-
-        # TODO: Forward to LLM to distinguish between actionable tasks and reminders
 
     return {"status": "success", "synced_count": len(staged_messages)}
 
+@app.post("/api/v1/cate/trigger", tags=["CATE"])
+async def manual_cate_trigger(event_type: str):
+    if event_type == "sleep_timer_zero":
+        logger.info("CATE: Sleep timer hit zero. User has spawned. Initiating night-owl protocols.")
+        return {"status": "triggered", "action": "night_owl_mode_activated"}
+    return {"status": "ignored", "reason": "Unknown event type"}
 
 # ===============================================================================
-# SERVER ENTRY POINT & RENDER PORT BINDING
+# MOCK ENDPOINTS
 # ===============================================================================
 
+@app.get("/api/v1/legacy/tasks", include_in_schema=False)
+async def legacy_get_tasks():
+    return {"tasks": ["Read Pathology", "Check XAUUSD 1H chart", "Sleep"]}
+
+@app.post("/api/v1/legacy/notify", include_in_schema=False)
+async def legacy_notify(message: str):
+    return {"status": "blasted"}
+
+# ===============================================================================
+# ENTRY POINT
+# ===============================================================================
 if __name__ == "__main__":
-    # RENDER FIX: Read $PORT from the environment variables.
-    # If it's not there (like on your local VM in Thika), default to 8000.
     port = int(os.environ.get("PORT", 8000))
-
     logger.info(f"🚀 Starting Orbit Brain on port {port}...")
-
-    # Run Uvicorn programmatically, binding to 0.0.0.0 so Render can route traffic to it
     uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=False)
+
+#<<<--- END_FILE_BLOCK: backend/app/main.py
+
 
  <<<--- END_FILE_BLOCK: backend/app/main.py
 
@@ -739,36 +835,27 @@ VERSION: 1.0.0 | SYSTEM: N/A
 >>>--- START_FILE_BLOCK: backend/app/db/session.py
 ################################################################################
 FILE: backend/app/db/session.py
-VERSION: 1.0.2 | SYSTEM: N/A
+VERSION: 1.0.3 | SYSTEM: N/A
 ################################################################################
 
-# ################################################################################
+################################################################################
 # FILE: backend/app/db/session.py
-# VERSION: 1.0.2 | SYSTEM: Jarvis Protocol
-# ################################################################################
-
-# ==========================================
-# IDENTITY: The Memory Card / DB Session
-# FILEPATH: backend/app/db/session.py
-# COMPONENT: Database Connection
-# ROLE: Hooks up FastAPI to Postgres.
-# VIBE: Holding onto data tighter than you hold onto a losing trade hoping it reverses. 😭
-# ==========================================
+# VERSION: 1.0.3 | SYSTEM: Neon DB Auto-Correct
+################################################################################
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-# 🚀 THE FIX: Slapped the 'app.' prefix right here so Python doesn't get liquidated.
 from app.core.config import settings
 import logging
 
 logger = logging.getLogger("Orbit-DB")
 
-# Create the Async Engine - We don't block the event loop here.
-# Fast execution, just like a 1-minute scalp.
+# Create the Async Engine - Fast execution, just like a 1-minute scalp.
+# 🚀 THE FIX: Using the newly protected async_database_url property
 engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=False, # Set to True if you want to see raw SQL and get a headache
+    settings.async_database_url,
+    echo=False, 
     future=True
 )
 
@@ -781,17 +868,18 @@ async def get_db():
     """
     Dependency to inject the DB session into our routes.
     Yields a session and safely closes it when the request is done.
-    No connection leaks on my watch! 🛑
     """
     async with async_session() as session:
         try:
             yield session
         except Exception as e:
+            # If the DB hits a stop loss, we roll back so we don't blow the account
             logger.error(f"Database just hit a stop loss: {e}")
             await session.rollback()
             raise
         finally:
             await session.close()
+
 
  <<<--- END_FILE_BLOCK: backend/app/db/session.py
 
@@ -1156,12 +1244,13 @@ async def delete_task(task_id: int, db: AsyncSession = Depends(get_db)):
 >>>--- START_FILE_BLOCK: backend/app/core/config.py
 ################################################################################
 FILE: backend/app/core/config.py
-VERSION: 1.1.1 | SYSTEM: N/A
+VERSION: 1.1.2 | SYSTEM: N/A
 ################################################################################
 
+#>>>--- START_FILE_BLOCK: backend/app/core/config.py
 ################################################################################
 # FILE: backend/app/core/config.py
-# VERSION: 1.1.1 | SYSTEM: Neon DB Auto-Correct
+# VERSION: 1.1.2 | SYSTEM: Neon DB Auto-Correct V2 (Anti-Slippage)
 ################################################################################
 
 from pydantic_settings import BaseSettings
@@ -1172,17 +1261,18 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Project Orbit: Jarvis Protocol"
     VERSION: str = "3.1.0"
 
-    # DB Settings - Using localhost as default for your HP Pavilion
-    DATABASE_URL: str = "postgresql+asyncpg://orbit_user:super_secret_password@localhost:5432/orbit_db"
-    REDIS_URL: str = "redis://localhost:6379/0"
+    # DB Settings - Default to localhost for local testing
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://orbit_user:super_secret_password@localhost:5432/orbit_db")
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
-    # 🛡️ SECURITY (Pulled from .env)
-    SECRET_KEY: str = "placeholder_vibe_check_key"
+    # 🛡️ SECURITY (The Bouncer's VIP List)
+    # Defaults to the exact key your Android app uses so it doesn't get blocked!
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "3ATLNDwN6SfiTQfyfEjxQpxsRtj_6dzR8QzKxpXeZn8Nn76n4")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
     # Agent APIs
-    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
 
     # Forex Guardian (MT5)
     MT5_LOGIN: Optional[int] = None
@@ -1192,20 +1282,28 @@ class Settings(BaseSettings):
     @property
     def async_database_url(self) -> str:
         """
-        🚀 THE FIX: Neon provides a standard 'postgresql://' URL, but our
-        async engine requires 'postgresql+asyncpg://' to avoid crashing on startup!
-        This silently patches the URL if needed. Zero drawdown.
+        🚀 THE ULTIMATE NEON FIX: 
+        Neon tacks on wild URL parameters (like ?options=endpoint...) that make
+        asyncpg throw a 'channel_binding' tantrum. We strip the noise and keep it pure.
         """
-        if self.DATABASE_URL and self.DATABASE_URL.startswith("postgresql://"):
-            return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-        return self.DATABASE_URL
+        url = self.DATABASE_URL
+        if url and url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        
+        # The surgical scalp: Cut off all query parameters Neon adds
+        if url and "?" in url:
+            url = url.split("?")[0]
+            
+        # Force standard SSL so the connection is encrypted without confusing asyncpg
+        return url + "?ssl=require" if url else ""
 
     class Config:
-        # This tells Pydantic to look for a file named .env in the backend folder
         env_file = ".env"
         case_sensitive = True
 
 settings = Settings()
+
+#<<<--- END_FILE_BLOCK: backend/app/core/config.py
 
 
  <<<--- END_FILE_BLOCK: backend/app/core/config.py
@@ -5390,44 +5488,95 @@ fun OrbitBottomNav(navController: NavHostController) {
 >>>--- START_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
 ################################################################################
 FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
-VERSION: 1.0.0 | SYSTEM: N/A
+VERSION: 1.1.0 | SYSTEM: N/A
 ################################################################################
 
 // ==========================================
 // IDENTITY: The Engine Room / Retrofit Client
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
 // COMPONENT: Android Networking
-// ROLE: Builds the HTTP client that actually fires requests to your VM.
-// VIBE: Firing off API requests faster than a news candle spikes on NFP. 🕯️⚡
+// ROLE: Builds the HTTP client with a multi-link failover system.
+// VIBE: Hedging our bets. If local fails, we hit Ngrok. If Ngrok fails, HF Space saves the account from blowing. 🛡️📈
+// VERSION: 1.1.0
 // ==========================================
 
 package com.example.pocket_orbit.network
 
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    // To your active Ngrok URL (must include the https:// and trailing slash):
-    private const val BASE_URL = "https://untropic-rozanne-noncomprehendingly.ngrok-free.dev/"
 
-    // We set strict timeouts because if the VM doesn't reply in 15 seconds,
-    // your trade is probably already in drawdown anyway. 💀
+    // 🎯 THE HEDGE FUND PORTFOLIO: Multiple URLs to ensure we never miss a task/trade
+    // Order matters: It will try index 0 first, then 1, then 2.
+    // Make sure to swap the Local IP and Ngrok URL to your actual current ones!
+    private val BASE_URLS = listOf(
+        "http://10.0.2.2:8000/", // Local Emulator (Use your actual laptop's Wi-Fi IP if testing on physical phone, e.g., http://192.168.x.x:8000/)
+        "https://YOUR_NGROK_ID.ngrok-free.app/", // Ngrok Fallback
+        "https://agent606-orbit.hf.space/" // Hugging Face (The Final Boss)
+    )
+
+    // The Smart Interceptor that acts like a Trailing Stop Loss
+    // If one server connection times out, it dynamically reroutes to the next one without crashing the app.
+    private class FailoverInterceptor : Interceptor {
+        override fun intercept(chain: Interceptor.Chain): Response {
+            var request = chain.request()
+            var exception: IOException? = null
+
+            for (url in BASE_URLS) {
+                val parsedUrl = url.toHttpUrlOrNull() ?: continue
+                
+                // Rewrite the request URL to point to the current fallback server
+                val newUrl = request.url.newBuilder()
+                    .scheme(parsedUrl.scheme)
+                    .host(parsedUrl.host)
+                    .port(parsedUrl.port)
+                    .build()
+
+                request = request.newBuilder().url(newUrl).build()
+
+                try {
+                    // Attempt to execute the request
+                    // If the server connects (even if it returns a 404/500 error), we return the response.
+                    // We ONLY failover if there is an absolute network failure/timeout (IOException).
+                    return chain.proceed(request)
+                } catch (e: IOException) {
+                    // Server is ghosting us (offline or timing out). Save the error and loop to the next one.
+                    exception = e
+                }
+            }
+            
+            // If we get here, all 3 servers are down. Account blown. 💀
+            throw exception ?: IOException("Margin Call! All Orbit servers are offline. Check your Safaricom connection bro.")
+        }
+    }
+
+    // We set strict timeouts. 5 seconds per attempt means a max 15-second wait if it has to check all 3.
+    // You don't want the UI freezing for a whole minute just because Local and Ngrok are down.
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
+        .addInterceptor(FailoverInterceptor())
+        .connectTimeout(5, TimeUnit.SECONDS) // Lowered so it fails over faster
+        .readTimeout(10, TimeUnit.SECONDS)
         .build()
 
     val apiService: ApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            // Retrofit needs a default URL just to compile properly, so we feed it the first one.
+            // The FailoverInterceptor will handle the actual routing mid-flight! ✈️
+            .baseUrl(BASE_URLS.first())
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
     }
 }
+
 
  <<<--- END_FILE_BLOCK: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/RetrofitClient.kt
 
