@@ -1,9 +1,8 @@
 // ==========================================
 // IDENTITY: The Blueprints / Room DB Entities
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/data/Entities.kt
-// COMPONENT: Android Offline Database
-// ROLE: Defines the exact structure of your phone's memory.
-// VIBE: Structuring data so you can still read Med notes when Safaricom bundles vanish. 📵
+// VERSION: 1.2.0
+// VIBE: Added ChatMessageEntity for offline memory and persistent conversations. 🧠
 // ==========================================
 
 package com.example.pocket_orbit.data
@@ -19,7 +18,18 @@ data class StudyTaskEntity(
     val subject: String,
     val brainRotLevel: String, // "chill", "mid", "cooked"
     val isCompleted: Boolean,
-    val dueDate: Date?
+    val dueDate: Date?,
+    val remarks: String? = null,
+    val isReminder: Boolean = false // 🔥 Distinguish between Task and Reminder
+)
+
+@Entity(tableName = "chat_messages")
+data class ChatMessageEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val text: String,
+    val isFromUser: Boolean,
+    val timestamp: Long = System.currentTimeMillis(),
+    val isStaged: Boolean = false // 🔥 True if sent while offline and pending sync
 )
 
 @Entity(tableName = "forex_logs")

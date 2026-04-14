@@ -1,8 +1,8 @@
 // ================================================================================
 // FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt
-// VERSION: 4.2.0 | SYSTEM: Orbit (The Life-OS Protocol)
-// IDENTITY: The Anchor / Main Entry Point & Navigation
-// VIBE: 28 errors wiped out like a bad trade setup. Navigation is locked in. 🎯
+// VERSION: 4.4.1 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Anchor / Main Entry Point & Dependency Injection
+// VIBE: Background sync scheduled. Orbit is always on high alert. 🚨
 // ================================================================================
 
 package com.example.pocket_orbit
@@ -17,37 +17,42 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-
-// 🔥 Every single navigation import explicitly defined so Android Studio stops panicking
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.pocket_orbit.data.AppDatabase
 import com.example.pocket_orbit.data.OrbitRepository
 import com.example.pocket_orbit.network.RetrofitClient
+import com.example.pocket_orbit.network.SyncWorker
 import com.example.pocket_orbit.ui.navigation.BottomNavItem
 import com.example.pocket_orbit.ui.screens.ChatScreen
 import com.example.pocket_orbit.ui.screens.ChatViewModel
 import com.example.pocket_orbit.ui.screens.DashboardViewModel
 import com.example.pocket_orbit.ui.screens.GameScreen
 import com.example.pocket_orbit.ui.screens.TrackerScreen
-import com.example.pocket_orbit.ui.theme.OrbitTheme // Bringing in your custom drip 🦇
+import com.example.pocket_orbit.ui.theme.OrbitTheme
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 🔥 Orbit High Alert: Scheduling the background sync
+        scheduleSync(this)
 
         setContent {
-            // Dark Mode only.
             OrbitTheme {
                 val navController = rememberNavController()
                 val context = LocalContext.current
 
-                // Manual Dependency Injection (Securing the bag)
                 val database = remember { AppDatabase.getDatabase(context) }
                 val apiService = remember { RetrofitClient.apiService }
 
@@ -60,7 +65,12 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val dashboardViewModel = remember { DashboardViewModel(repository) }
-                val chatViewModel = remember { ChatViewModel(apiService) }
+                val chatViewModel = remember { 
+                    ChatViewModel(
+                        apiService = apiService,
+                        chatDao = database.chatDao()
+                    ) 
+                }
 
                 Scaffold(
                     bottomBar = { OrbitBottomNav(navController = navController) },
@@ -85,6 +95,22 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun scheduleSync(context: android.content.Context) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES)
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "OrbitSync",
+            ExistingPeriodicWorkPolicy.KEEP,
+            syncRequest
+        )
+    }
 }
 
 @Composable
@@ -108,7 +134,6 @@ fun OrbitBottomNav(navController: NavHostController) {
                 selected = currentRoute == item.route,
                 onClick = {
                     navController.navigate(item.route) {
-                        // 🔥 The bulletproof way to pop back stack without using deprecated code
                         popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true
                         }

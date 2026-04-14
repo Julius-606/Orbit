@@ -1,13 +1,15 @@
 // ==========================================
 // IDENTITY: The Brain / Orbit Repository
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/data/OrbitRepository.kt
-// VERSION: 1.0.1
+// VERSION: 1.1.0
+// VIBE: Syncing remarks and handling offline-first task completion. 🧠
 // ==========================================
 
 package com.example.pocket_orbit.data
 
 import android.util.Log
 import com.example.pocket_orbit.network.ApiService
+import com.example.pocket_orbit.network.TaskCompletionRequest
 import kotlinx.coroutines.flow.Flow
 
 class OrbitRepository(
@@ -27,29 +29,36 @@ class OrbitRepository(
                 studyTaskDao.insertTasks(newTasks)
                 Log.d("OrbitRepo", "Sync successful. Fresh tasks secured. 🎯")
             } else {
-                Log.e("OrbitRepo", "VM rejected us. Opps activity? Code: ${response.code()}")
+                Log.e("OrbitRepo", "VM rejected us. Code: ${response.code()}")
             }
         } catch (e: Exception) {
-            Log.w("OrbitRepo", "Network error. Relying on offline vault. Safaricom acting up again? 📵")
+            Log.w("OrbitRepo", "Network error. Relying on offline vault. 📵")
         }
     }
 
-    // 🔥 THE FIX: Executes the 'Take Profit' locally first, then syncs with the VM Brain
-    suspend fun markTaskComplete(taskId: Int) {
+    // 🔥 UPDATED: Now handles remarks and attempts sync immediately
+    suspend fun markTaskComplete(taskId: Int, remarks: String?) {
         try {
-            // 1. Instant UI update (Offline First mentality)
-            studyTaskDao.markTaskCompleted(taskId)
-            Log.d("OrbitRepo", "Task $taskId marked complete locally. Good stuff.")
+            // 1. Instant UI update (Offline First)
+            studyTaskDao.markTaskCompleted(taskId, remarks)
+            Log.d("OrbitRepo", "Task $taskId marked complete locally with remarks: $remarks")
 
-            // 2. Tell the VM we secured the W
-            val response = apiService.completeTask("Bearer $secretToken", taskId)
+            // 2. Sync with VM Brain
+            val response = apiService.completeTask(
+                "Bearer $secretToken", 
+                taskId, 
+                TaskCompletionRequest(remarks = remarks)
+            )
+            
             if (response.isSuccessful) {
-                Log.d("OrbitRepo", "VM acknowledges the W! Task $taskId fully completed.")
+                Log.d("OrbitRepo", "VM sync successful for task $taskId.")
             } else {
-                Log.w("OrbitRepo", "VM sync failed for completion. Will retry next sync cycle.")
+                Log.w("OrbitRepo", "VM sync failed (Code: ${response.code()}). Will retry later.")
             }
         } catch (e: Exception) {
-            Log.e("OrbitRepo", "Failed to reach VM to mark complete: ${e.message}")
+            Log.e("OrbitRepo", "Offline mode: Failed to reach VM for task $taskId. Stored locally.")
         }
     }
+    
+    // TODO: Implement a background worker to sync getUnsyncedCompletions()
 }

@@ -1,7 +1,8 @@
 // ==========================================
 // IDENTITY: The Guards / Room DB DAOs
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/data/Daos.kt
-// VERSION: 1.0.1
+// VERSION: 1.2.0
+// VIBE: Added ChatDao for persistent memory and offline staging. 🧠
 // ==========================================
 
 package com.example.pocket_orbit.data
@@ -23,9 +24,29 @@ interface StudyTaskDao {
     @Query("DELETE FROM study_tasks")
     suspend fun clearTasks()
 
-    // 🔥 THE FIX: SQL query to actually check off the task in local memory
-    @Query("UPDATE study_tasks SET isCompleted = 1 WHERE id = :taskId")
-    suspend fun markTaskCompleted(taskId: Int)
+    @Query("UPDATE study_tasks SET isCompleted = 1, remarks = :remarks WHERE id = :taskId")
+    suspend fun markTaskCompleted(taskId: Int, remarks: String?)
+
+    @Query("SELECT * FROM study_tasks WHERE isCompleted = 1 AND remarks IS NOT NULL")
+    suspend fun getUnsyncedCompletions(): List<StudyTaskEntity>
+}
+
+@Dao
+interface ChatDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMessage(message: ChatMessageEntity)
+
+    @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
+    fun getAllMessages(): Flow<List<ChatMessageEntity>>
+
+    @Query("SELECT * FROM chat_messages WHERE isStaged = 1")
+    suspend fun getStagedMessages(): List<ChatMessageEntity>
+
+    @Query("UPDATE chat_messages SET isStaged = 0 WHERE id = :messageId")
+    suspend fun markMessageSynced(messageId: Int)
+
+    @Query("DELETE FROM chat_messages")
+    suspend fun clearHistory()
 }
 
 @Dao

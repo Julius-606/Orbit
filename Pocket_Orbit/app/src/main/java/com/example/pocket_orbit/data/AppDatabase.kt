@@ -1,7 +1,8 @@
 // ==========================================
 // IDENTITY: The Pocket Vault / Android Room DB
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
-// VIBE: All imports included. Hit "Sync Now" in Gradle and watch the red lines disappear! 📉->📈
+// VERSION: 1.1.0
+// VIBE: Chat history and tasks now fully persistent. 🧠
 // ==========================================
 
 package com.example.pocket_orbit.data
@@ -13,8 +14,12 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
-    entities = [StudyTaskEntity::class, ForexLogEntity::class],
-    version = 1,
+    entities = [
+        StudyTaskEntity::class, 
+        ForexLogEntity::class, 
+        ChatMessageEntity::class
+    ],
+    version = 2, // Bumped version for new schema
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -22,6 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun studyTaskDao(): StudyTaskDao
     abstract fun forexLogDao(): ForexLogDao
+    abstract fun chatDao(): ChatDao
 
     companion object {
         @Volatile
@@ -33,7 +39,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "pocket_orbit_db"
-                ).build()
+                )
+                .fallbackToDestructiveMigration() // Simple for dev, handles schema changes
+                .build()
                 INSTANCE = instance
                 instance
             }

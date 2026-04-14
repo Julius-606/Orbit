@@ -1,68 +1,134 @@
 // ==========================================
 // IDENTITY: The Translator / Chat ViewModel
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt
-// VERSION: 1.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+// VERSION: 1.2.0 | SYSTEM: Orbit (The Life-OS Protocol)
+// VIBE: Short-term dementia cured. Memory is now fully persistent and contextual. 🧠
 // ==========================================
 
 package com.example.pocket_orbit.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.pocket_orbit.model.ChatMessage
+import com.example.pocket_orbit.data.ChatDao
+import com.example.pocket_orbit.data.ChatMessageEntity
+import com.example.pocket_orbit.model.ChatMessageHistory
 import com.example.pocket_orbit.model.ChatRequest
 import com.example.pocket_orbit.network.ApiService
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class ChatViewModel(
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val chatDao: ChatDao
 ) : ViewModel() {
 
-    // Holds the list of messages. The UI observes this.
-    private val _chatHistory = MutableStateFlow<List<ChatMessage>>(emptyList())
-    val chatHistory: StateFlow<List<ChatMessage>> = _chatHistory
+    // Persistent history from Room
+    val chatHistory: StateFlow<List<ChatMessageEntity>> = chatDao.getAllMessages()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Tells the UI when the VM is "typing"
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+    
+    private val _pendingOfflineMessage = MutableStateFlow<String?>(null)
+    val pendingOfflineMessage = _pendingOfflineMessage.asStateFlow()
 
-    // Your secret vault key (keep it matching your VM's .env)
     private val secretToken = "3ATLNDwN6SfiTQfyfEjxQpxsRtj_6dzR8QzKxpXeZn8Nn76n4"
 
-    fun sendMessage(text: String) {
-        if (text.isBlank()) return // Don't send empty orders to the market
+    fun sendMessage(text: String, isOffline: Boolean = false) {
+        if (text.isBlank()) return
 
-        // 1. Immediately show the user's message in the UI (Zero slippage)
-        val userMsg = ChatMessage(text = text, isFromUser = true)
-        _chatHistory.value = _chatHistory.value + userMsg
+        if (isOffline) {
+            _pendingOfflineMessage.value = text
+            return
+        }
 
-        // 2. Turn on the loading indicator
-        _isLoading.value = true
+        executeSendMessage(text)
+    }
 
-        // 3. Fire the request to the FastAPI VM in the background
+    fun stageMessage(text: String) {
         viewModelScope.launch {
+            val stagedMsg = ChatMessageEntity(
+                text = text,
+                isFromUser = true,
+                isStaged = true
+            )
+            chatDao.insertMessage(stagedMsg)
+            _pendingOfflineMessage.value = null
+            
+            chatDao.insertMessage(ChatMessageEntity(
+                text = "Message staged. I'll process this as soon as we're back online. Stay focused. 🫡",
+                isFromUser = false
+            ))
+        }
+    }
+
+    fun discardPendingMessage() {
+        _pendingOfflineMessage.value = null
+    }
+
+    private fun executeSendMessage(text: String) {
+        viewModelScope.launch {
+            // 1. Get current history for context (last 10 messages for token efficiency)
+            val currentHistory = chatHistory.value.takeLast(10).map {
+                ChatMessageHistory(
+                    role = if (it.isFromUser) "user" else "model",
+                    content = it.text
+                )
+            }
+
+            // 2. Save user message to DB
+            chatDao.insertMessage(ChatMessageEntity(text = text, isFromUser = true))
+            
+            _isLoading.value = true
             try {
+                // 3. Send to VM with full memory context
                 val response = apiService.converseWithOrbit(
                     token = "Bearer $secretToken",
-                    request = ChatRequest(message = text)
+                    request = ChatRequest(
+                        message = text,
+                        history = currentHistory
+                    )
                 )
 
                 if (response.isSuccessful && response.body() != null) {
-                    // W Secured! Orbit replied.
                     val orbitReply = response.body()!!.reply
-                    _chatHistory.value = _chatHistory.value + ChatMessage(text = orbitReply, isFromUser = false)
+                    chatDao.insertMessage(ChatMessageEntity(text = orbitReply, isFromUser = false))
                 } else {
-                    // VM rejected it. 
-                    _chatHistory.value = _chatHistory.value + ChatMessage("Orbit's brain rejected the request. Are you over-leveraging? 💀", isFromUser = false)
+                    chatDao.insertMessage(ChatMessageEntity(text = "Orbit's brain is offline. Check the VM logs. 💀", isFromUser = false))
                 }
             } catch (e: Exception) {
-                // Safaricom acting up again...
-                _chatHistory.value = _chatHistory.value + ChatMessage("Network error. Can't reach the VM. Go touch grass. 📵", isFromUser = false)
+                chatDao.insertMessage(ChatMessageEntity(text = "Network slippage. Message wasn't sent. 📵", isFromUser = false))
             } finally {
-                // Turn off the loading indicator
                 _isLoading.value = false
             }
+        }
+    }
+    
+    fun syncStagedMessages() {
+        viewModelScope.launch {
+            val staged = chatDao.getStagedMessages()
+            staged.forEach { msg ->
+                try {
+                    val response = apiService.converseWithOrbit(
+                        token = "Bearer $secretToken",
+                        request = ChatRequest(message = "[STAGED] ${msg.text}")
+                    )
+                    if (response.isSuccessful) {
+                        chatDao.markMessageSynced(msg.id)
+                        response.body()?.reply?.let { reply ->
+                            chatDao.insertMessage(ChatMessageEntity(text = reply, isFromUser = false))
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Still offline
+                }
+            }
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            chatDao.clearHistory()
         }
     }
 }

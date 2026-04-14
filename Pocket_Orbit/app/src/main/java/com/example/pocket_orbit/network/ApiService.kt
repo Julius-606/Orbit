@@ -1,8 +1,8 @@
 // ==========================================
 // IDENTITY: The Courier / Retrofit API Service
 // FILEPATH: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/network/ApiService.kt
-// VERSION: 1.0.3
-// VIBE: Fixed the massive slippage. This is the REAL Retrofit interface now! 📡
+// VERSION: 1.1.0
+// VIBE: Added TaskCompletionRequest to sync remarks with the VM Brain. 📡
 // ==========================================
 
 package com.example.pocket_orbit.network
@@ -32,16 +32,20 @@ interface ApiService {
     @PUT("api/v1/study/tasks/{task_id}/complete")
     suspend fun completeTask(
         @Header("Authorization") token: String,
-        @Path("task_id") taskId: Int
+        @Path("task_id") taskId: Int,
+        @Body request: TaskCompletionRequest
     ): Response<Unit>
 
-    // 🔥 THE FIX: The neural link so Android can talk to Gemini on the VM
     @POST("api/v1/orbit/converse")
     suspend fun converseWithOrbit(
         @Header("Authorization") token: String,
         @Body request: ChatRequest
     ): Response<ChatResponse>
 }
+
+data class TaskCompletionRequest(
+    val remarks: String?
+)
 
 data class VibeResponse(
     val governor_says: String
