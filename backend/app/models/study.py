@@ -6,7 +6,7 @@
 # VIBE: The harsh reality of how much Anatomy you haven't read yet. 💀🩺
 # ==========================================
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum, Text
 from sqlalchemy.orm import declarative_base
 from datetime import datetime
 import enum
@@ -28,9 +28,13 @@ class StudyTask(Base):
     # Scheduling & Sync
     due_date = Column(DateTime, nullable=True)
     completed = Column(Boolean, default=False)
-    
+
+    # New metadata for Orbit Life-OS v4.0.0
+    remarks = Column(Text, nullable=True)
+    is_reminder = Column(Boolean, default=False)
+
     # Chronotype-based scheduling hint
-    brain_rot_level = Column(Enum(BrainRotLevel), default=BrainRotLevel.MID)
+    brain_rot_level = Column(Enum(BrainRotLevel), default=BrainRotLevel.CHILL)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     
