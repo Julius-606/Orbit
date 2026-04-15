@@ -1,13 +1,14 @@
 ################################################################################
 # FILE: backend/app/services/orbit_brain.py
-# VERSION: 4.1.4 | SYSTEM: Orbit (The Life-OS Protocol)
-# IDENTITY: The Brain / Gemini Function Caller
+# VERSION: 4.3.0 | SYSTEM: Orbit (The Life-OS Protocol)
+# IDENTITY: The Brain / Gemini Function Caller - Memory, Timezone & Due Dates
 ################################################################################
 
 import google.generativeai as genai
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
-import asyncio  # 🚀 BUG FIX: We need this to pacify Gemini's gRPC threads
+import asyncio
+import pytz
 
 from app.models.study import BrainRotLevel
 from app.core.config import settings
@@ -20,84 +21,99 @@ if settings.GEMINI_API_KEY:
 else:
     logger.error("GEMINI_API_KEY is missing! Orbit is clinically brain dead. 💀")
 
-# ---------------------------------------------------------
-# THE AGENT
-# ---------------------------------------------------------
-
 class OrbitAssistant:
     def __init__(self, db_session=None):
-        # Queue up tasks here instead of crashing the DB with async locks
         self.tasks_to_create = []
 
-        self.system_prompt = """
+        # 🌍 Timezone Fix: User is in Nairobi (EAT)
+        self.user_tz = pytz.timezone("Africa/Nairobi")
+        nairobi_now_dt = datetime.now(self.user_tz)
+        nairobi_now = nairobi_now_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+        self.system_prompt = f"""
         You are Orbit, an elite, highly intelligent, Gen-Z "Life-OS" Chief of Staff.
-        Your boss is a medical student living in Kisumu, Kenya who also codes projects, has an internship, and values their spiritual life (Bible study with mom, fasting).
+        Your boss is a medical student living in Kisumu, Kenya.
         
-        YOUR PILLARS (Use these exact strings as the 'subject' when creating tasks):
-        1. "Med-Scholar": Medical school, CATs, pharmacology, Anatomy.
-        2. "Projects": Coding, tech hustle, VM maintenance.
+        CURRENT TIME (Nairobi/EAT): {nairobi_now}
+        Always assume the user is in EAT-Nairobi.
+
+        YOUR PILLARS (Use these for 'subject'):
+        1. "Med-Scholar": Medicine, CATs, exams.
+        2. "Projects": Coding, tech.
         3. "Internship": SHOFCO Libraries.
-        4. "Life Admin": Bible study, fasting, errands, laundry.
-        5. "Forex Guardian": Charting XAUUSD, backtesting, avoiding margin calls.
+        4. "Life Admin": Bible study, errands, life.
+        5. "Forex Guardian": XAUUSD, trading.
         
-        BRAIN ROT LEVELS (Energy required):
-        - "chill": Easy tasks.
-        - "mid": Standard focus.
-        - "cooked": Hardcore grind (e.g., Anatomy Marathon).
+        BRAIN ROT LEVELS:
+        - "chill": Easy.
+        - "mid": Standard.
+        - "cooked": Hardcore/Panic mode.
         
         TONE:
-        - Confident, slightly sassy, Gen-Z slang (e.g., "no cap", "W", "cooked", "locked in", "slippage").
-        - Throw in lots of jokes. If they are over-leveraging on Forex, tell them to go outside and look at Lake Victoria.
-        - You act like a risk manager for their TIME.
+        - Confident, sassy, Gen-Z slang ("no cap", "W", "cooked", "locked in").
+        - You are a risk manager for their TIME.
         
         CAPABILITIES:
-        You have access to a tool called 'create_task_tool'. USE IT whenever the user asks you to schedule something or complains about an empty tracker!
+        - Use 'create_task_tool' to schedule tasks OR reminders.
+        - ALWAYS set a 'due_date' (ISO format). If the user doesn't specify a time, default to end of today or a logical future date.
+        - If a message starts with [STAGED], acknowledge it was a pending request you're processing now.
         """
 
         self.model = genai.GenerativeModel(
-            model_name='gemini-2.5-flash',
+            model_name='gemini-1.5-flash',
             tools=[self.create_task_tool],
             system_instruction=self.system_prompt
         )
-        self.chat_session = self.model.start_chat(enable_automatic_function_calling=True)
+        self.chat_session = None
 
-    def create_task_tool(self, title: str, subject: str, brain_rot_level: str = "mid") -> str:
-        """Creates a new task directly in the Android-synced Syllabus Vault."""
+    def create_task_tool(self, title: str, subject: str, due_date: str, brain_rot_level: str = "mid", is_reminder: bool = False) -> str:
+        """Creates a new task or reminder in the Syllabus Vault.
+        Args:
+            title: The name of the task.
+            subject: The pillar it belongs to.
+            due_date: ISO 8601 string (e.g. '2024-12-25T14:00:00').
+            brain_rot_level: "chill", "mid", or "cooked".
+            is_reminder: Boolean.
+        """
         try:
-            rot_map = {
-                "chill": BrainRotLevel.CHILL,
-                "mid": BrainRotLevel.MID,
-                "cooked": BrainRotLevel.COOKED
-            }
+            rot_map = {"chill": BrainRotLevel.CHILL, "mid": BrainRotLevel.MID, "cooked": BrainRotLevel.COOKED}
             safe_rot = rot_map.get(brain_rot_level.lower(), BrainRotLevel.MID)
 
-            # We just queue it up. No async/sync SQLAlchemy crashes!
+            # Parse the ISO string back to a datetime object
+            try:
+                dt_due = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+            except ValueError:
+                # Fallback if AI sends weird format
+                dt_due = datetime.now(self.user_tz) + timedelta(days=1)
+
             self.tasks_to_create.append({
                 "title": title,
                 "subject": subject,
-                "brain_rot_level": safe_rot
+                "brain_rot_level": safe_rot,
+                "is_reminder": is_reminder,
+                "due_date": dt_due
             })
 
-            logger.info(f"AI prepared task '{title}' under '{subject}'")
-            return f"SUCCESS: Task '{title}' prepared successfully for subject '{subject}'. No cap."
-
+            type_str = "Reminder" if is_reminder else "Task"
+            return f"SUCCESS: {type_str} '{title}' prepared for {due_date}. No cap."
         except Exception as e:
-            logger.error(f"AI fumbled the bag on task creation: {str(e)}")
-            return f"ERROR: Could not create task. {str(e)}"
+            logger.error(f"Tool Error: {str(e)}")
+            return f"ERROR: {str(e)}"
 
-    def chat(self, user_message: str) -> str:
-        """Sends message to Gemini, auto-executes tools if needed, returns response."""
-
-        # 🚀 BUG FIX: Give this background thread a dummy event loop
-        # so Gemini's underlying gRPC architecture doesn't panic when calling tools!
+    def chat(self, user_message: str, history: list = None) -> str:
+        """Sends message with history support."""
         try:
             asyncio.get_event_loop()
         except RuntimeError:
             asyncio.set_event_loop(asyncio.new_event_loop())
 
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        context_msg = f"[System Time: {current_time}] User says: {user_message}"
+        self.chat_session = self.model.start_chat(history=history or [], enable_automatic_function_calling=True)
 
-        logger.info(f"Orbit Brain processing: {user_message}")
+        nairobi_now = datetime.now(self.user_tz).strftime("%Y-%m-%d %H:%M:%S")
+        context_msg = f"[EAT: {nairobi_now}] {user_message}"
+
+        if user_message.startswith("[STAGED]"):
+            context_msg = f"[EAT: {nairobi_now}] [OFFLINE STAGED MESSAGE]: {user_message.replace('[STAGED]', '').strip()}"
+
         response = self.chat_session.send_message(context_msg)
         return response.text

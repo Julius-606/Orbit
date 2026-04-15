@@ -1,11 +1,12 @@
 ################################################################################
 # FILE: backend/app/routers/orbit_ai.py
-# VERSION: 4.0.3 | SYSTEM: Orbit (The Life-OS Protocol)
-# IDENTITY: The Voice / Chat Endpoint
+# VERSION: 4.1.0 | SYSTEM: Orbit (The Life-OS Protocol)
+# IDENTITY: The Voice / Chat Endpoint - Dementia Fix Applied
 ################################################################################
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.models.study import StudyTask
@@ -17,8 +18,13 @@ logger = logging.getLogger("Orbit-Voice")
 
 router = APIRouter(prefix="/orbit", tags=["Orbit-AI"])
 
+class ChatMessage(BaseModel):
+    role: str # "user" or "model"
+    content: str
+
 class ChatRequest(BaseModel):
     message: str
+    history: Optional[List[ChatMessage]] = []
 
 class ChatResponse(BaseModel):
     reply: str
@@ -26,27 +32,38 @@ class ChatResponse(BaseModel):
 
 @router.post("/converse", response_model=ChatResponse)
 async def converse_with_orbit(request: ChatRequest, db: AsyncSession = Depends(get_db)):
-    """The main neural link for talking to Orbit."""
+    """The main neural link for talking to Orbit. Now with memory!"""
     try:
-        # 🚀 BUG FIX: Pass the DB session explicitly just in case old code expects it!
         assistant = OrbitAssistant(db_session=db)
 
-        # Run the AI chat in a separate thread so it doesn't freeze FastAPI
-        ai_reply = await asyncio.to_thread(assistant.chat, request.message)
+        user_msg = request.message
+        is_staged = user_msg.startswith("[STAGED]")
 
-        # 🚀 BUG FIX: Safely insert all the tasks Gemini queued up!
+        # Inject context for staged messages
+        if is_staged:
+            logger.info("Processing [STAGED] message from offline sync.")
+            # We'll let the AI know it's a late processing
+
+        # Run the AI chat with history
+        ai_reply = await asyncio.to_thread(
+            assistant.chat,
+            user_msg,
+            history=[{"role": h.role, "parts": [h.content]} for h in request.history] if request.history else []
+        )
+
+        # Handle task creation from AI tools
         if hasattr(assistant, 'tasks_to_create') and assistant.tasks_to_create:
             for task_data in assistant.tasks_to_create:
                 new_task = StudyTask(
                     title=task_data["title"],
                     subject=task_data["subject"],
-                    brain_rot_level=task_data["brain_rot_level"]
+                    brain_rot_level=task_data["brain_rot_level"],
+                    is_reminder=task_data.get("is_reminder", False)
                 )
                 db.add(new_task)
 
-            # Commit exactly once, safely in the main event loop
             await db.commit()
-            logger.info(f"W Secured: Committed {len(assistant.tasks_to_create)} new tasks to DB! 🎯")
+            logger.info(f"W Secured: Committed {len(assistant.tasks_to_create)} tasks! 🎯")
 
         return ChatResponse(reply=ai_reply)
 
@@ -54,29 +71,3 @@ async def converse_with_orbit(request: ChatRequest, db: AsyncSession = Depends(g
         logger.error(f"Orbit's brain crashed: {str(e)}")
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Orbit's brain crashed: {str(e)}")
-
-@router.post("/seed", response_model=ChatResponse)
-async def seed_tasks(db: AsyncSession = Depends(get_db)):
-    """Secret endpoint to instantly populate your empty tracker."""
-    try:
-        # 🚀 BUG FIX: Pass the DB session explicitly!
-        assistant = OrbitAssistant(db_session=db)
-        prompt = "My tracker is completely empty bro. I'm slacking. Assign me essential tasks right now based on my 4 pillars (Med, Projects, Internship, Life), and do not forget the Friday Bible study with Mom."
-
-        ai_reply = await asyncio.to_thread(assistant.chat, prompt)
-
-        if hasattr(assistant, 'tasks_to_create') and assistant.tasks_to_create:
-            for task_data in assistant.tasks_to_create:
-                new_task = StudyTask(
-                    title=task_data["title"],
-                    subject=task_data["subject"],
-                    brain_rot_level=task_data["brain_rot_level"]
-                )
-                db.add(new_task)
-            await db.commit()
-
-        return ChatResponse(reply=ai_reply)
-    except Exception as e:
-        logger.error(f"Failed to seed tasks: {str(e)}")
-        await db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to secure the bag. Try again.")
