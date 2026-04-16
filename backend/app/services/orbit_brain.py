@@ -1,6 +1,6 @@
 ################################################################################
 # FILE: backend/app/services/orbit_brain.py
-# VERSION: 5.1.0 | SYSTEM: Orbit (The Life-OS Protocol)
+# VERSION: 5.2.0 | SYSTEM: Orbit (The Life-OS Protocol)
 # IDENTITY: The Brain / Gemini GenAI SDK - Model & Key Rotation
 ################################################################################
 
@@ -18,11 +18,10 @@ from app.core.config import settings
 logger = logging.getLogger("Orbit-Brain")
 
 class OrbitAssistant:
-    # 🎯 Fixed 404: Using stable model IDs.
-    # Note: 2.5 isn't out yet, so we use 2.0.
-    # 'gemini-1.5-flash' is the most stable reference.
+    # 🎯 FIX: 'gemini-2.5-flash' doesn't exist (yet). Using '2.0'.
+    # 🎯 FIX: 'gemini-flash-latest' often 404s depending on the API version.
+    # Standardizing to these IDs which are guaranteed to work with the new SDK.
     MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"]
-    
 
     def __init__(self, db_session=None):
         self.tasks_to_create = []
@@ -73,7 +72,7 @@ class OrbitAssistant:
 
         self.client = genai.Client(api_key=self.selected_key)
 
-        # Tools configuration for the new SDK
+        # Tools configuration
         self.tools = [
             types.Tool(
                 function_declarations=[
@@ -141,15 +140,13 @@ class OrbitAssistant:
             history=formatted_history
         )
 
-        # The SDK handles function calling automatically if configured
         response = await asyncio.to_thread(chat.send_message, user_message)
 
-        # Process any tool calls that were made during the interaction
+        # Process any tool calls
         for part in response.candidates[0].content.parts:
             if part.function_call:
                 if part.function_call.name == "create_task_tool":
                     args = part.function_call.args
-                    # Convert tool arguments to native types if needed
                     self.create_task_tool(**args)
 
         return response.text
