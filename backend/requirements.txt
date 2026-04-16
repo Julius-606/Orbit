@@ -1,38 +1,27 @@
-#--- START_FILE_BLOCK: backend/requirements.txt
+################################################################################
+# FILE: backend/requirements.txt
+# VERSION: 1.1.0 | SYSTEM: Orbit Brain Upgrade
 ################################################################################
 
-#FILE: backend/requirements.txt 
-
-#VERSION: 1.0.2 | SYSTEM: Clean Execution
-
-################################################################################
-
-#Core Framework
-
+# Core Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0.post1
 python-dotenv==1.0.0
 
-#Database & ORM
-
+# Database & ORM
 sqlalchemy==2.0.23
 asyncpg==0.29.0
 alembic==1.12.1
 
-#Security
-
+# Security
 pydantic==2.5.2
 pydantic-settings==2.1.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
-#AI & Agents
+# AI & Agents
+google-genai>=0.3.0
 
-google-generativeai>=0.8.0
-
-#Data & Integrations
-
-pandas==2.1.3
+# Data & Integrations
 redis==5.0.1
-
-#<<<--- END_FILE_BLOCK: backend/requirements.txt
+pytz==2023.3.post1

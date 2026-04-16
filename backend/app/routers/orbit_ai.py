@@ -1,7 +1,7 @@
 ################################################################################
 # FILE: backend/app/routers/orbit_ai.py
-# VERSION: 4.1.0 | SYSTEM: Orbit (The Life-OS Protocol)
-# IDENTITY: The Voice / Chat Endpoint - Dementia Fix Applied
+# VERSION: 4.3.0 | SYSTEM: Orbit (The Life-OS Protocol)
+# IDENTITY: The Voice / Chat Endpoint - Async SDK Alignment
 ################################################################################
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.models.study import StudyTask
 from app.services.orbit_brain import OrbitAssistant
-import asyncio
 import logging
 
 logger = logging.getLogger("Orbit-Voice")
@@ -37,16 +36,9 @@ async def converse_with_orbit(request: ChatRequest, db: AsyncSession = Depends(g
         assistant = OrbitAssistant(db_session=db)
 
         user_msg = request.message
-        is_staged = user_msg.startswith("[STAGED]")
 
-        # Inject context for staged messages
-        if is_staged:
-            logger.info("Processing [STAGED] message from offline sync.")
-            # We'll let the AI know it's a late processing
-
-        # Run the AI chat with history
-        ai_reply = await asyncio.to_thread(
-            assistant.chat,
+        # Run the AI chat with history (Now async native)
+        ai_reply = await assistant.chat(
             user_msg,
             history=[{"role": h.role, "parts": [h.content]} for h in request.history] if request.history else []
         )
@@ -57,8 +49,10 @@ async def converse_with_orbit(request: ChatRequest, db: AsyncSession = Depends(g
                 new_task = StudyTask(
                     title=task_data["title"],
                     subject=task_data["subject"],
+                    due_date=task_data.get("due_date"),
                     brain_rot_level=task_data["brain_rot_level"],
-                    is_reminder=task_data.get("is_reminder", False)
+                    is_reminder=task_data.get("is_reminder", False),
+                    remarks=task_data.get("remarks")
                 )
                 db.add(new_task)
 
@@ -69,5 +63,9 @@ async def converse_with_orbit(request: ChatRequest, db: AsyncSession = Depends(g
 
     except Exception as e:
         logger.error(f"Orbit's brain crashed: {str(e)}")
+        # If the error is about missing columns, we should probably log it specifically
+        if "column study_tasks.remarks does not exist" in str(e):
+            logger.error("MIGRATION ALERT: Database schema is out of sync. Run migrations!")
+
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Orbit's brain crashed: {str(e)}")

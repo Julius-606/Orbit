@@ -1,6 +1,6 @@
 // ================================================================================
 // FILE: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt
-// VERSION: 4.1.1 | SYSTEM: Orbit (The Life-OS Protocol)
+// VERSION: 4.1.2 | SYSTEM: Orbit (The Life-OS Protocol)
 // IDENTITY: The Neural Interface / Chat UI with Persistent Memory & Offline Staging
 // ================================================================================
 
@@ -101,8 +101,9 @@ fun ChatScreen(
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("Ask Orbit: 'What should I do now?'") },
                         shape = RoundedCornerShape(24.dp),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
                         )
                     )
                     

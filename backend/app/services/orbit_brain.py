@@ -1,31 +1,27 @@
 ################################################################################
 # FILE: backend/app/services/orbit_brain.py
-# VERSION: 4.3.0 | SYSTEM: Orbit (The Life-OS Protocol)
-# IDENTITY: The Brain / Gemini Function Caller - Memory, Timezone & Due Dates
+# VERSION: 5.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+# IDENTITY: The Brain / Gemini GenAI SDK - Model & Key Rotation
 ################################################################################
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from datetime import datetime, timedelta
 import logging
 import asyncio
 import pytz
+import random
 
 from app.models.study import BrainRotLevel
 from app.core.config import settings
 
 logger = logging.getLogger("Orbit-Brain")
 
-# Initialize Gemini safely
-if settings.GEMINI_API_KEY:
-    genai.configure(api_key=settings.GEMINI_API_KEY)
-else:
-    logger.error("GEMINI_API_KEY is missing! Orbit is clinically brain dead. 💀")
-
 class OrbitAssistant:
+    MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash-latest"]
+
     def __init__(self, db_session=None):
         self.tasks_to_create = []
-
-        # 🌍 Timezone Fix: User is in Nairobi (EAT)
         self.user_tz = pytz.timezone("Africa/Nairobi")
         nairobi_now_dt = datetime.now(self.user_tz)
         nairobi_now = nairobi_now_dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -45,9 +41,9 @@ class OrbitAssistant:
         5. "Forex Guardian": XAUUSD, trading.
         
         BRAIN ROT LEVELS:
-        - "chill": Easy.
-        - "mid": Standard.
-        - "cooked": Hardcore/Panic mode.
+        - "chill": Easy tasks.
+        - "mid": Standard work.
+        - "cooked": High stress/Panic mode.
         
         TONE:
         - Confident, sassy, Gen-Z slang ("no cap", "W", "cooked", "locked in").
@@ -55,65 +51,103 @@ class OrbitAssistant:
         
         CAPABILITIES:
         - Use 'create_task_tool' to schedule tasks OR reminders.
-        - ALWAYS set a 'due_date' (ISO format). If the user doesn't specify a time, default to end of today or a logical future date.
-        - If a message starts with [STAGED], acknowledge it was a pending request you're processing now.
+        - ALWAYS set a 'due_date' (ISO format).
+        - If the user asks for something "today", use the CURRENT DATE: {nairobi_now_dt.date()}.
         """
 
-        self.model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
-            tools=[self.create_task_tool],
-            system_instruction=self.system_prompt
-        )
-        self.chat_session = None
+        # Model & Key Rotation Logic
+        self.api_keys = settings.get_all_api_keys()
+        if not self.api_keys:
+            logger.error("NO API KEYS FOUND! Orbit is clinically brain dead. 💀")
+            raise ValueError("Missing GEMINI_API_KEY")
 
-    def create_task_tool(self, title: str, subject: str, due_date: str, brain_rot_level: str = "mid", is_reminder: bool = False) -> str:
-        """Creates a new task or reminder in the Syllabus Vault.
-        Args:
-            title: The name of the task.
-            subject: The pillar it belongs to.
-            due_date: ISO 8601 string (e.g. '2024-12-25T14:00:00').
-            brain_rot_level: "chill", "mid", or "cooked".
-            is_reminder: Boolean.
-        """
+        # Pick a random key and model from the rotation pool
+        self.selected_key = random.choice(self.api_keys)
+        self.selected_model = random.choice(self.MODELS)
+
+        logger.info(f"Orbit Brain active: Using model {self.selected_model} with key {self.selected_key[:8]}...")
+
+        self.client = genai.Client(api_key=self.selected_key)
+
+        # Tools configuration for the new SDK
+        self.tools = [
+            types.Tool(
+                function_declarations=[
+                    types.FunctionDeclaration(
+                        name="create_task_tool",
+                        description="Creates a new task or reminder in the Syllabus Vault.",
+                        parameters=types.Schema(
+                            type="OBJECT",
+                            properties={
+                                "title": types.Schema(type="STRING", description="The name of the task."),
+                                "subject": types.Schema(type="STRING", description="The pillar it belongs to."),
+                                "due_date": types.Schema(type="STRING", description="ISO 8601 string (e.g. '2024-12-25T14:00:00')."),
+                                "remarks": types.Schema(type="STRING", description="Optional details or notes."),
+                                "brain_rot_level": types.Schema(type="STRING", description="'chill', 'mid', or 'cooked'."),
+                                "is_reminder": types.Schema(type="BOOLEAN", description="Whether it's a reminder.")
+                            },
+                            required=["title", "subject", "due_date"]
+                        )
+                    )
+                ]
+            )
+        ]
+
+    def create_task_tool(self, title: str, subject: str, due_date: str, remarks: str = None, brain_rot_level: str = "mid", is_reminder: bool = False) -> str:
+        """Internal handler for task creation."""
         try:
             rot_map = {"chill": BrainRotLevel.CHILL, "mid": BrainRotLevel.MID, "cooked": BrainRotLevel.COOKED}
             safe_rot = rot_map.get(brain_rot_level.lower(), BrainRotLevel.MID)
 
-            # Parse the ISO string back to a datetime object
             try:
                 dt_due = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
             except ValueError:
-                # Fallback if AI sends weird format
-                dt_due = datetime.now(self.user_tz) + timedelta(days=1)
+                dt_due = datetime.now(self.user_tz) + timedelta(hours=2)
 
             self.tasks_to_create.append({
                 "title": title,
                 "subject": subject,
                 "brain_rot_level": safe_rot,
                 "is_reminder": is_reminder,
-                "due_date": dt_due
+                "due_date": dt_due,
+                "remarks": remarks
             })
 
             type_str = "Reminder" if is_reminder else "Task"
-            return f"SUCCESS: {type_str} '{title}' prepared for {due_date}. No cap."
+            return f"SUCCESS: {type_str} '{title}' set for {due_date}. Remarks: {remarks}. W."
         except Exception as e:
             logger.error(f"Tool Error: {str(e)}")
             return f"ERROR: {str(e)}"
 
-    def chat(self, user_message: str, history: list = None) -> str:
-        """Sends message with history support."""
-        try:
-            asyncio.get_event_loop()
-        except RuntimeError:
-            asyncio.set_event_loop(asyncio.new_event_loop())
+    async def chat(self, user_message: str, history: list = None) -> str:
+        """Sends message with the new SDK."""
 
-        self.chat_session = self.model.start_chat(history=history or [], enable_automatic_function_calling=True)
+        formatted_history = []
+        if history:
+            for h in history:
+                formatted_history.append(types.Content(role=h["role"], parts=[types.Part(text=p) for p in h["parts"]]))
 
-        nairobi_now = datetime.now(self.user_tz).strftime("%Y-%m-%d %H:%M:%S")
-        context_msg = f"[EAT: {nairobi_now}] {user_message}"
+        chat = self.client.chats.create(
+            model=self.selected_model,
+            config=types.GenerateContentConfig(
+                system_instruction=self.system_prompt,
+                tools=self.tools,
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=False)
+            ),
+            history=formatted_history
+        )
 
-        if user_message.startswith("[STAGED]"):
-            context_msg = f"[EAT: {nairobi_now}] [OFFLINE STAGED MESSAGE]: {user_message.replace('[STAGED]', '').strip()}"
+        # The SDK handles function calling automatically if configured
+        response = await asyncio.to_thread(chat.send_message, user_message)
 
-        response = self.chat_session.send_message(context_msg)
+        # Process any tool calls that were made during the interaction
+        # Note: With automatic_function_calling=True, the results are already in the response
+        # But we need to capture the data for our 'tasks_to_create' list
+        # We look for function calls in the response parts
+        for part in response.candidates[0].content.parts:
+            if part.function_call:
+                if part.function_call.name == "create_task_tool":
+                    args = part.function_call.args
+                    self.create_task_tool(**args)
+
         return response.text
