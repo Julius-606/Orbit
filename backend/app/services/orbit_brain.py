@@ -21,7 +21,8 @@ class OrbitAssistant:
     # 🎯 Fixed 404: Using stable model IDs.
     # Note: 2.5 isn't out yet, so we use 2.0.
     # 'gemini-1.5-flash' is the most stable reference.
-    MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"]
+    MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"]
+    
 
     def __init__(self, db_session=None):
         self.tasks_to_create = []
