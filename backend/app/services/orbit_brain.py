@@ -1,6 +1,6 @@
 ################################################################################
 # FILE: backend/app/services/orbit_brain.py
-# VERSION: 5.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+# VERSION: 5.1.0 | SYSTEM: Orbit (The Life-OS Protocol)
 # IDENTITY: The Brain / Gemini GenAI SDK - Model & Key Rotation
 ################################################################################
 
@@ -18,7 +18,10 @@ from app.core.config import settings
 logger = logging.getLogger("Orbit-Brain")
 
 class OrbitAssistant:
-    MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash-latest"]
+    # 🎯 Fixed 404: Using stable model IDs.
+    # Note: 2.5 isn't out yet, so we use 2.0.
+    # 'gemini-1.5-flash' is the most stable reference.
+    MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"]
 
     def __init__(self, db_session=None):
         self.tasks_to_create = []
@@ -141,13 +144,11 @@ class OrbitAssistant:
         response = await asyncio.to_thread(chat.send_message, user_message)
 
         # Process any tool calls that were made during the interaction
-        # Note: With automatic_function_calling=True, the results are already in the response
-        # But we need to capture the data for our 'tasks_to_create' list
-        # We look for function calls in the response parts
         for part in response.candidates[0].content.parts:
             if part.function_call:
                 if part.function_call.name == "create_task_tool":
                     args = part.function_call.args
+                    # Convert tool arguments to native types if needed
                     self.create_task_tool(**args)
 
         return response.text
