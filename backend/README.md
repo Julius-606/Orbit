@@ -1,7 +1,7 @@
 ---
 title: Orbit Brain
 emoji: 🪐
-colorFrom: purple
+colorFrom: green
 colorTo: blue
 sdk: docker
 app_port: 7860

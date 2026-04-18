@@ -1,10 +1,11 @@
 ################################################################################
 # FILE: backend/app/core/config.py
-# VERSION: 1.1.3 | SYSTEM: Neon DB Auto-Correct V2 (Anti-Slippage)
+# VERSION: 1.1.4 | SYSTEM: Pydantic Fix (No-JSON-List)
 ################################################################################
 
 from pydantic_settings import BaseSettings
-from typing import Optional, List
+from pydantic import field_validator
+from typing import Optional, List, Any
 import os
 
 class Settings(BaseSettings):
@@ -22,15 +23,19 @@ class Settings(BaseSettings):
 
     # Agent APIs
     GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
-    # Support for multiple keys (comma separated)
-    GEMINI_API_KEYS: List[str] = [
-        k.strip() for k in os.getenv("GEMINI_API_KEYS", "").split(",") if k.strip()
-    ]
+
+    # We change this to str so Pydantic doesn't try to parse it as a JSON list
+    GEMINI_API_KEYS_RAW: str = os.getenv("GEMINI_API_KEYS", "")
 
     # Forex Guardian (MT5)
     MT5_LOGIN: Optional[int] = None
     MT5_PASSWORD: Optional[str] = None
     MT5_SERVER: Optional[str] = None
+
+    @property
+    def GEMINI_API_KEYS(self) -> List[str]:
+        """Parsed list of keys from the raw string."""
+        return [k.strip() for k in self.GEMINI_API_KEYS_RAW.split(",") if k.strip()]
 
     @property
     def async_database_url(self) -> str:
@@ -52,6 +57,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore" # Ignore extra env vars
         case_sensitive = True
 
 settings = Settings()
