@@ -1,8 +1,8 @@
 // ================================================================================
 // FILE: Pocket_Orbit/app/build.gradle.kts
-// VERSION: 1.1.8 | SYSTEM: Orbit Life-OS v4.0.0
+// VERSION: 1.1.10 | SYSTEM: Orbit Life-OS v4.0.0
 // IDENTITY: The Funding Account / App Gradle
-// VIBE: Kotlin 2.2.10, Room 2.6.1 and SDK 35 with KSP2 fix. 🚀
+// VIBE: Kotlin 2.2.10, Room 2.6.1 and SDK 36 with KSP2 fix. 🚀
 // ================================================================================
 
 plugins {
@@ -19,7 +19,7 @@ android {
     defaultConfig {
         applicationId = "com.example.pocket_orbit"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 2
         versionName = "4.0-Orbit-Life-OS"
 
@@ -47,9 +47,10 @@ android {
     }
 }
 
-// 🔥 Workaround for KSP2 "unexpected jvm signature V" error with Room 2.6.x
+// 🔥 Fix for KSP2 "unexpected jvm signature V" error with Room 2.6.x
+// Disabling generateKotlin forces Room to generate Java code, avoiding the KSP2 bug.
 ksp {
-    arg("room.generateKotlin", "true")
+    arg("room.generateKotlin", "false")
 }
 
 dependencies {

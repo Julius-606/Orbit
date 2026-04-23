@@ -1,8 +1,8 @@
 // ==========================================
 // IDENTITY: The Translator / Chat ViewModel
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatViewModel.kt
-// VERSION: 1.2.0 | SYSTEM: Orbit (The Life-OS Protocol)
-// VIBE: Short-term dementia cured. Memory is now fully persistent and contextual. 🧠
+// VERSION: 1.3.0 | SYSTEM: Orbit (The Life-OS Protocol)
+// VIBE: Reply logic and advanced context secured. 🧠💬
 // ==========================================
 
 package com.example.pocket_orbit.ui.screens
@@ -22,53 +22,39 @@ class ChatViewModel(
     private val chatDao: ChatDao
 ) : ViewModel() {
 
-    // Persistent history from Room
     val chatHistory: StateFlow<List<ChatMessageEntity>> = chatDao.getAllMessages()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
     
+    private val _replyingTo = MutableStateFlow<ChatMessageEntity?>(null)
+    val replyingTo = _replyingTo.asStateFlow()
+
     private val _pendingOfflineMessage = MutableStateFlow<String?>(null)
     val pendingOfflineMessage = _pendingOfflineMessage.asStateFlow()
 
     private val secretToken = "3ATLNDwN6SfiTQfyfEjxQpxsRtj_6dzR8QzKxpXeZn8Nn76n4"
 
+    fun setReplyingTo(message: ChatMessageEntity?) {
+        _replyingTo.value = message
+    }
+
     fun sendMessage(text: String, isOffline: Boolean = false) {
         if (text.isBlank()) return
-
         if (isOffline) {
             _pendingOfflineMessage.value = text
             return
         }
-
         executeSendMessage(text)
-    }
-
-    fun stageMessage(text: String) {
-        viewModelScope.launch {
-            val stagedMsg = ChatMessageEntity(
-                text = text,
-                isFromUser = true,
-                isStaged = true
-            )
-            chatDao.insertMessage(stagedMsg)
-            _pendingOfflineMessage.value = null
-            
-            chatDao.insertMessage(ChatMessageEntity(
-                text = "Message staged. I'll process this as soon as we're back online. Stay focused. 🫡",
-                isFromUser = false
-            ))
-        }
-    }
-
-    fun discardPendingMessage() {
-        _pendingOfflineMessage.value = null
     }
 
     private fun executeSendMessage(text: String) {
         viewModelScope.launch {
-            // 1. Get current history for context (last 10 messages for token efficiency)
+            val replyRef = _replyingTo.value
+            _replyingTo.value = null // Clear reply state immediately for UI feel
+
+            // 1. Get current history for context
             val currentHistory = chatHistory.value.takeLast(10).map {
                 ChatMessageHistory(
                     role = if (it.isFromUser) "user" else "model",
@@ -76,16 +62,27 @@ class ChatViewModel(
                 )
             }
 
-            // 2. Save user message to DB
-            chatDao.insertMessage(ChatMessageEntity(text = text, isFromUser = true))
+            // 2. Save user message (with reply context if any)
+            chatDao.insertMessage(ChatMessageEntity(
+                text = text, 
+                isFromUser = true,
+                replyToId = replyRef?.id,
+                replyToText = replyRef?.text
+            ))
             
             _isLoading.value = true
             try {
-                // 3. Send to VM with full memory context
+                // 3. Construct the message with quoted context if replying
+                val messageToSend = if (replyRef != null) {
+                    "Regarding: \"${replyRef.text}\"\n\n$text"
+                } else {
+                    text
+                }
+
                 val response = apiService.converseWithOrbit(
                     token = "Bearer $secretToken",
                     request = ChatRequest(
-                        message = text,
+                        message = messageToSend,
                         history = currentHistory
                     )
                 )
@@ -103,32 +100,18 @@ class ChatViewModel(
             }
         }
     }
-    
-    fun syncStagedMessages() {
+
+    fun stageMessage(text: String) {
         viewModelScope.launch {
-            val staged = chatDao.getStagedMessages()
-            staged.forEach { msg ->
-                try {
-                    val response = apiService.converseWithOrbit(
-                        token = "Bearer $secretToken",
-                        request = ChatRequest(message = "[STAGED] ${msg.text}")
-                    )
-                    if (response.isSuccessful) {
-                        chatDao.markMessageSynced(msg.id)
-                        response.body()?.reply?.let { reply ->
-                            chatDao.insertMessage(ChatMessageEntity(text = reply, isFromUser = false))
-                        }
-                    }
-                } catch (e: Exception) {
-                    // Still offline
-                }
-            }
+            chatDao.insertMessage(ChatMessageEntity(text = text, isFromUser = true, isStaged = true))
+            _pendingOfflineMessage.value = null
+            chatDao.insertMessage(ChatMessageEntity(text = "Message staged. Sync pending. 🫡", isFromUser = false))
         }
     }
 
+    fun discardPendingMessage() { _pendingOfflineMessage.value = null }
+
     fun clearHistory() {
-        viewModelScope.launch {
-            chatDao.clearHistory()
-        }
+        viewModelScope.launch { chatDao.clearHistory() }
     }
 }

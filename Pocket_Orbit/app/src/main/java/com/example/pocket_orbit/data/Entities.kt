@@ -1,8 +1,8 @@
 // ==========================================
 // IDENTITY: The Blueprints / Room DB Entities
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/data/Entities.kt
-// VERSION: 1.2.0
-// VIBE: Added ChatMessageEntity for offline memory and persistent conversations. 🧠
+// VERSION: 1.3.0
+// VIBE: Added Reply support for Chat messages. 🧠💬
 // ==========================================
 
 package com.example.pocket_orbit.data
@@ -20,7 +20,7 @@ data class StudyTaskEntity(
     val isCompleted: Boolean,
     val dueDate: Date?,
     val remarks: String? = null,
-    val isReminder: Boolean = false // 🔥 Distinguish between Task and Reminder
+    val isReminder: Boolean = false 
 )
 
 @Entity(tableName = "chat_messages")
@@ -29,7 +29,9 @@ data class ChatMessageEntity(
     val text: String,
     val isFromUser: Boolean,
     val timestamp: Long = System.currentTimeMillis(),
-    val isStaged: Boolean = false // 🔥 True if sent while offline and pending sync
+    val isStaged: Boolean = false,
+    val replyToId: Int? = null, // 🔥 ID of the message being replied to
+    val replyToText: String? = null // 🏎️ Cache the text for UI speed
 )
 
 @Entity(tableName = "forex_logs")
