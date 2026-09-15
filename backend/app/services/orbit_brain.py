@@ -61,7 +61,7 @@ class OrbitAssistant:
         """
 
         self.model = genai.GenerativeModel(
-            model_name='gemini-2.5-flash',
+            model_name='gemini-3.5-flash',
             tools=[self.create_task_tool],
             system_instruction=self.system_prompt
         )

@@ -17,7 +17,10 @@ from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Any
 import uvicorn
+import socket
 from datetime import datetime
+from zeroconf.asyncio import AsyncZeroconf
+from zeroconf import ServiceInfo
 
 # 🔥 THE MISSING LIQUIDITY: Master router for Orbit-AI, Forex, etc.
 from app.api.v1.api import api_router
@@ -42,12 +45,34 @@ async def forex_guardian_monitor():
 async def lifespan(app: FastAPI):
     # Startup logic: Connect to Postgres, Redis, and start workers
     logger.info("🪐 Orbit Brain booting up... Waking up Med-Scholar modules.")
+
+    # HF Space / Local Discovery Registration
+    local_ip = "127.0.0.1"
+    try:
+        local_ip = socket.gethostbyname(socket.gethostname())
+    except:
+        pass
+
+    info = ServiceInfo(
+        "_orbit_pilot._tcp.local.",
+        "OrbitCore._orbit_pilot._tcp.local.",
+        addresses=[socket.inet_aton(local_ip)],
+        port=8000,
+        properties={'node_name': 'HF_Space_Node'}
+    )
+
+    aiozc = AsyncZeroconf()
+    await aiozc.zeroconf.async_register_service(info)
+    logger.info(f"Registered Orbit Service at {local_ip}:8000")
+
     logger.info("Checking Redis cache for pending CATE triggers...")
     
     forex_task = asyncio.create_task(forex_guardian_monitor())
     yield
     
     logger.info("Shutting down Orbit. Liquidating pending tasks and closing DB safely.")
+    await aiozc.zeroconf.async_unregister_all_services()
+    await aiozc.async_close()
     forex_task.cancel()
 
 # ===============================================================================

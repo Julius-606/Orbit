@@ -95,8 +95,8 @@ async def suggest_command(req: SuggestionRequest):
             f"Format your response as a JSON object with two keys: 'command' (the raw PowerShell string) and 'explanation' (a brief one-sentence description)."
         )
         genai.configure(api_key=settings.GEMINI_API_KEY)
-        # 🔥 Fixed model to use latest Gemini 2.5 Flash for elite functionality without breakages
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        # 🔥 Using Gemini 3.5 Flash for stable system administration logic
+        model = genai.GenerativeModel('gemini-3.5-flash')
         response = model.generate_content(
             prompt,
             generation_config={"response_mime_type": "application/json"}
