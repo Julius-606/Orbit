@@ -1,12 +1,16 @@
 ################################################################################
 # FILE: backend/app/core/nodes.py
-# VERSION: 1.0.0 | SYSTEM: Orbit Decentralized Node Framework
-# IDENTITY: Multi-node workstation routing and agent monitoring management
+# VERSION: 1.1.0 | SYSTEM: Orbit Decentralized Node Framework
+# IDENTITY: Multi-node workstation routing with Local Subprocess support
 ################################################################################
 
 import os
 import httpx
 import logging
+import subprocess
+import threading
+import queue
+import psutil
 
 logger = logging.getLogger("OrbitNodes")
 
@@ -18,35 +22,63 @@ class BaseNode:
     async def get_status(self) -> dict:
         raise NotImplementedError
 
-    async def execute(self, command: str) -> dict:
+    async def execute(self, command: str) -> str:
         raise NotImplementedError
 
-class HuggingFaceSpaceNode(BaseNode):
-    def __init__(self, name: str, space_url: str):
-        super().__init__(name, "huggingface")
-        self.space_url = space_url.rstrip("/")
+class LocalNode(BaseNode):
+    """The node running on the current machine (e.g., the HuggingFace Space itself)."""
+    def __init__(self, name: str):
+        super().__init__(name, "local")
+        shell = 'powershell.exe' if os.name == 'nt' else 'bash'
+        self.proc = subprocess.Popen(
+            [shell, '-NoExit', '-Command', '-'] if os.name == 'nt' else [shell],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+        )
+        self.out_queue = queue.Queue()
+        threading.Thread(target=self._read_stream, args=(self.proc.stdout,), daemon=True).start()
+        threading.Thread(target=self._read_stream, args=(self.proc.stderr,), daemon=True).start()
+
+    def _read_stream(self, stream):
+        try:
+            for line in iter(stream.readline, ""):
+                self.out_queue.put(line)
+        except:
+            pass
 
     async def get_status(self) -> dict:
+        cwd = os.getcwd()
         try:
-            async with httpx.AsyncClient(timeout=4.0) as client:
-                # Call local /health endpoint or space state
-                resp = await client.get(f"{self.space_url}/health")
-                if resp.status_code == 200:
-                    return {
-                        "status": "healthy",
-                        "telemetry": resp.json().get("telemetry", {"cpu": 12.5, "ram": 45.0, "disk": 22.1, "cwd": "/workspace"})
-                    }
-                return {"status": f"unhealthy (status {resp.status_code})", "telemetry": {"cpu": 0, "ram": 0, "disk": 0, "cwd": "unknown"}}
-        except Exception as e:
-            return {"status": f"offline: {str(e)}", "telemetry": {"cpu": 0, "ram": 0, "disk": 0, "cwd": "unknown"}}
+            p = psutil.Process(self.proc.pid)
+            cwd = p.cwd()
+        except:
+            pass
+        return {
+            "status": "healthy",
+            "telemetry": {
+                "cpu": psutil.cpu_percent(),
+                "ram": psutil.virtual_memory().percent,
+                "disk": psutil.disk_usage('/').percent,
+                "cwd": str(cwd)
+            }
+        }
 
-    async def execute(self, command: str) -> dict:
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.post(f"{self.space_url}/api/v1/terminal/execute", json={"command": command})
-                return resp.json()
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+    async def execute(self, command: str) -> str:
+        if self.proc.poll() is None:
+            self.proc.stdin.write(command + "\n")
+            self.proc.stdin.flush()
+            # Give it a moment to produce output
+            import asyncio
+            await asyncio.sleep(0.5)
+            output = ""
+            while not self.out_queue.empty():
+                output += self.out_queue.get()
+            return output
+        return "Local terminal process is dead."
 
 class RemoteAgentNode(BaseNode):
     def __init__(self, name: str, host: str, port: int = 8888):
@@ -59,21 +91,23 @@ class RemoteAgentNode(BaseNode):
             async with httpx.AsyncClient(timeout=3.0) as client:
                 resp = await client.get(f"http://{self.host}:{self.port}/status")
                 return resp.json()
-        except Exception as e:
+        except:
             return {"status": "offline", "telemetry": {"cpu": 0, "ram": 0, "disk": 0, "cwd": "unknown"}}
 
-    async def execute(self, command: str) -> dict:
+    async def execute(self, command: str) -> str:
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(f"http://{self.host}:{self.port}/execute", json={"command": command})
-                return resp.json()
+                data = resp.json()
+                return data.get("output", data.get("message", "Command executed (no output)"))
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return f"Remote error: {str(e)}"
 
 class NodeClusterManager:
     def __init__(self):
+        # The primary node is the local HF Space / Server
         self.nodes = {
-            "HF_Space_Node": HuggingFaceSpaceNode("HF_Space_Node", "https://huggingface.co/spaces/Julius-606/ai_terminal_pilot")
+            "HF_Space_Node": LocalNode("HF_Space_Node")
         }
         self.active_node_name = "HF_Space_Node"
 

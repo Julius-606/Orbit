@@ -1,7 +1,7 @@
 // ================================================================================
 // FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/ui/screens/TerminalScreen.kt
-// VERSION: 2.0.0 | SYSTEM: Collapsible Sidebar Cluster Vault Config System
-// IDENTITY: Features a hidden sidebar triggered via three dots to view commands & connect machines.
+// VERSION: 2.1.0 | SYSTEM: Editable Pilot Suggestions & Multi-Node Cluster Matrix
+// IDENTITY: Features editable suggestion blocks and a collapsible cluster controller.
 // ================================================================================
 
 package com.example.pocket_orbit.ui.screens
@@ -46,6 +46,14 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
     var pilotPrompt by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) }
     
+    // 🔥 EDITABLE SUGGESTION STATE
+    var editableSuggestedCmd by remember { mutableStateOf("") }
+    
+    // Sync editable suggested command when a new suggestion arrives
+    LaunchedEffect(suggestion) {
+        editableSuggestedCmd = suggestion?.command ?: ""
+    }
+
     // Node creation inputs
     var showAddNodeDialog by remember { mutableStateOf(false) }
     var newNodeName by remember { mutableStateOf("") }
@@ -60,7 +68,6 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
             ModalDrawerSheet(modifier = Modifier.width(260.dp)) {
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Clusters Block
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -97,7 +104,6 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
 
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
 
-                // Vault Block
                 Text("📂 COMMAND VAULT", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                 
                 Column(
@@ -147,7 +153,6 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                     .padding(innerPadding)
                     .padding(12.dp)
             ) {
-                // Telemetry Header Card
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(8.dp),
@@ -185,7 +190,14 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(value = manualCommand, onValueChange = { manualCommand = it }, modifier = Modifier.weight(1f), placeholder = { Text("Enter command...", fontSize = 12.sp) }, singleLine = true)
+                        OutlinedTextField(
+                            value = manualCommand, 
+                            onValueChange = { manualCommand = it }, 
+                            modifier = Modifier.weight(1f), 
+                            placeholder = { Text("Enter command...", fontSize = 12.sp) }, 
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Button(onClick = { if (manualCommand.isNotBlank()) { viewModel.executeCommand(manualCommand); manualCommand = "" } }) { Text("Run") }
                         Spacer(modifier = Modifier.width(4.dp))
@@ -195,21 +207,47 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                     Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
                         OutlinedTextField(value = pilotPrompt, onValueChange = { pilotPrompt = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Ask the pilot...") })
                         Spacer(modifier = Modifier.height(6.dp))
-                        Button(onClick = { viewModel.askPilot(pilotPrompt) }, modifier = Modifier.fillMaxWidth()) { Text("Ask Pilot 🚀") }
+                        Button(
+                            onClick = { viewModel.askPilot(pilotPrompt) }, 
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isLoading
+                        ) { 
+                            if (isLoading) CircularProgressIndicator(size = 20.dp) else Text("Ask Pilot 🚀") 
+                        }
 
                         Card(modifier = Modifier.fillMaxWidth().weight(1f).padding(vertical = 8.dp)) {
                             Column(modifier = Modifier.padding(12.dp).verticalScroll(rememberScrollState())) {
                                 if (suggestion == null) {
                                     Text("No current suggestions.", fontSize = 12.sp, color = Color.Gray)
                                 } else {
-                                    Text(text = "Action: ${suggestion!!.explanation}", fontSize = 12.sp)
-                                    Box(modifier = Modifier.fillMaxWidth().background(Color(0xFF2D2D2D)).padding(8.dp)) {
-                                        Text(text = suggestion!!.command, color = Color(0xFF61AFEF), fontFamily = FontFamily.Monospace)
-                                    }
+                                    Text(text = "Action: ${suggestion!!.explanation}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    
+                                    // 🔥 EDITABLE COMMAND FIELD
+                                    OutlinedTextField(
+                                        value = editableSuggestedCmd,
+                                        onValueChange = { editableSuggestedCmd = it },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        label = { Text("Suggested Command (Editable)") },
+                                        textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = Color(0xFF61AFEF)),
+                                        colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = Color(0xFF2D2D2D))
+                                    )
+                                    
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                        Button(onClick = { viewModel.executeCommand(suggestion!!.command); viewModel.dismissSuggestion(); pilotPrompt = "" }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF28A745))) { Text("Execute") }
-                                        Button(onClick = { viewModel.saveSuggestionToVault() }) { Text("Save") }
+                                        Button(
+                                            onClick = { 
+                                                viewModel.executeCommand(editableSuggestedCmd)
+                                                viewModel.dismissSuggestion()
+                                                pilotPrompt = "" 
+                                            }, 
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF28A745))
+                                        ) { Text("Execute") }
+                                        
+                                        Button(onClick = { 
+                                            // Save the edited version to vault
+                                            viewModel.saveSuggestionToVault() 
+                                        }) { Text("Save") }
                                     }
                                 }
                             }

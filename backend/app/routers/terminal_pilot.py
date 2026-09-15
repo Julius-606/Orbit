@@ -1,6 +1,6 @@
 ################################################################################
 # FILE: backend/app/routers/terminal_pilot.py
-# VERSION: 2.2.0 | SYSTEM: Orbit Decentralized Cluster Workspace
+# VERSION: 2.3.0 | SYSTEM: Orbit Decentralized Cluster Workspace
 # IDENTITY: Integrates multi-node target execution with Async GenAI v2 Client.
 ################################################################################
 
@@ -82,9 +82,18 @@ async def get_status():
 @router.post("/execute")
 async def execute_command(req: CommandRequest):
     node = cluster_manager.get_active()
-    manager.log_buffer += req.command + "\nPS C:\\Users\\Administrator> "
-    await node.execute(req.command)
-    return {"status": "success", "message": "Command piped to cluster target"}
+    manager.log_buffer += req.command + "\n"
+
+    # 🔥 FIX: Capture and append output to the log buffer
+    output = await node.execute(req.command)
+    manager.log_buffer += output
+
+    if not manager.log_buffer.endswith("PS C:\\Users\\Administrator> "):
+        if not manager.log_buffer.endswith("\n"):
+            manager.log_buffer += "\n"
+        manager.log_buffer += "PS C:\\Users\\Administrator> "
+
+    return {"status": "success", "message": "Command executed", "output": output}
 
 @router.post("/suggest")
 async def suggest_command(req: SuggestionRequest):
