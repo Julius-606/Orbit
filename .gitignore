@@ -75,3 +75,4 @@ build/
 
 temp_notes.txt
 TODO_PRIVATE.md
+backend/app/__pycache__/main.cpython-312.pyc
