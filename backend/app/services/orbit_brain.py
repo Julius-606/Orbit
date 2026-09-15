@@ -1,10 +1,11 @@
 ################################################################################
 # FILE: backend/app/services/orbit_brain.py
-# VERSION: 4.3.0 | SYSTEM: Orbit (The Life-OS Protocol)
-# IDENTITY: The Brain / Gemini Function Caller - Memory, Timezone & Due Dates
+# VERSION: 6.0.0 | SYSTEM: Orbit (The Life-OS Protocol)
+# IDENTITY: The Brain / Gemini Async GenAI Client - Fully Non-Blocking
 ################################################################################
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from datetime import datetime, timedelta
 import logging
 import asyncio
@@ -15,20 +16,18 @@ from app.core.config import settings
 
 logger = logging.getLogger("Orbit-Brain")
 
-# Initialize Gemini safely
+# Initialize Async Client
+async_client = None
 if settings.GEMINI_API_KEY:
-    genai.configure(api_key=settings.GEMINI_API_KEY)
+    async_client = genai.Client(api_key=settings.GEMINI_API_KEY, http_options={'api_version': 'v1alpha'})
 else:
     logger.error("GEMINI_API_KEY is missing! Orbit is clinically brain dead. 💀")
 
 class OrbitAssistant:
     def __init__(self, db_session=None):
         self.tasks_to_create = []
-
-        # 🌍 Timezone Fix: User is in Nairobi (EAT)
         self.user_tz = pytz.timezone("Africa/Nairobi")
-        nairobi_now_dt = datetime.now(self.user_tz)
-        nairobi_now = nairobi_now_dt.strftime("%Y-%m-%d %H:%M:%S")
+        nairobi_now = datetime.now(self.user_tz).strftime("%Y-%m-%d %H:%M:%S")
 
         self.system_prompt = f"""
         You are Orbit, an elite, highly intelligent, Gen-Z "Life-OS" Chief of Staff.
@@ -37,84 +36,84 @@ class OrbitAssistant:
         CURRENT TIME (Nairobi/EAT): {nairobi_now}
         Always assume the user is in EAT-Nairobi.
 
-        YOUR PILLARS (Use these for 'subject'):
-        1. "Med-Scholar": Medicine, CATs, exams.
-        2. "Projects": Coding, tech.
-        3. "Internship": SHOFCO Libraries.
-        4. "Life Admin": Bible study, errands, life.
-        5. "Forex Guardian": XAUUSD, trading.
-        
-        BRAIN ROT LEVELS:
-        - "chill": Easy.
-        - "mid": Standard.
-        - "cooked": Hardcore/Panic mode.
+        YOUR PILLARS:
+        1. "Med-Scholar", 2. "Projects", 3. "Internship", 4. "Life Admin", 5. "Forex Guardian".
         
         TONE:
         - Confident, sassy, Gen-Z slang ("no cap", "W", "cooked", "locked in").
-        - You are a risk manager for their TIME.
-        - ALWAYS respond using clear Markdown structure (`**bold**`, `*italics*`, lists, and code blocks ` ``` ` if showing code or commands) to allow proper layout formatting on the boss's screen.
+        - Respond using Markdown (**bold**, *italics*, lists, code).
 
         CAPABILITIES:
-        - Use 'create_task_tool' to schedule tasks OR reminders.
-        - ALWAYS set a 'due_date' (ISO format). If the user doesn't specify a time, default to end of today or a logical future date.
-        - If a message starts with [STAGED], acknowledge it was a pending request you're processing now.
+        - Use 'create_task_tool' to schedule tasks/reminders.
         """
-
-        self.model = genai.GenerativeModel(
-            model_name='gemini-3.5-flash',
-            tools=[self.create_task_tool],
-            system_instruction=self.system_prompt
-        )
-        self.chat_session = None
 
     def create_task_tool(self, title: str, subject: str, due_date: str, brain_rot_level: str = "mid", is_reminder: bool = False) -> str:
-        """Creates a new task or reminder in the Syllabus Vault.
-        Args:
-            title: The name of the task.
-            subject: The pillar it belongs to.
-            due_date: ISO 8601 string (e.g. '2024-12-25T14:00:00').
-            brain_rot_level: "chill", "mid", or "cooked".
-            is_reminder: Boolean.
-        """
         try:
             rot_map = {"chill": BrainRotLevel.CHILL, "mid": BrainRotLevel.MID, "cooked": BrainRotLevel.COOKED}
             safe_rot = rot_map.get(brain_rot_level.lower(), BrainRotLevel.MID)
-
-            # Parse the ISO string back to a datetime object
             try:
                 dt_due = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
-            except ValueError:
-                # Fallback if AI sends weird format
+            except:
                 dt_due = datetime.now(self.user_tz) + timedelta(days=1)
 
             self.tasks_to_create.append({
-                "title": title,
-                "subject": subject,
-                "brain_rot_level": safe_rot,
-                "is_reminder": is_reminder,
-                "due_date": dt_due
+                "title": title, "subject": subject, "brain_rot_level": safe_rot,
+                "is_reminder": is_reminder, "due_date": dt_due
             })
-
-            type_str = "Reminder" if is_reminder else "Task"
-            return f"SUCCESS: {type_str} '{title}' prepared for {due_date}. No cap."
+            return f"SUCCESS: '{title}' secured. No cap."
         except Exception as e:
-            logger.error(f"Tool Error: {str(e)}")
-            return f"ERROR: {str(e)}"
+            return f"ERROR: {e}"
 
-    def chat(self, user_message: str, history: list = None) -> str:
-        """Sends message with history support."""
-        try:
-            asyncio.get_event_loop()
-        except RuntimeError:
-            asyncio.set_event_loop(asyncio.new_event_loop())
-
-        self.chat_session = self.model.start_chat(history=history or [], enable_automatic_function_calling=True)
+    async def chat(self, user_message: str, history: list = None) -> str:
+        if not async_client:
+            return "Brain glitched: API key missing."
 
         nairobi_now = datetime.now(self.user_tz).strftime("%Y-%m-%d %H:%M:%S")
         context_msg = f"[EAT: {nairobi_now}] {user_message}"
-
         if user_message.startswith("[STAGED]"):
-            context_msg = f"[EAT: {nairobi_now}] [OFFLINE STAGED MESSAGE]: {user_message.replace('[STAGED]', '').strip()}"
+            context_msg = f"[EAT: {nairobi_now}] [STAGED]: {user_message.replace('[STAGED]', '').strip()}"
 
-        response = self.chat_session.send_message(context_msg)
-        return response.text
+        contents = []
+        if history:
+            for h in history:
+                contents.append(types.Content(role=h["role"], parts=[types.Part(text=h["parts"][0])]))
+        contents.append(types.Content(role="user", parts=[types.Part(text=context_msg)]))
+
+        try:
+            # Note: The new SDK supports async via client.aio
+            response = await async_client.aio.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=self.system_prompt,
+                    tools=[types.Tool(function_declarations=[
+                        types.FunctionDeclaration(
+                            name="create_task_tool",
+                            description="Creates a task or reminder.",
+                            parameters=types.Schema(
+                                type="OBJECT",
+                                properties={
+                                    "title": types.Schema(type="STRING"),
+                                    "subject": types.Schema(type="STRING"),
+                                    "due_date": types.Schema(type="STRING"),
+                                    "brain_rot_level": types.Schema(type="STRING"),
+                                    "is_reminder": types.Schema(type="BOOLEAN")
+                                },
+                                required=["title", "subject", "due_date"]
+                            )
+                        )
+                    ])],
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=False)
+                )
+            )
+
+            # Sync tool results to self.tasks_to_create
+            for candidate in response.candidates:
+                for part in candidate.content.parts:
+                    if part.function_call and part.function_call.name == "create_task_tool":
+                        self.create_task_tool(**part.function_call.args)
+
+            return response.text
+        except Exception as e:
+            logger.error(f"Async Brain Error: {e}")
+            return f"Brain glitched: {e}. We might be cooked."

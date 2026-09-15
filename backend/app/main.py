@@ -54,8 +54,8 @@ async def lifespan(app: FastAPI):
         pass
 
     info = ServiceInfo(
-        "_orbit_pilot._tcp.local.",
-        "OrbitCore._orbit_pilot._tcp.local.",
+        "_orbit-pilot._tcp.local.",
+        "OrbitCore._orbit-pilot._tcp.local.",
         addresses=[socket.inet_aton(local_ip)],
         port=8000,
         properties={'node_name': 'HF_Space_Node'}

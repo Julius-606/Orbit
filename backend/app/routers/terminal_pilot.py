@@ -1,7 +1,7 @@
 ################################################################################
 # FILE: backend/app/routers/terminal_pilot.py
-# VERSION: 2.0.0 | SYSTEM: Orbit Decentralized Cluster Workspace
-# IDENTITY: Integrates multi-node target execution with dynamic suggestions.
+# VERSION: 2.2.0 | SYSTEM: Orbit Decentralized Cluster Workspace
+# IDENTITY: Integrates multi-node target execution with Async GenAI v2 Client.
 ################################################################################
 
 from fastapi import APIRouter, HTTPException
@@ -10,11 +10,17 @@ from typing import List, Optional
 import os
 import json
 import sqlite3
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from app.core.config import settings
 from app.core.nodes import cluster_manager
 
 router = APIRouter(prefix="/terminal", tags=["Terminal Pilot"])
+
+# Initialize Gemini Async Client
+async_client = None
+if settings.GEMINI_API_KEY:
+    async_client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 class TerminalManager:
     def __init__(self):
@@ -66,7 +72,6 @@ class SelectNodeRequest(BaseModel):
 async def get_status():
     node = cluster_manager.get_active()
     status_data = await node.get_status()
-    # Synchronize prompt log style locally
     return {
         "active_node": cluster_manager.active_node_name,
         "nodes": list(cluster_manager.nodes.keys()),
@@ -83,24 +88,26 @@ async def execute_command(req: CommandRequest):
 
 @router.post("/suggest")
 async def suggest_command(req: SuggestionRequest):
-    if not settings.GEMINI_API_KEY:
+    if not async_client:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured on backend")
 
     try:
         prompt = (
             f"You are an expert system administrator and PowerShell master. "
-            f"Your task is to convert the following user goal into a PowerShell command line and a brief explanation.\n\n"
-            f"Terminal Context:\n{manager.log_buffer[-2000:]}\n\n"
-            f"User Goal: {req.user_goal}\n\n"
-            f"Format your response as a JSON object with two keys: 'command' (the raw PowerShell string) and 'explanation' (a brief one-sentence description)."
+            f"Convert the following goal into a PowerShell command and a brief explanation.\n\n"
+            f"Context:\n{manager.log_buffer[-2000:]}\n\n"
+            f"Goal: {req.user_goal}\n\n"
+            f"Return JSON: {{'command': '...', 'explanation': '...'}}"
         )
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        # 🔥 Using Gemini 3.5 Flash for stable system administration logic
-        model = genai.GenerativeModel('gemini-3.5-flash')
-        response = model.generate_content(
-            prompt,
-            generation_config={"response_mime_type": "application/json"}
+
+        response = await async_client.aio.models.generate_content(
+            model='gemini-3.5-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
         )
+
         data = json.loads(response.text)
         return data
     except Exception as e:
@@ -118,7 +125,7 @@ async def save_to_vault(req: VaultSaveRequest):
 @router.post("/nodes/connect")
 async def connect_node(req: ConnectNodeRequest):
     cluster_manager.add_node(req.name, req.host, req.port)
-    return {"status": "success", "message": f"Node {req.name} attached to cluster mapping"}
+    return {"status": "success", "message": f"Node {req.name} attached"}
 
 @router.post("/nodes/select")
 async def select_node(req: SelectNodeRequest):

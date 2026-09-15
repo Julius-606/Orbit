@@ -22,7 +22,7 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
 # AI & Agents
-google-generativeai>=0.8.0
+google-genai>=0.3.0
 
 # Data & Integrations
 pandas==2.1.3

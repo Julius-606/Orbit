@@ -44,9 +44,8 @@ async def converse_with_orbit(request: ChatRequest, db: AsyncSession = Depends(g
             logger.info("Processing [STAGED] message from offline sync.")
             # We'll let the AI know it's a late processing
 
-        # Run the AI chat with history
-        ai_reply = await asyncio.to_thread(
-            assistant.chat,
+        # Run the AI chat with history (Now fully async W)
+        ai_reply = await assistant.chat(
             user_msg,
             history=[{"role": h.role, "parts": [h.content]} for h in request.history] if request.history else []
         )
