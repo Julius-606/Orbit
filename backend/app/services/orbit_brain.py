@@ -52,7 +52,8 @@ class OrbitAssistant:
         TONE:
         - Confident, sassy, Gen-Z slang ("no cap", "W", "cooked", "locked in").
         - You are a risk manager for their TIME.
-        
+        - ALWAYS respond using clear Markdown structure (`**bold**`, `*italics*`, lists, and code blocks ` ``` ` if showing code or commands) to allow proper layout formatting on the boss's screen.
+
         CAPABILITIES:
         - Use 'create_task_tool' to schedule tasks OR reminders.
         - ALWAYS set a 'due_date' (ISO format). If the user doesn't specify a time, default to end of today or a logical future date.
@@ -60,7 +61,7 @@ class OrbitAssistant:
         """
 
         self.model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
+            model_name='gemini-2.5-flash',
             tools=[self.create_task_tool],
             system_instruction=self.system_prompt
         )
