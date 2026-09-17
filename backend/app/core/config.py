@@ -38,15 +38,21 @@ class Settings(BaseSettings):
         asyncpg throw a 'channel_binding' tantrum. We strip the noise and keep it pure.
         """
         url = self.DATABASE_URL
-        if url and url.startswith("postgresql://"):
+        if not url:
+            return ""
+
+        # FIX: Support both postgres:// and postgresql:// prefixes for asyncpg
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
         
         # The surgical scalp: Cut off all query parameters Neon adds
-        if url and "?" in url:
+        if "?" in url:
             url = url.split("?")[0]
             
         # Force standard SSL so the connection is encrypted without confusing asyncpg
-        return url + "?ssl=require" if url else ""
+        return url + "?ssl=require"
 
     class Config:
         env_file = ".env"

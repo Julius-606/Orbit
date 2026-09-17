@@ -57,7 +57,8 @@ async def converse_with_orbit(request: ChatRequest, db: AsyncSession = Depends(g
                     title=task_data["title"],
                     subject=task_data["subject"],
                     brain_rot_level=task_data["brain_rot_level"],
-                    is_reminder=task_data.get("is_reminder", False)
+                    is_reminder=task_data.get("is_reminder", False),
+                    due_date=task_data.get("due_date")
                 )
                 db.add(new_task)
 
