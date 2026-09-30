@@ -1,8 +1,8 @@
 // ==========================================
 // IDENTITY: The Pocket Vault / Android Room DB
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/data/AppDatabase.kt
-// VERSION: 1.1.0
-// VIBE: Chat history and tasks now fully persistent. 🧠
+// VERSION: 2.0.0 | SYSTEM: Added Chat Session Entity support
+// VIBE: Full persistent multi-session chat storage framework. 🧠🗄️
 // ==========================================
 
 package com.example.pocket_orbit.data
@@ -17,9 +17,10 @@ import androidx.room.TypeConverters
     entities = [
         StudyTaskEntity::class, 
         ForexLogEntity::class, 
-        ChatMessageEntity::class
+        ChatMessageEntity::class,
+        ChatSessionEntity::class
     ],
-    version = 2, // Bumped version for new schema
+    version = 3, // Bumped for the newly added multi-session framework entities
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -40,7 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "pocket_orbit_db"
                 )
-                .fallbackToDestructiveMigration() // Simple for dev, handles schema changes
+                .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
                 instance

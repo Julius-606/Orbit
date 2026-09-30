@@ -1,8 +1,8 @@
 // ================================================================================
 // FILE: Pocket_Orbit/app/src/main/java/com/example/pocket_orbit/MainActivity.kt
-// VERSION: 4.4.1 | SYSTEM: Orbit (The Life-OS Protocol)
-// IDENTITY: The Anchor / Main Entry Point & Dependency Injection
-// VIBE: Background sync scheduled. Orbit is always on high alert. 🚨
+// VERSION: 4.5.0 | SYSTEM: Orbit (The Life-OS Protocol)
+// IDENTITY: The Anchor / Main Entry Point & Dependency Injection with Terminal Pilot
+// VIBE: Remote terminal integrated. Jarvis has control of the workstation. 🖥️🚨
 // ================================================================================
 
 package com.example.pocket_orbit
@@ -33,11 +33,7 @@ import com.example.pocket_orbit.data.OrbitRepository
 import com.example.pocket_orbit.network.RetrofitClient
 import com.example.pocket_orbit.network.SyncWorker
 import com.example.pocket_orbit.ui.navigation.BottomNavItem
-import com.example.pocket_orbit.ui.screens.ChatScreen
-import com.example.pocket_orbit.ui.screens.ChatViewModel
-import com.example.pocket_orbit.ui.screens.DashboardViewModel
-import com.example.pocket_orbit.ui.screens.GameScreen
-import com.example.pocket_orbit.ui.screens.TrackerScreen
+import com.example.pocket_orbit.ui.screens.*
 import com.example.pocket_orbit.ui.theme.OrbitTheme
 import java.util.concurrent.TimeUnit
 
@@ -71,6 +67,7 @@ class MainActivity : ComponentActivity() {
                         chatDao = database.chatDao()
                     ) 
                 }
+                val terminalViewModel = remember { TerminalViewModel(apiService = apiService) }
 
                 Scaffold(
                     bottomBar = { OrbitBottomNav(navController = navController) },
@@ -86,6 +83,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(BottomNavItem.Tracker.route) {
                             TrackerScreen(viewModel = dashboardViewModel)
+                        }
+                        composable(BottomNavItem.Terminal.route) {
+                            TerminalScreen(viewModel = terminalViewModel)
                         }
                         composable(BottomNavItem.Chill.route) {
                             GameScreen()
@@ -118,6 +118,7 @@ fun OrbitBottomNav(navController: NavHostController) {
     val items = listOf(
         BottomNavItem.Assistant,
         BottomNavItem.Tracker,
+        BottomNavItem.Terminal,
         BottomNavItem.Chill
     )
 

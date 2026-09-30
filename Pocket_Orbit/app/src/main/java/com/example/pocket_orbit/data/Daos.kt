@@ -1,8 +1,8 @@
 // ==========================================
 // IDENTITY: The Guards / Room DB DAOs
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/data/Daos.kt
-// VERSION: 1.2.0
-// VIBE: Added ChatDao for persistent memory and offline staging. 🧠
+// VERSION: 2.0.0 | SYSTEM: Session-Based Chat History Queries
+// VIBE: Expanded ChatDao to support persistent multiple chat sessions. 🧠⚡
 // ==========================================
 
 package com.example.pocket_orbit.data
@@ -34,10 +34,16 @@ interface StudyTaskDao {
 @Dao
 interface ChatDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSession(session: ChatSessionEntity)
+
+    @Query("SELECT * FROM chat_sessions ORDER BY lastActiveTimestamp DESC")
+    fun getAllSessions(): Flow<List<ChatSessionEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: ChatMessageEntity)
 
-    @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
-    fun getAllMessages(): Flow<List<ChatMessageEntity>>
+    @Query("SELECT * FROM chat_messages WHERE sessionId = :sessionId ORDER BY timestamp ASC")
+    fun getMessagesForSession(sessionId: String): Flow<List<ChatMessageEntity>>
 
     @Query("SELECT * FROM chat_messages WHERE isStaged = 1")
     suspend fun getStagedMessages(): List<ChatMessageEntity>
@@ -45,8 +51,11 @@ interface ChatDao {
     @Query("UPDATE chat_messages SET isStaged = 0 WHERE id = :messageId")
     suspend fun markMessageSynced(messageId: Int)
 
-    @Query("DELETE FROM chat_messages")
-    suspend fun clearHistory()
+    @Query("UPDATE chat_sessions SET lastActiveTimestamp = :timestamp WHERE id = :sessionId")
+    suspend fun updateSessionTimestamp(sessionId: String, timestamp: Long)
+
+    @Query("DELETE FROM chat_messages WHERE sessionId = :sessionId")
+    suspend fun clearSessionHistory(sessionId: String)
 }
 
 @Dao

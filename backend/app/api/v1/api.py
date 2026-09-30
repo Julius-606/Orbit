@@ -8,7 +8,7 @@ from fastapi import APIRouter
 from app.api.v1 import forex, tasks
 
 # THE FIX: We are finally inviting orbit_ai to the party so it stops giving 404s 🚀
-from app.routers import med_scholar, orbit_ai
+from app.routers import med_scholar, orbit_ai, terminal_pilot
 
 api_router = APIRouter()
 
@@ -23,5 +23,8 @@ api_router.include_router(tasks.router, prefix="/tasks", tags=["Life Admin"])
 
 # Mount the Brain! 🧠 (This is what you were missing)
 api_router.include_router(orbit_ai.router, tags=["Orbit-AI"])
+
+# Mount the Terminal Pilot! 🖥️
+api_router.include_router(terminal_pilot.router, tags=["Terminal Pilot"])
 
 # Vibe Check: All routes are now synchronized. WAGMI. 🚀

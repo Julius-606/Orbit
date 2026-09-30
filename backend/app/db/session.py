@@ -1,6 +1,6 @@
 ################################################################################
 # FILE: backend/app/db/session.py
-# VERSION: 1.0.4 | SYSTEM: Neon DB Resilience Protocol
+# VERSION: 1.0.3 | SYSTEM: Neon DB Auto-Correct
 ################################################################################
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -11,17 +11,17 @@ import logging
 
 logger = logging.getLogger("Orbit-DB")
 
-# Create the Async Engine - Optimized for long-running AI requests
-# 🚀 THE FIX: Added pool_pre_ping and pool_recycle to handle idle timeouts
-# during long model downloads.
+# Create the Async Engine - Fast execution, just like a 1-minute scalp.
+# 🚀 THE FIX: Using the newly protected async_database_url property
+# We also disable prepared statement cache which Neon's pooler hates.
 engine = create_async_engine(
     settings.async_database_url,
     echo=False, 
     future=True,
-    pool_pre_ping=True,      # Checks if connection is alive before using it
-    pool_recycle=300,        # Recycles connections every 5 minutes
-    pool_size=5,             # Limit connections to save Neon resources
-    max_overflow=10          # Allow some burst overflow
+    connect_args={
+        "prepared_statement_cache_size": 0,
+        "statement_cache_size": 0
+    }
 )
 
 # The Session Factory

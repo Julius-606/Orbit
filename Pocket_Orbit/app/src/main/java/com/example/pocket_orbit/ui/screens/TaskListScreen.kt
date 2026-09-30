@@ -1,8 +1,8 @@
 // ==========================================
 // IDENTITY: The Ledger / Task List View
 // FILEPATH: app/src/main/java/com/example/pocket_orbit/ui/screens/TaskListScreen.kt
-// VERSION: 1.2.1 | SYSTEM: Orbit Life-OS
-// VIBE: Tinder-swipe secured with Remarks Pop-up. 🎯 (M3 1.3.0 PullToRefresh Refactor)
+// VERSION: 1.2.0 | SYSTEM: Orbit Life-OS
+// VIBE: Tinder-swipe secured with Remarks Pop-up. 🎯
 // ==========================================
 
 package com.example.pocket_orbit.ui.screens
@@ -15,11 +15,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,10 +50,24 @@ fun TaskListScreen(
         )
     }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = { viewModel.syncTasks() },
-        modifier = modifier.fillMaxSize()
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    if (pullToRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            viewModel.syncTasks()
+        }
+    }
+
+    LaunchedEffect(isRefreshing) {
+        if (!isRefreshing) {
+            pullToRefreshState.endRefresh()
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .nestedScroll(pullToRefreshState.nestedScrollConnection)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -68,6 +84,13 @@ fun TaskListScreen(
                 )
             }
         }
+
+        PullToRefreshContainer(
+            state = pullToRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter),
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.primary
+        )
         
         // 🔥 Remarks Dialog: The "Before it goes" reviews field
         showRemarksDialog?.let { task ->

@@ -1,121 +1,150 @@
 // ================================================================================
 // FILE: app/src/main/java/com/example/pocket_orbit/ui/screens/ChatScreen.kt
-// VERSION: 4.2.2 | SYSTEM: Orbit (The Life-OS Protocol)
-// IDENTITY: The Neural Interface / Advanced Chat UI
-// VIBE: Markdown, Reply support, and Clipboard secured. 🧠💬
+// VERSION: 5.0.0 | SYSTEM: Session-Based Multi-Thread Conversations & Markdown Rendering
+// IDENTITY: The Neural Interface / Chat UI with Persistent Sessions list & Markdown support.
 // ================================================================================
 
 package com.example.pocket_orbit.ui.screens
 
-import android.content.ClipboardManager
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.widget.Toast
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pocket_orbit.data.ChatMessageEntity
-import com.example.pocket_orbit.data.StudyTaskEntity
+import com.example.pocket_orbit.data.ChatSessionEntity
+import kotlinx.coroutines.launch
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(viewModel: ChatViewModel) {
     var inputText by remember { mutableStateOf("") }
-    val chatHistory by viewModel.chatHistory.collectAsState(initial = emptyList<ChatMessageEntity>())
+    val chatHistory by viewModel.chatHistory.collectAsState()
+    val chatSessions by viewModel.chatSessions.collectAsState()
+    val currentSessionId by viewModel.currentSessionId.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val replyingTo by viewModel.replyingTo.collectAsState()
-
+    val pendingOfflineMessage by viewModel.pendingOfflineMessage.collectAsState()
+    
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    
     var isOnline by remember { mutableStateOf(isNetworkAvailable(context)) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Column {
-                        Text("Orbit AI 🪐", fontWeight = FontWeight.Bold)
-                        Text(
-                            text = if (isOnline) "Online • Life Coach Mode" else "Offline • Local Memory", 
-                            fontSize = 12.sp, 
-                            color = if (isOnline) Color(0xFF00FFCC) else Color.Gray
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.clearHistory() }) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = "Clear", tint = Color.Gray)
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(modifier = Modifier.width(260.dp)) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Chat Threads 🧠", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    IconButton(onClick = { 
+                        viewModel.createNewSession("New Session ${chatSessions.size + 1}") 
+                    }) {
+                        Icon(Icons.Default.Add, contentDescription = "New Session")
                     }
                 }
-            )
-        }
-    ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            
-            // Chat List
-            LazyColumn(
-                modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
-                reverseLayout = true
-            ) {
-                items(chatHistory.reversed(), key = { it.id }) { message ->
-                    ChatBubble(
-                        message = message,
-                        onLongClick = { copyToClipboard(context, message.text) },
-                        onSwipeToReply = { viewModel.setReplyingTo(message) }
-                    )
-                }
-            }
-
-            if (isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary)
-            }
-
-            // Input Area
-            Column {
-                // Reply Preview
-                replyingTo?.let { replyMsg ->
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(8.dp).fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(chatSessions) { session ->
+                        val isSelected = session.id == currentSessionId
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                                .background(
+                                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable {
+                                    viewModel.selectSession(session.id)
+                                    scope.launch { drawerState.close() }
+                                }
+                                .padding(12.dp)
                         ) {
-                            Icon(Icons.Default.Reply, contentDescription = "Replying", modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = replyMsg.text,
-                                maxLines = 1,
-                                fontSize = 12.sp,
-                                modifier = Modifier.weight(1f),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = session.title,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 14.sp,
+                                maxLines = 1
                             )
-                            IconButton(onClick = { viewModel.setReplyingTo(null) }) {
-                                Icon(Icons.Default.Close, contentDescription = "Cancel", modifier = Modifier.size(16.dp))
-                            }
                         }
                     }
+                }
+            }
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { 
+                        Column {
+                            val activeTitle = chatSessions.find { it.id == currentSessionId }?.title ?: "Orbit AI 🪐"
+                            Text(activeTitle, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(
+                                text = if (isOnline) "Online • Life Coach Mode" else "Offline • Local Memory Only", 
+                                fontSize = 11.sp, 
+                                color = if (isOnline) Color(0xFF00FFCC) else Color.Gray
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Toggle Sidebar Threads")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    reverseLayout = true
+                ) {
+                    items(chatHistory.reversed()) { message ->
+                        ChatBubble(message)
+                    }
+                }
+
+                if (isLoading) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
 
                 Surface(
@@ -124,18 +153,19 @@ fun ChatScreen(viewModel: ChatViewModel) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(8.dp).fillMaxWidth(),
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
                             value = inputText,
                             onValueChange = { inputText = it },
                             modifier = Modifier.weight(1f),
-                            placeholder = { Text("Talk to Orbit...") },
+                            placeholder = { Text("Ask Orbit: 'What should I do now?'") },
                             shape = RoundedCornerShape(24.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                containerColor = MaterialTheme.colorScheme.surface
                             )
                         )
                         
@@ -149,25 +179,55 @@ fun ChatScreen(viewModel: ChatViewModel) {
                                     inputText = ""
                                 }
                             },
-                            containerColor = MaterialTheme.colorScheme.primary,
+                            containerColor = if (isOnline) MaterialTheme.colorScheme.primary else Color.Gray,
                             modifier = Modifier.size(50.dp)
                         ) {
-                            Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.Black)
+                            Icon(
+                                imageVector = if (isOnline) Icons.Default.Send else Icons.Default.CloudOff,
+                                contentDescription = "Send", 
+                                tint = Color.Black
+                            )
                         }
                     }
                 }
+            }
+            
+            // Offline Staging Dialog
+            pendingOfflineMessage?.let { text ->
+                AlertDialog(
+                    onDismissRequest = { viewModel.discardPendingMessage() },
+                    title = { Text("You're Offline") },
+                    text = { Text("Orbit's brain is in the cloud. Should I stage this message to send when you're back online?") },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.stageMessage(text) }) {
+                            Text("STAGE")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { viewModel.discardPendingMessage() }) {
+                            Text("IGNORE")
+                        }
+                    }
+                )
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ChatBubble(
-    message: ChatMessageEntity,
-    onLongClick: () -> Unit,
-    onSwipeToReply: () -> Unit
-) {
+fun ChatBubble(message: ChatMessageEntity) {
+    val backgroundColor = when {
+        message.isStaged -> MaterialTheme.colorScheme.tertiaryContainer
+        message.isFromUser -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.secondaryContainer
+    }
+    
+    val textColor = if (message.isFromUser) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    }
+
     val alignment = if (message.isFromUser) Alignment.CenterEnd else Alignment.CenterStart
     val shape = if (message.isFromUser) {
         RoundedCornerShape(16.dp, 16.dp, 0.dp, 16.dp)
@@ -176,79 +236,36 @@ fun ChatBubble(
     }
 
     Box(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         contentAlignment = alignment
     ) {
         Column(horizontalAlignment = if (message.isFromUser) Alignment.End else Alignment.Start) {
-            
-            // Render the Reply Quote if exists
-            if (message.replyToText != null) {
-                Surface(
-                    color = Color.Gray.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.padding(bottom = 2.dp).widthIn(max = 250.dp)
-                ) {
-                    Text(
-                        text = message.replyToText,
-                        fontSize = 11.sp,
-                        fontStyle = FontStyle.Italic,
-                        modifier = Modifier.padding(8.dp),
-                        maxLines = 2
-                    )
-                }
-            }
-
             Surface(
                 shape = shape,
-                color = if (message.isFromUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier
-                    .widthIn(max = 300.dp)
-                    .combinedClickable(
-                        onClick = { onSwipeToReply() },
-                        onLongClick = onLongClick
-                    )
+                color = backgroundColor,
+                modifier = Modifier.widthIn(max = 300.dp)
             ) {
+                Box(modifier = Modifier.padding(12.dp)) {
+                    if (message.isFromUser) {
+                        Text(text = message.text, color = textColor, fontSize = 15.sp)
+                    } else {
+                        // Render full formatted markdown responses from Orbit AI
+                        MarkdownText(text = message.text, color = textColor)
+                    }
+                }
+            }
+            if (message.isStaged) {
                 Text(
-                    text = parseMarkdown(message.text),
-                    color = if (message.isFromUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.padding(12.dp),
-                    fontSize = 15.sp
+                    text = "Pending Sync...",
+                    fontSize = 10.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
             }
         }
     }
-}
-
-// 🧠 THE MARKDOWN PARSER (Lightweight)
-fun parseMarkdown(text: String): AnnotatedString {
-    return buildAnnotatedString {
-        var cursor = 0
-        val boldRegex = """\*\*(.*?)\*\*""".toRegex()
-        
-        boldRegex.findAll(text).forEach { match ->
-            // Add normal text before the match
-            append(text.substring(cursor, match.range.first))
-            
-            // Add bold text
-            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                append(match.groupValues[1])
-            }
-            
-            cursor = match.range.last + 1
-        }
-        
-        // Add remaining text
-        if (cursor < text.length) {
-            append(text.substring(cursor))
-        }
-    }
-}
-
-fun copyToClipboard(context: Context, text: String) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val clip = android.content.ClipData.newPlainText("Orbit Message", text)
-    clipboard.setPrimaryClip(clip)
-    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
 }
 
 fun isNetworkAvailable(context: Context): Boolean {
@@ -262,3 +279,4 @@ fun isNetworkAvailable(context: Context): Boolean {
         else -> false
     }
 }
+
