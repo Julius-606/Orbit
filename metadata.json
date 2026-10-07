@@ -1,0 +1,6 @@
+{
+  "name": "Pocket Orbit",
+  "description": "Orbit personal life OS, task manager, trading assistant, and AI terminal companion",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Planetary Core -->
+    <path
+        android:pathData="M54,54m-16,0a16,16 0,1,1 32,0a16,16 0,1,1 -32,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="38"
+                android:startY="38"
+                android:endX="70"
+                android:endY="70"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#38BDF8" />
+                <item android:offset="1.0" android:color="#6366F1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Inner Core Dot -->
+    <path
+        android:pathData="M54,54m-6,0a6,6 0,1,1 12,0a6,6 0,1,1 -12,0"
+        android:fillColor="#FFFFFF" />
+    <!-- Outer Orbital Ring -->
+    <path
+        android:pathData="M24,54 C24,42 38,32 54,32 C70,32 84,42 84,54 C84,66 70,76 54,76 C38,76 24,66 24,54 Z"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="3.5"
+        android:fillColor="#00000000" />
+    <!-- Satellite Node -->
+    <path
+        android:pathData="M78,46m-4,0a4,4 0,1,1 8,0a4,4 0,1,1 -8,0"
+        android:fillColor="#F43F5E" />
+</vector>

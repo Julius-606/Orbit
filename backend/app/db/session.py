@@ -14,14 +14,18 @@ logger = logging.getLogger("Orbit-DB")
 # Create the Async Engine - Fast execution, just like a 1-minute scalp.
 # 🚀 THE FIX: Using the newly protected async_database_url property
 # We also disable prepared statement cache which Neon's pooler hates.
+connect_args = {}
+if "postgres" in settings.async_database_url:
+    connect_args = {
+        "prepared_statement_cache_size": 0,
+        "statement_cache_size": 0
+    }
+
 engine = create_async_engine(
     settings.async_database_url,
     echo=False, 
     future=True,
-    connect_args={
-        "prepared_statement_cache_size": 0,
-        "statement_cache_size": 0
-    }
+    connect_args=connect_args
 )
 
 # The Session Factory

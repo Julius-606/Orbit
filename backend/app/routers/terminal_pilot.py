@@ -1,15 +1,18 @@
 ################################################################################
 # FILE: backend/app/routers/terminal_pilot.py
-# VERSION: 2.3.0 | SYSTEM: Orbit Decentralized Cluster Workspace
-# IDENTITY: Integrates multi-node target execution with Async GenAI v2 Client.
+# VERSION: 3.0.0 | SYSTEM: Orbit Decentralized Cluster Workspace
+# IDENTITY: Real OS detection, multi-command procedure suggestions, and VS Code terminal sync.
 ################################################################################
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import os
+import sys
 import json
 import sqlite3
+import platform
+import asyncio
 from google import genai
 from google.genai import types
 from app.core.config import settings
@@ -20,19 +23,35 @@ router = APIRouter(prefix="/terminal", tags=["Terminal Pilot"])
 # Initialize Gemini Async Client
 async_client = None
 if settings.GEMINI_API_KEY:
-    async_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    try:
+        async_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    except Exception as e:
+        pass
 
 class TerminalManager:
     def __init__(self):
         self.db_path = "vault.db"
         self._init_vault()
-        self.log_buffer = "Terminal initialized...\nPS C:\\Users\\Administrator> "
+        self.os_type = "windows" if os.name == "nt" else "linux"
+        self.cwd = os.getcwd()
+        self.log_buffer = f"Orbit Terminal Deck [System: {platform.system()} {platform.release()}]\nConnected to cluster node.\n{self.get_prompt()}\n"
 
     def _init_vault(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("CREATE TABLE IF NOT EXISTS commands (id INTEGER PRIMARY KEY, name TEXT, cmd TEXT, category TEXT)")
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute("CREATE TABLE IF NOT EXISTS commands (id INTEGER PRIMARY KEY, name TEXT, cmd TEXT, category TEXT)")
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
+
+    def get_prompt(self, cwd: Optional[str] = None) -> str:
+        active_cwd = cwd or self.cwd
+        if self.os_type == "windows":
+            return f"{active_cwd}> "
+        else:
+            folder = os.path.basename(active_cwd.rstrip("/\\")) or "/"
+            return f"orbit@{platform.node()}:{folder}$ "
 
     def save_command(self, name, cmd, category="General"):
         conn = sqlite3.connect(self.db_path)
@@ -41,11 +60,14 @@ class TerminalManager:
         conn.close()
 
     def get_vault_commands(self):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.execute("SELECT id, name, cmd, category FROM commands")
-        rows = cursor.fetchall()
-        conn.close()
-        return [{"id": r[0], "name": r[1], "cmd": r[2], "category": r[3]} for r in rows]
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.execute("SELECT id, name, cmd, category FROM commands")
+            rows = cursor.fetchall()
+            conn.close()
+            return [{"id": r[0], "name": r[1], "cmd": r[2], "category": r[3]} for r in rows]
+        except Exception:
+            return []
 
 manager = TerminalManager()
 
@@ -54,6 +76,16 @@ class CommandRequest(BaseModel):
 
 class SuggestionRequest(BaseModel):
     user_goal: str
+
+class SuggestedStep(BaseModel):
+    step: int
+    title: str
+    cmd: str
+
+class SuggestionResponse(BaseModel):
+    explanation: str
+    command: str
+    commands: Optional[List[SuggestedStep]] = []
 
 class VaultSaveRequest(BaseModel):
     name: str
@@ -72,55 +104,148 @@ class SelectNodeRequest(BaseModel):
 async def get_status():
     node = cluster_manager.get_active()
     status_data = await node.get_status()
+    telemetry = status_data.get("telemetry", {})
+    cwd = telemetry.get("cwd", os.getcwd())
+    manager.cwd = cwd
+    
     return {
         "active_node": cluster_manager.active_node_name,
         "nodes": list(cluster_manager.nodes.keys()),
-        "telemetry": status_data.get("telemetry", {"cpu": 0, "ram": 0, "disk": 0, "cwd": "unknown"}),
-        "output": manager.log_buffer
+        "telemetry": {
+            "cpu": telemetry.get("cpu", 0),
+            "ram": telemetry.get("ram", 0),
+            "disk": telemetry.get("disk", 0),
+            "cwd": cwd,
+            "os": manager.os_type,
+            "shell": "powershell" if manager.os_type == "windows" else "bash"
+        },
+        "output": manager.log_buffer,
+        "os": manager.os_type,
+        "prompt": manager.get_prompt(cwd)
     }
 
 @router.post("/execute")
 async def execute_command(req: CommandRequest):
     node = cluster_manager.get_active()
-    manager.log_buffer += req.command + "\n"
+    current_prompt = manager.get_prompt()
+    manager.log_buffer += f"{current_prompt}{req.command}\n"
 
-    # 🔥 FIX: Capture and append output to the log buffer
     output = await node.execute(req.command)
     manager.log_buffer += output
+    if not manager.log_buffer.endswith("\n"):
+        manager.log_buffer += "\n"
 
-    if not manager.log_buffer.endswith("PS C:\\Users\\Administrator> "):
-        if not manager.log_buffer.endswith("\n"):
-            manager.log_buffer += "\n"
-        manager.log_buffer += "PS C:\\Users\\Administrator> "
+    # Refresh status to get new cwd if changed (e.g. after cd)
+    status_data = await node.get_status()
+    new_cwd = status_data.get("telemetry", {}).get("cwd", manager.cwd)
+    manager.cwd = new_cwd
+    new_prompt = manager.get_prompt(new_cwd)
+    manager.log_buffer += new_prompt
 
-    return {"status": "success", "message": "Command executed", "output": output}
+    return {
+        "status": "success",
+        "message": "Command executed",
+        "output": output,
+        "cwd": new_cwd,
+        "prompt": new_prompt
+    }
 
 @router.post("/suggest")
 async def suggest_command(req: SuggestionRequest):
-    if not async_client:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured on backend")
+    os_name = "Windows (PowerShell)" if manager.os_type == "windows" else "Linux/Unix (bash)"
+    cwd = manager.cwd
 
-    try:
-        prompt = (
-            f"You are an expert system administrator and PowerShell master. "
-            f"Convert the following goal into a PowerShell command and a brief explanation.\n\n"
-            f"Context:\n{manager.log_buffer[-2000:]}\n\n"
-            f"Goal: {req.user_goal}\n\n"
-            f"Return JSON: {{'command': '...', 'explanation': '...'}}"
-        )
-
-        response = await async_client.aio.models.generate_content(
-            model='gemini-3.5-flash',
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json"
+    if async_client:
+        try:
+            prompt = (
+                f"You are an expert DevOps and Systems Administrator in a VS Code terminal environment.\n"
+                f"Operating System: {os_name}\n"
+                f"Current Working Directory: {cwd}\n"
+                f"User Goal: {req.user_goal}\n\n"
+                f"Generate a concise, safe procedure to accomplish this goal. You may provide a single command "
+                f"or a sequence of procedure steps (up to 4 steps) if the task involves multiple steps (e.g. git, docker, setup).\n"
+                f"Return strictly valid JSON with this structure:\n"
+                f"{{\n"
+                f"  \"explanation\": \"Brief explanation of what this procedure does\",\n"
+                f"  \"command\": \"The primary command or one-liner\",\n"
+                f"  \"commands\": [\n"
+                f"    {{\"step\": 1, \"title\": \"Step description\", \"cmd\": \"exact command\"}},\n"
+                f"    {{\"step\": 2, \"title\": \"Step description\", \"cmd\": \"exact command\"}}\n"
+                f"  ]\n"
+                f"}}"
             )
-        )
 
-        data = json.loads(response.text)
-        return data
-    except Exception as e:
-        return {"command": f"# Error: {str(e)}", "explanation": "Failed to generate AI suggestion."}
+            response = await async_client.aio.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            )
+
+            data = json.loads(response.text)
+            commands_list = data.get("commands", [])
+            primary_cmd = data.get("command") or (commands_list[0]["cmd"] if commands_list else "ls")
+            return {
+                "explanation": data.get("explanation", "Recommended command procedure"),
+                "command": primary_cmd,
+                "commands": commands_list
+            }
+        except Exception as e:
+            pass
+
+    # Heuristic fallback if API key is absent or network fails
+    goal_lower = req.user_goal.lower()
+    if "git" in goal_lower or "commit" in goal_lower or "push" in goal_lower:
+        return {
+            "explanation": "Git repository synchronization procedure: check status, stage changes, commit, and push.",
+            "command": "git status && git add . && git commit -m 'update' && git push",
+            "commands": [
+                {"step": 1, "title": "Check repository status", "cmd": "git status"},
+                {"step": 2, "title": "Stage all changes", "cmd": "git add ."},
+                {"step": 3, "title": "Commit with descriptive message", "cmd": "git commit -m 'chore: update changes'"},
+                {"step": 4, "title": "Push to remote repository", "cmd": "git push"}
+            ]
+        }
+    elif "docker" in goal_lower:
+        return {
+            "explanation": "Docker inspection and build procedure.",
+            "command": "docker ps -a",
+            "commands": [
+                {"step": 1, "title": "List running containers", "cmd": "docker ps"},
+                {"step": 2, "title": "List all container images", "cmd": "docker images"},
+                {"step": 3, "title": "View container system stats", "cmd": "docker stats --no-stream"}
+            ]
+        }
+    elif "disk" in goal_lower or "space" in goal_lower or "memory" in goal_lower or "ram" in goal_lower:
+        if manager.os_type == "windows":
+            return {
+                "explanation": "Check Windows memory and disk utilization.",
+                "command": "Get-PSDrive -PSProvider FileSystem; Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 5",
+                "commands": [
+                    {"step": 1, "title": "Check storage space", "cmd": "Get-PSDrive -PSProvider FileSystem"},
+                    {"step": 2, "title": "Top RAM-consuming processes", "cmd": "Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 5"}
+                ]
+            }
+        else:
+            return {
+                "explanation": "Check Linux storage and RAM status.",
+                "command": "df -h; free -m",
+                "commands": [
+                    {"step": 1, "title": "Disk space utilization", "cmd": "df -h"},
+                    {"step": 2, "title": "Memory / RAM metrics", "cmd": "free -h"},
+                    {"step": 3, "title": "Top CPU processes", "cmd": "ps aux --sort=-%cpu | head -n 6"}
+                ]
+            }
+    else:
+        default_cmd = "dir" if manager.os_type == "windows" else "ls -la"
+        return {
+            "explanation": f"Inspect current directory contents in {os_name}.",
+            "command": default_cmd,
+            "commands": [
+                {"step": 1, "title": "List directory entries", "cmd": default_cmd}
+            ]
+        }
 
 @router.get("/vault")
 async def get_vault():
@@ -128,7 +253,7 @@ async def get_vault():
 
 @router.post("/vault/save")
 async def save_to_vault(req: VaultSaveRequest):
-    manager.save_command(req.name, req.cmd, req.category)
+    manager.save_command(req.name, req.cmd, req.category or "General")
     return {"status": "success", "message": "Command saved to vault"}
 
 @router.post("/nodes/connect")
@@ -143,5 +268,7 @@ async def select_node(req: SelectNodeRequest):
 
 @router.post("/clear")
 async def clear_terminal():
-    manager.log_buffer = "PS C:\\Users\\Administrator> "
-    return {"status": "success"}
+    prompt = manager.get_prompt()
+    manager.log_buffer = prompt
+    return {"status": "success", "prompt": prompt}
+

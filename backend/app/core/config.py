@@ -51,7 +51,9 @@ class Settings(BaseSettings):
         if "?" in url:
             url = url.split("?")[0]
             
-        # Force standard SSL so the connection is encrypted without confusing asyncpg
+        # Support Neon SSL while allowing local development without SSL errors
+        if "sqlite" in url or "localhost" in url or "127.0.0.1" in url:
+            return url
         return url + "?ssl=require"
 
     class Config:

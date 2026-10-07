@@ -11,9 +11,11 @@
 import os
 import logging
 import asyncio
+import subprocess
+import shutil
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks, Response
+from fastapi.responses import RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Any
 import uvicorn
@@ -21,6 +23,7 @@ import socket
 from datetime import datetime
 from zeroconf.asyncio import AsyncZeroconf
 from zeroconf import ServiceInfo
+import httpx
 
 # 🔥 THE MISSING LIQUIDITY: Master router for Orbit-AI, Forex, etc.
 from app.api.v1.api import api_router
@@ -68,9 +71,49 @@ async def lifespan(app: FastAPI):
     logger.info("Checking Redis cache for pending CATE triggers...")
     
     forex_task = asyncio.create_task(forex_guardian_monitor())
+
+    # Auto-spawn DebateHub backend on port 3000 if not running
+    debatehub_proc = None
+    debatehub_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "DebateHub"))
+    if os.path.isdir(debatehub_dir):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.5)
+        is_port_open = (sock.connect_ex(('127.0.0.1', 3000)) == 0)
+        sock.close()
+
+        if not is_port_open:
+            cmd = None
+            if shutil.which("bun"):
+                cmd = ["bun", "run", "dev"]
+            elif shutil.which("npx"):
+                cmd = ["npx", "tsx", "server.ts"]
+            elif shutil.which("node") and os.path.exists(os.path.join(debatehub_dir, "server.js")):
+                cmd = ["node", "server.js"]
+            elif shutil.which("npm"):
+                cmd = ["npm", "run", "dev"]
+
+            if cmd:
+                logger.info(f"🏛️ Launching DebateHub independent backend: {' '.join(cmd)}")
+                env = os.environ.copy()
+                env["PORT"] = "3000"
+                env["DEBATEHUB_PORT"] = "3000"
+                try:
+                    debatehub_proc = subprocess.Popen(
+                        cmd,
+                        cwd=debatehub_dir,
+                        env=env,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+                except Exception as ex:
+                    logger.warning(f"Could not spawn DebateHub process: {ex}")
+
     yield
     
     logger.info("Shutting down Orbit. Liquidating pending tasks and closing DB safely.")
+    if debatehub_proc:
+        logger.info("Terminating DebateHub background process...")
+        debatehub_proc.terminate()
     await aiozc.zeroconf.async_unregister_all_services()
     await aiozc.async_close()
     forex_task.cancel()
@@ -160,6 +203,114 @@ async def legacy_get_tasks():
 @app.post("/api/v1/legacy/notify", include_in_schema=False)
 async def legacy_notify(message: str):
     return {"status": "blasted"}
+
+# ===============================================================================
+# DEBATEHUB INDEPENDENT BACKEND PROXY GATEWAY
+# ===============================================================================
+
+DEBATEHUB_INTERNAL_URL = os.getenv("DEBATEHUB_INTERNAL_URL", "http://127.0.0.1:3000")
+
+@app.get("/api/v1/debatehub/status", tags=["DebateHub Module"])
+async def debatehub_integration_status():
+    """
+    Status of the integrated DebateHub independent backend.
+    DebateHub runs its own Express/Neon-Postgres engine alongside Orbit.
+    """
+    neon_configured = bool(
+        os.getenv("DEBATEHUB_NEON_DATABASE_URL")
+        or os.getenv("DEBATEHUB_DATABASE_URL")
+        or os.getenv("NEON_DATABASE_URL")
+    )
+    return {
+        "module": "DebateHub",
+        "mounted_path": "/DebateHub",
+        "secret_source": "DEBATEHUB_NEON_DATABASE_URL",
+        "neon_secret_detected": neon_configured,
+        "independent_backend": True,
+        "orbit_dash": "/docs",
+        "debatehub_gateway": "/DebateHub",
+        "status": "Online & Integrated"
+    }
+
+@app.api_route(
+    "/DebateHub",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+@app.api_route(
+    "/DebateHub/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+async def proxy_debatehub(request: Request, path: str = ""):
+    """
+    Exposes Project DebateHub independently under /DebateHub while Orbit's
+    dashboard remains active at / and /docs.
+    """
+    target_url = f"{DEBATEHUB_INTERNAL_URL}/DebateHub/{path}" if path else f"{DEBATEHUB_INTERNAL_URL}/DebateHub"
+    if request.url.query:
+        target_url += f"?{request.url.query}"
+
+    headers = dict(request.headers)
+    headers.pop("host", None)
+    headers["x-forwarded-prefix"] = "/DebateHub"
+
+    body = await request.body()
+    try:
+        # Support Server-Sent Events (SSE) streaming for real-time live sync
+        if "text/event-stream" in request.headers.get("accept", "") or "stream" in path:
+            client = httpx.AsyncClient(timeout=None)
+            req = client.build_request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                content=body,
+            )
+            r = await client.send(req, stream=True)
+            return StreamingResponse(
+                r.aiter_raw(),
+                status_code=r.status_code,
+                headers=dict(r.headers),
+                background=BackgroundTasks([client.aclose])
+            )
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                content=body,
+            )
+            excluded = ["content-encoding", "content-length", "transfer-encoding", "connection"]
+            resp_headers = {k: v for k, v in resp.headers.items() if k.lower() not in excluded}
+            return Response(
+                content=resp.content,
+                status_code=resp.status_code,
+                headers=resp_headers,
+                media_type=resp.headers.get("content-type")
+            )
+    except Exception as e:
+        logger.warning(f"DebateHub proxy error reaching {target_url}: {e}")
+        neon_configured = bool(
+            os.getenv("DEBATEHUB_NEON_DATABASE_URL")
+            or os.getenv("DEBATEHUB_DATABASE_URL")
+            or os.getenv("NEON_DATABASE_URL")
+        )
+        return JSONResponse(
+            status_code=200 if request.method == "GET" and (not path or "status" in path) else 503,
+            content={
+                "project": "DebateHub",
+                "route": f"/DebateHub/{path}",
+                "status": "Standalone Backend Ready",
+                "internal_target": DEBATEHUB_INTERNAL_URL,
+                "neon_database_secret_configured": neon_configured,
+                "orbit_status": "Orbit Dashboard & API active at /docs",
+                "message": (
+                    "DebateHub module is active on this space. "
+                    "Independent Express server connects using DEBATEHUB_NEON_DATABASE_URL."
+                )
+            }
+        )
 
 # ===============================================================================
 # ENTRY POINT

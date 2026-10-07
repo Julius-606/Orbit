@@ -50,20 +50,42 @@ async def converse_with_orbit(request: ChatRequest, db: AsyncSession = Depends(g
             history=[{"role": h.role, "parts": [h.content]} for h in request.history] if request.history else []
         )
 
-        # Handle task creation from AI tools
+        # Handle task creation from AI tools safely
         if hasattr(assistant, 'tasks_to_create') and assistant.tasks_to_create:
-            for task_data in assistant.tasks_to_create:
-                new_task = StudyTask(
-                    title=task_data["title"],
-                    subject=task_data["subject"],
-                    brain_rot_level=task_data["brain_rot_level"],
-                    is_reminder=task_data.get("is_reminder", False),
-                    due_date=task_data.get("due_date")
-                )
-                db.add(new_task)
+            try:
+                from sqlalchemy import text
+                await db.execute(text("ALTER TABLE study_tasks ADD COLUMN IF NOT EXISTS is_reminder BOOLEAN DEFAULT FALSE;"))
+                await db.execute(text("ALTER TABLE study_tasks ADD COLUMN IF NOT EXISTS remarks TEXT;"))
+                await db.commit()
+            except Exception as ddl_err:
+                await db.rollback()
 
-            await db.commit()
-            logger.info(f"W Secured: Committed {len(assistant.tasks_to_create)} tasks! 🎯")
+            for task_data in assistant.tasks_to_create:
+                try:
+                    new_task = StudyTask(
+                        title=task_data.get("title", "Study Task"),
+                        subject=task_data.get("subject", "Life Admin"),
+                        brain_rot_level=task_data.get("brain_rot_level", BrainRotLevel.MID),
+                        is_reminder=task_data.get("is_reminder", False),
+                        due_date=task_data.get("due_date")
+                    )
+                    db.add(new_task)
+                    await db.commit()
+                    logger.info(f"Task committed: {task_data.get('title')}")
+                except Exception as task_err:
+                    logger.error(f"Failed to commit full task: {task_err}")
+                    await db.rollback()
+                    try:
+                        simple_task = StudyTask(
+                            title=task_data.get("title", "Study Task"),
+                            subject=task_data.get("subject", "Life Admin")
+                        )
+                        db.add(simple_task)
+                        await db.commit()
+                        logger.info(f"Simplified task committed: {task_data.get('title')}")
+                    except Exception as fb_err:
+                        logger.error(f"Simple task fallback failed: {fb_err}")
+                        await db.rollback()
 
         return ChatResponse(reply=ai_reply)
 

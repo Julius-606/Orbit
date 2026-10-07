@@ -24,8 +24,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Orbit"
+rootProject.name = "Pocket Orbit"
 
-// This maps the :app module to the actual folder path
 include(":app")
-project(":app").projectDir = file("Pocket_Orbit/app")
