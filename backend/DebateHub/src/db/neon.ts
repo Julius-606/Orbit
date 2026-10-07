@@ -2,12 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Dedicated secret for DebateHub Neon DB, separate from Orbit's database URL
-const databaseUrl =
-  process.env.DEBATEHUB_NEON_DATABASE_URL ||
-  process.env.DEBATEHUB_DATABASE_URL ||
-  process.env.NEON_DATABASE_URL ||
-  process.env.DATABASE_URL;
+const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 
 export const isNeonConfigured = Boolean(databaseUrl && databaseUrl.startsWith('postgres'));
 
@@ -21,7 +16,7 @@ export async function initializeNeonTables(): Promise<{ success: boolean; messag
   if (!sql) {
     return {
       success: false,
-      message: 'DEBATEHUB_NEON_DATABASE_URL environment variable is not set. Add it to Hugging Face Space secrets or .env.',
+      message: 'NEON_DATABASE_URL environment variable is not set. Add it in AI Studio Secrets or .env file.',
     };
   }
 

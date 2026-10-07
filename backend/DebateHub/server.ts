@@ -31,16 +31,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
 
-// Support incoming requests addressed to /DebateHub prefix or standard root
-app.use((req, _res, next) => {
-  if (req.url.startsWith('/DebateHub/')) {
-    req.url = req.url.substring('/DebateHub'.length);
-  } else if (req.url === '/DebateHub') {
-    req.url = '/';
-  }
-  next();
-});
-
 const DB_FILE = path.join(__dirname, 'database.json');
 
 // Interface for Root JSON Database
@@ -1268,41 +1258,27 @@ app.post('/api/notifications/:id/read', (req: Request, res: Response) => {
 // 11. VITE SPA & STATIC ASSET SERVER
 // =========================================================================
 async function startServer() {
-  const PORT = parseInt(process.env.DEBATEHUB_PORT || process.env.PORT || '3000', 10);
-  const distPath = path.join(__dirname, 'dist');
-  const hasDist = fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'));
+  const PORT = 3000;
 
-  if (process.env.NODE_ENV === 'production' && hasDist) {
-    app.use('/DebateHub', express.static(distPath));
-    app.use(express.static(distPath));
-    app.get(['*', '/DebateHub/*'], (_req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+  if (process.env.NODE_ENV !== 'production') {
+    const vite = await createViteServer({
+      server: {
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR !== 'true',
+        allowedHosts: true as true,
+      },
+      appType: 'spa',
     });
+    app.use(vite.middlewares);
   } else {
-    try {
-      const vite = await createViteServer({
-        server: {
-          middlewareMode: true,
-          hmr: process.env.DISABLE_HMR !== 'true',
-          allowedHosts: true as true,
-        },
-        appType: 'spa',
-      });
-      app.use(vite.middlewares);
-    } catch (viteErr) {
-      console.warn('[Vite] Running in production/dist fallback:', viteErr);
-      if (hasDist) {
-        app.use('/DebateHub', express.static(distPath));
-        app.use(express.static(distPath));
-        app.get(['*', '/DebateHub/*'], (_req: Request, res: Response) => {
-          res.sendFile(path.join(distPath, 'index.html'));
-        });
-      }
-    }
+    app.use(express.static(path.join(__dirname, 'dist')));
+    app.get('*', (_req: Request, res: Response) => {
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`GLUK Debate Club Server active at http://0.0.0.0:${PORT} (Prefix: /DebateHub supported)`);
+    console.log(`GLUK Debate Club Server active at http://0.0.0.0:${PORT}`);
   });
 }
 
