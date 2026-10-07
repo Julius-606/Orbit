@@ -4,7 +4,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { sql, isNeonConfigured, initializeNeonTables } from './src/db/neon.ts';
+import {
+  sql,
+  isNeonConfigured,
+  initializeNeonTables,
+  testNeonConnection,
+  getNeonDiagnostics,
+} from './src/db/neon.ts';
 import {
   Member,
   FinancialTransaction,
@@ -30,6 +36,16 @@ dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
+
+// Support reverse-proxy mounting under /debatehub/api and /DebateHub/api
+app.use((req, _res, next) => {
+  if (req.url.startsWith('/debatehub/api')) {
+    req.url = req.url.slice('/debatehub'.length);
+  } else if (req.url.startsWith('/DebateHub/api')) {
+    req.url = req.url.slice('/DebateHub'.length);
+  }
+  next();
+});
 
 const DB_FILE = path.join(__dirname, 'database.json');
 
@@ -176,35 +192,34 @@ function pushNotification(notif: Omit<ClubNotification, 'id' | 'createdAt' | 'is
 // 1. DATABASE HEALTH & SCHEMA INITIALIZATION
 // =========================================================================
 app.get('/api/db/status', async (_req: Request, res: Response) => {
+  const diag = getNeonDiagnostics();
   if (!isNeonConfigured || !sql) {
     return res.json({
       isConnected: false,
       configured: false,
+      diagnostics: diag,
       isLocalJsonReady: true,
       localMemberCount: dbState.users.length,
       message: 'Neon PostgreSQL is not configured yet. App is actively using persistent local database.json.',
     });
   }
 
-  try {
-    const result = await sql`SELECT version(), current_database() as db_name`;
-    res.json({
-      isConnected: true,
-      configured: true,
-      isLocalJsonReady: true,
-      dbName: result[0]?.db_name || 'neondb',
-      version: result[0]?.version || 'PostgreSQL (Neon serverless)',
-      message: 'Successfully connected to Neon PostgreSQL.',
-    });
-  } catch (err: any) {
-    res.json({
-      isConnected: false,
-      configured: true,
-      isLocalJsonReady: true,
-      error: err.message,
-      message: 'Failed to connect to Neon PostgreSQL. verify connection string.',
-    });
-  }
+  const testResult = await testNeonConnection();
+  res.json({
+    isConnected: testResult.ok,
+    configured: true,
+    latencyMs: testResult.latencyMs,
+    tables: testResult.tables,
+    dbName: testResult.dbName,
+    diagnostics: diag,
+    error: testResult.error,
+    advice: testResult.advice,
+    isLocalJsonReady: true,
+    localMemberCount: dbState.users.length,
+    message: testResult.ok
+      ? 'Successfully connected to Neon PostgreSQL.'
+      : 'Failed to connect to Neon PostgreSQL. Check advice and connection parameters.',
+  });
 });
 
 app.post('/api/db/init', async (_req: Request, res: Response) => {
@@ -1258,10 +1273,11 @@ app.post('/api/notifications/:id/read', (req: Request, res: Response) => {
 // 11. VITE SPA & STATIC ASSET SERVER
 // =========================================================================
 async function startServer() {
-  const PORT = 3000;
+  const PORT = process.env.DEBATEHUB_PORT || process.env.PORT || 3000;
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
+      base: '/debatehub/',
       server: {
         middlewareMode: true,
         hmr: process.env.DISABLE_HMR !== 'true',
@@ -1270,15 +1286,58 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+
+    // Redirect root and unslashed paths to /debatehub/
+    app.get('/', (_req: Request, res: Response) => {
+      res.redirect(307, '/debatehub/');
+    });
+    app.get(['/debatehub', '/DebateHub'], (_req: Request, res: Response) => {
+      res.redirect(307, '/debatehub/');
+    });
+
+    // SPA fallback: render transformed index.html for all SPA routes
+    app.use(['/debatehub', '/debatehub/*', '/DebateHub', '/DebateHub/*', '*'], async (req: Request, res: Response, next) => {
+      try {
+        const indexPath = path.resolve(__dirname, 'index.html');
+        let template = fs.readFileSync(indexPath, 'utf-8');
+        template = await vite.transformIndexHtml(req.originalUrl || req.url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e: any) {
+        vite.ssrFixStacktrace(e);
+        next(e);
+      }
+    });
   } else {
-    app.use(express.static(path.join(__dirname, 'dist')));
-    app.get('*', (_req: Request, res: Response) => {
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    const distPath = path.join(__dirname, 'dist');
+    app.use('/debatehub', express.static(distPath));
+    app.use('/DebateHub', express.static(distPath));
+    app.use(express.static(distPath));
+
+    app.get(['/debatehub', '/DebateHub'], (_req: Request, res: Response) => {
+      res.redirect(307, '/debatehub/');
+    });
+    app.get(['/debatehub/*', '/DebateHub/*', '*'], (_req: Request, res: Response) => {
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`GLUK Debate Club Server active at http://0.0.0.0:${PORT}`);
+  app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`GLUK Debate Club Server active at http://0.0.0.0:${PORT} (Access at /debatehub)`);
+
+    // Asynchronously perform startup verification of Neon PostgreSQL
+    if (isNeonConfigured && sql) {
+      testNeonConnection().then((status) => {
+        if (status.ok) {
+          console.log(`✅ [DebateHub] Neon PostgreSQL verified on startup (${status.latencyMs}ms). Tables: [${status.tables.join(', ')}]`);
+        } else {
+          console.warn(`⚠️ [DebateHub] Neon PostgreSQL startup check failed: ${status.error}`);
+        }
+      }).catch((e: any) => {
+        console.warn(`⚠️ [DebateHub] Neon connection check error:`, e.message);
+      });
+    } else {
+      console.log(`ℹ️ [DebateHub] Neon DB URL not detected; running in root database.json fallback mode.`);
+    }
   });
 }
 

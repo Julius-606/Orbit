@@ -19,8 +19,8 @@ This Hugging Face Space hosts two independent, isolated backends within a single
 
 ### 2. Project DebateHub (Debate Management & Real-Time Sync)
 - **Engine:** Express & React / Vite (Node.js 20)
-- **Public Gateway:** Accessible at `/DebateHub`
-- **APIs & Live SSE:** `/DebateHub/api/...` and `/DebateHub/api/live/stream`
+- **Public URL:** [https://agent606-orbit.hf.space/debatehub](https://agent606-orbit.hf.space/debatehub) (also supports `/DebateHub`)
+- **APIs & Live SSE:** `/debatehub/api/...` and `/debatehub/api/live/stream` (also proxied via root `/api/...`)
 - **Database Secret:** `DEBATEHUB_NEON_DATABASE_URL` (Independent Neon DB instance)
 
-Both projects run as separate processes with independent database connections, while sharing the Hugging Face Spaces port `7860`.
+Both projects run as separate processes with independent database connections, while sharing the Hugging Face Spaces port `7860`. Orbit dashboard remains accessible at `https://agent606-orbit.hf.space/docs`.

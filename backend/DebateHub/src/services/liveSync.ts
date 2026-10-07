@@ -9,7 +9,11 @@ class LiveSyncService {
     if (this.eventSource) return;
 
     try {
-      this.eventSource = new EventSource('/api/live/stream');
+      const streamUrl =
+        typeof window !== 'undefined' && window.location.pathname.toLowerCase().startsWith('/debatehub')
+          ? '/debatehub/api/live/stream'
+          : '/api/live/stream';
+      this.eventSource = new EventSource(streamUrl);
 
       this.eventSource.onopen = () => {
         this.isConnected = true;

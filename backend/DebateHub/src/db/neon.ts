@@ -1,8 +1,24 @@
 import { neon } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+// Fix for Node.js Happy Eyeballs / IPv6 connection timeouts (ETIMEDOUT) on Linux/cloud
+try {
+  if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch {
+  // Ignore fallback if runtime does not support
+}
+
 dotenv.config();
 
-const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+// Dedicated secret for DebateHub Neon DB, separate from Orbit's database URL
+const databaseUrl =
+  process.env.DEBATEHUB_NEON_DATABASE_URL ||
+  process.env.DEBATEHUB_DATABASE_URL ||
+  process.env.NEON_DATABASE_URL ||
+  process.env.DATABASE_URL;
 
 export const isNeonConfigured = Boolean(databaseUrl && databaseUrl.startsWith('postgres'));
 
@@ -162,6 +178,102 @@ export async function initializeNeonTables(): Promise<{ success: boolean; messag
     return {
       success: false,
       message: `Failed to initialize Neon schema: ${error.message}`,
+    };
+  }
+}
+
+/**
+ * Returns safe connection diagnostics for UI and logs.
+ */
+export function getNeonDiagnostics(): Record<string, any> {
+  const raw = databaseUrl || '';
+  let host = 'not_configured';
+  let isPooler = false;
+  let hasSsl = false;
+
+  try {
+    if (raw.startsWith('postgres')) {
+      const parsed = new URL(raw.replace('postgresql://', 'http://').replace('postgres://', 'http://'));
+      host = parsed.hostname;
+      isPooler = host.includes('-pooler');
+      hasSsl = parsed.searchParams.get('sslmode') === 'require';
+    }
+  } catch {
+    // URL parse fallback
+  }
+
+  return {
+    configured: isNeonConfigured,
+    secretDetected: Boolean(databaseUrl),
+    secretName: process.env.DEBATEHUB_NEON_DATABASE_URL ? 'DEBATEHUB_NEON_DATABASE_URL' : (process.env.NEON_DATABASE_URL ? 'NEON_DATABASE_URL' : 'DATABASE_URL'),
+    host,
+    isPoolerEndpoint: isPooler,
+    hasSslModeRequire: hasSsl,
+    maskedUrl: raw ? raw.replace(/:([^:@]+)@/, ':****@') : 'not set',
+  };
+}
+
+/**
+ * Actively probes the Neon PostgreSQL connection and returns detailed latency,
+ * detected tables, and connection status.
+ */
+export async function testNeonConnection(): Promise<{
+  ok: boolean;
+  latencyMs: number;
+  tables: string[];
+  dbName?: string;
+  error?: string;
+  advice?: string;
+}> {
+  if (!sql) {
+    return {
+      ok: false,
+      latencyMs: -1,
+      tables: [],
+      error: 'Neon DB URL is not set. Add DEBATEHUB_NEON_DATABASE_URL to Space Secrets.',
+      advice: 'Ensure DEBATEHUB_NEON_DATABASE_URL is provided in Hugging Face Space Settings -> Secrets.',
+    };
+  }
+
+  const start = Date.now();
+  try {
+    const probe = await sql`SELECT current_database() as db_name, version() as ver;`;
+    const latencyMs = Date.now() - start;
+
+    const tableRows = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      ORDER BY table_name;
+    `;
+    const tables = tableRows.map((r: any) => r.table_name);
+
+    // Auto-bootstrap tables if empty
+    if (tables.length === 0 || !tables.includes('members')) {
+      console.log('🔄 Neon connected but tables missing. Auto-bootstrapping schema...');
+      await initializeNeonTables();
+    }
+
+    return {
+      ok: true,
+      latencyMs,
+      tables,
+      dbName: probe[0]?.db_name || 'neondb',
+    };
+  } catch (err: any) {
+    const latencyMs = Date.now() - start;
+    let advice = 'Check your connection string and internet connection.';
+    if (err.message?.includes('ETIMEDOUT') || err.message?.includes('fetch failed')) {
+      advice = 'Network timeout contacting Neon endpoint. Verify that the endpoint host exists and is active in neon.tech dashboard.';
+    } else if (err.message?.includes('password') || err.message?.includes('authentication')) {
+      advice = 'Authentication failed. Check username and password in DEBATEHUB_NEON_DATABASE_URL.';
+    }
+    return {
+      ok: false,
+      latencyMs,
+      tables: [],
+      error: err.message || String(err),
+      advice,
     };
   }
 }

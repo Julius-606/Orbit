@@ -21,6 +21,7 @@ if [ -d "$DEBATEHUB_DIR" ]; then
         cd "$DEBATEHUB_DIR"
         export PORT=3000
         export DEBATEHUB_PORT=3000
+        export VITE_BASE=/debatehub/
         if [ -n "$DEBATEHUB_NEON_DATABASE_URL" ]; then
             echo "✅ DebateHub Neon DB secret detected."
         else

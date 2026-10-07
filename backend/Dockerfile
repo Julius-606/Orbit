@@ -8,7 +8,7 @@
 # - Preserved Python 3.11 for Orbit Life-OS FastAPI backend.
 # - Hugging Face Space exposes port 7860:
 #   * Orbit Dashboard & Swagger UI: / & /docs
-#   * DebateHub Backend & App: /DebateHub (proxied from port 3000)
+#   * DebateHub Backend & App: /debatehub (proxied from port 3000)
 # - Independent DB secrets: DATABASE_URL (Orbit) and DEBATEHUB_NEON_DATABASE_URL (DebateHub).
 
 FROM python:3.11-slim
@@ -46,10 +46,11 @@ COPY --chown=orbituser:orbituser . $HOME/app
 
 USER orbituser
 
-# Install DebateHub dependencies if present
+# Install DebateHub dependencies if present and prebuild assets
 RUN if [ -d "$HOME/app/DebateHub" ]; then \
         cd $HOME/app/DebateHub && \
-        (npm install --production=false || npm install --legacy-peer-deps || true); \
+        (npm install --production=false || npm install --legacy-peer-deps || true) && \
+        (VITE_BASE=/debatehub/ npm run build || true); \
     fi
 
 # Hugging Face default port

@@ -223,42 +223,36 @@ async def debatehub_integration_status():
     )
     return {
         "module": "DebateHub",
-        "mounted_path": "/DebateHub",
+        "mounted_path": "/debatehub",
+        "access_url": "https://agent606-orbit.hf.space/debatehub",
         "secret_source": "DEBATEHUB_NEON_DATABASE_URL",
         "neon_secret_detected": neon_configured,
         "independent_backend": True,
         "orbit_dash": "/docs",
-        "debatehub_gateway": "/DebateHub",
+        "debatehub_gateway": "/debatehub",
         "status": "Online & Integrated"
     }
 
-@app.api_route(
-    "/DebateHub",
-    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
-    include_in_schema=False
-)
-@app.api_route(
-    "/DebateHub/{path:path}",
-    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
-    include_in_schema=False
-)
-async def proxy_debatehub(request: Request, path: str = ""):
+async def forward_to_debatehub(request: Request, subpath: str = ""):
     """
-    Exposes Project DebateHub independently under /DebateHub while Orbit's
-    dashboard remains active at / and /docs.
+    Core forwarding helper to proxy requests to the independent DebateHub Express/Vite server.
+    Handles streaming SSE (Server-Sent Events), normal HTTP verbs, query params, and headers.
     """
-    target_url = f"{DEBATEHUB_INTERNAL_URL}/DebateHub/{path}" if path else f"{DEBATEHUB_INTERNAL_URL}/DebateHub"
+    clean_subpath = subpath.lstrip("/")
+    target_url = f"{DEBATEHUB_INTERNAL_URL}/{clean_subpath}" if clean_subpath else f"{DEBATEHUB_INTERNAL_URL}/"
     if request.url.query:
         target_url += f"?{request.url.query}"
 
     headers = dict(request.headers)
     headers.pop("host", None)
-    headers["x-forwarded-prefix"] = "/DebateHub"
+    headers["x-forwarded-prefix"] = "/debatehub"
+    headers["x-forwarded-proto"] = request.url.scheme
+    headers["x-forwarded-host"] = request.headers.get("host", "agent606-orbit.hf.space")
 
     body = await request.body()
     try:
         # Support Server-Sent Events (SSE) streaming for real-time live sync
-        if "text/event-stream" in request.headers.get("accept", "") or "stream" in path:
+        if "text/event-stream" in request.headers.get("accept", "") or "stream" in clean_subpath:
             client = httpx.AsyncClient(timeout=None)
             req = client.build_request(
                 method=request.method,
@@ -297,20 +291,100 @@ async def proxy_debatehub(request: Request, path: str = ""):
             or os.getenv("NEON_DATABASE_URL")
         )
         return JSONResponse(
-            status_code=200 if request.method == "GET" and (not path or "status" in path) else 503,
+            status_code=200 if request.method == "GET" and (not clean_subpath or "status" in clean_subpath) else 503,
             content={
                 "project": "DebateHub",
-                "route": f"/DebateHub/{path}",
+                "route": f"/{clean_subpath}",
                 "status": "Standalone Backend Ready",
                 "internal_target": DEBATEHUB_INTERNAL_URL,
                 "neon_database_secret_configured": neon_configured,
                 "orbit_status": "Orbit Dashboard & API active at /docs",
+                "access_url": "https://agent606-orbit.hf.space/debatehub",
                 "message": (
                     "DebateHub module is active on this space. "
                     "Independent Express server connects using DEBATEHUB_NEON_DATABASE_URL."
                 )
             }
         )
+
+# Redirect unslashed /debatehub and /DebateHub to /debatehub/
+@app.get("/debatehub", include_in_schema=False)
+@app.get("/DebateHub", include_in_schema=False)
+async def redirect_debatehub(request: Request):
+    q = f"?{request.url.query}" if request.url.query else ""
+    return RedirectResponse(url=f"/debatehub/{q}", status_code=307)
+
+# Proxy /debatehub/ and /DebateHub/ root
+@app.api_route(
+    "/debatehub/",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+@app.api_route(
+    "/DebateHub/",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+async def proxy_debatehub_root(request: Request):
+    return await forward_to_debatehub(request, "debatehub/")
+
+# Proxy /debatehub/{path:path} and /DebateHub/{path:path} subpaths
+@app.api_route(
+    "/debatehub/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+@app.api_route(
+    "/DebateHub/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+async def proxy_debatehub_subpaths(request: Request, path: str):
+    return await forward_to_debatehub(request, f"debatehub/{path}")
+
+# Proxy root /api/ calls intended for DebateHub (ignoring Orbit's /api/v1/...)
+@app.api_route(
+    "/api/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+async def proxy_debatehub_root_api(request: Request, path: str):
+    if path.startswith("v1/") or path == "v1":
+        raise HTTPException(status_code=404, detail="Not Found")
+    return await forward_to_debatehub(request, f"api/{path}")
+
+# Proxy Vite internal dev URLs if requested without /debatehub/ prefix
+@app.api_route(
+    "/@vite/{path:path}",
+    methods=["GET", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+async def proxy_vite_client(request: Request, path: str):
+    return await forward_to_debatehub(request, f"@vite/{path}")
+
+@app.api_route(
+    "/@fs/{path:path}",
+    methods=["GET", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+async def proxy_vite_fs(request: Request, path: str):
+    return await forward_to_debatehub(request, f"@fs/{path}")
+
+@app.api_route(
+    "/@id/{path:path}",
+    methods=["GET", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+async def proxy_vite_id(request: Request, path: str):
+    return await forward_to_debatehub(request, f"@id/{path}")
+
+@app.api_route(
+    "/src/{path:path}",
+    methods=["GET", "HEAD", "OPTIONS"],
+    include_in_schema=False
+)
+async def proxy_vite_src(request: Request, path: str):
+    return await forward_to_debatehub(request, f"src/{path}")
 
 # ===============================================================================
 # ENTRY POINT
