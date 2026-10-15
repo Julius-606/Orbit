@@ -115,7 +115,7 @@ class OrbitAssistant:
 
         try:
             response = await async_client.aio.models.generate_content(
-                model='gemini-2.0-flash',
+                model='gemini-3.8-flash',
                 contents=contents,
                 config=types.GenerateContentConfig(
                     system_instruction=self.system_prompt + """
