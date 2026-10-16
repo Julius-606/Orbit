@@ -14,16 +14,57 @@ try {
 dotenv.config();
 
 // Dedicated secret for DebateHub Neon DB, separate from Orbit's database URL
-const databaseUrl =
+const rawDatabaseUrl =
   process.env.DEBATEHUB_NEON_DATABASE_URL ||
   process.env.DEBATEHUB_DATABASE_URL ||
   process.env.NEON_DATABASE_URL ||
   process.env.DATABASE_URL;
 
+function sanitizeNeonUrl(raw?: string): string {
+  if (!raw) return '';
+  let url = raw.trim();
+  if ((url.startsWith('"') && url.endsWith('"')) || (url.startsWith("'") && url.endsWith("'"))) {
+    url = url.slice(1, -1).trim();
+  }
+  if (url.startsWith('postgres://') || url.startsWith('postgresql://')) {
+    if (!url.includes('sslmode=')) {
+      url += (url.includes('?') ? '&' : '?') + 'sslmode=require';
+    }
+  }
+  return url;
+}
+
+const databaseUrl = sanitizeNeonUrl(rawDatabaseUrl);
+
 export const isNeonConfigured = Boolean(databaseUrl && databaseUrl.startsWith('postgres'));
 
 // Export Neon SQL client if configured
 export const sql = isNeonConfigured && databaseUrl ? neon(databaseUrl) : null;
+
+// Circuit breaker: track consecutive errors to prevent continuous query hangs on timeout
+let consecutiveErrors = 0;
+let lastErrorTimestamp = 0;
+const ERROR_COOLDOWN_MS = 25000; // 25s pause before retrying when network times out
+
+export function isNeonAvailable(): boolean {
+  if (!sql) return false;
+  if (consecutiveErrors >= 2 && Date.now() - lastErrorTimestamp < ERROR_COOLDOWN_MS) {
+    return false;
+  }
+  return true;
+}
+
+export function recordNeonSuccess(): void {
+  consecutiveErrors = 0;
+}
+
+export function recordNeonFailure(err?: any): void {
+  consecutiveErrors++;
+  lastErrorTimestamp = Date.now();
+  if (consecutiveErrors === 2) {
+    console.warn(`[Neon DB] Circuit breaker triggered (cooldown ${ERROR_COOLDOWN_MS / 1000}s). Serving local JSON fallback to prevent UI hang.`);
+  }
+}
 
 /**
  * Initializes the required PostgreSQL schema in Neon.
@@ -254,6 +295,7 @@ export async function testNeonConnection(): Promise<{
       await initializeNeonTables();
     }
 
+    recordNeonSuccess();
     return {
       ok: true,
       latencyMs,
@@ -262,9 +304,10 @@ export async function testNeonConnection(): Promise<{
     };
   } catch (err: any) {
     const latencyMs = Date.now() - start;
+    recordNeonFailure(err);
     let advice = 'Check your connection string and internet connection.';
     if (err.message?.includes('ETIMEDOUT') || err.message?.includes('fetch failed')) {
-      advice = 'Network timeout contacting Neon endpoint. Verify that the endpoint host exists and is active in neon.tech dashboard.';
+      advice = 'Network timeout contacting Neon endpoint. 1) Check if Neon compute is paused/sleeping in neon.tech dashboard (cold start). 2) Use the pooled connection string (-pooler). 3) Ensure sslmode=require is set. 4) If testing locally on Linux/Node 18+, IPv6 routing may be timing out.';
     } else if (err.message?.includes('password') || err.message?.includes('authentication')) {
       advice = 'Authentication failed. Check username and password in DEBATEHUB_NEON_DATABASE_URL.';
     }

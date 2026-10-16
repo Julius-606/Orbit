@@ -51,10 +51,29 @@ export const NeonConnectionModal: React.FC<NeonConnectionModalProps> = ({
     try {
       const res = await fetch('/api/db/init', { method: 'POST' });
       const data = await res.json();
-      setInitResult(data.message || (data.success ? 'Tables initialized!' : 'Initialization error'));
+      const syncMsg = data.sync?.synced ? ` (Synced: ${JSON.stringify(data.sync.synced)})` : '';
+      setInitResult((data.message || (data.success ? 'Tables initialized!' : 'Initialization error')) + syncMsg);
       await checkStatus();
     } catch (err: any) {
       setInitResult(`Failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSyncData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/db/sync', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setInitResult(`✅ Successfully pushed local data to Neon! Synced: ${JSON.stringify(data.synced)}`);
+      } else {
+        setInitResult(`❌ Sync error: ${data.error}`);
+      }
+      await checkStatus();
+    } catch (err: any) {
+      setInitResult(`Sync failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -276,14 +295,24 @@ CREATE TABLE IF NOT EXISTS calendar_events (
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-2">
-            <button
-              onClick={handleInitializeTables}
-              disabled={loading || !status.configured}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold rounded-lg text-xs transition-colors shadow-md"
-            >
-              Initialize PostgreSQL Tables in Neon
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleInitializeTables}
+                disabled={loading || !status.configured}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold rounded-lg text-xs transition-colors shadow-md"
+              >
+                Initialize Tables in Neon
+              </button>
+
+              <button
+                onClick={handleSyncData}
+                disabled={loading || !status.configured}
+                className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white font-bold rounded-lg text-xs transition-colors shadow-md"
+              >
+                Sync Offline Data to Neon
+              </button>
+            </div>
 
             <button
               onClick={onClose}

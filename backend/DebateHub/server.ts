@@ -7,6 +7,9 @@ import { fileURLToPath } from 'url';
 import {
   sql,
   isNeonConfigured,
+  isNeonAvailable,
+  recordNeonSuccess,
+  recordNeonFailure,
   initializeNeonTables,
   testNeonConnection,
   getNeonDiagnostics,
@@ -222,11 +225,100 @@ app.get('/api/db/status', async (_req: Request, res: Response) => {
   });
 });
 
+async function syncLocalStateToNeon(): Promise<{ success: boolean; synced: Record<string, number>; error?: string }> {
+  if (!sql) return { success: false, synced: {}, error: 'Neon database not configured' };
+
+  const stats = { announcements: 0, events: 0, members: 0, debates: 0 };
+  try {
+    // 1. Sync Announcements
+    for (const ann of dbState.announcements) {
+      await sql`
+        INSERT INTO announcements (
+          id, title, content, author, author_role, publish_date, priority, category, pinned
+        ) VALUES (
+          ${ann.id}, ${ann.title}, ${ann.content}, ${ann.author}, ${ann.authorRole},
+          ${ann.publishDate}, ${ann.priority}, ${ann.category}, ${Boolean(ann.pinned)}
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          content = EXCLUDED.content,
+          priority = EXCLUDED.priority,
+          pinned = EXCLUDED.pinned;
+      `;
+      stats.announcements++;
+    }
+
+    // 2. Sync Calendar Events
+    for (const ev of dbState.events) {
+      await sql`
+        INSERT INTO calendar_events (
+          id, title, date, start_time, end_time, location, google_meet_url,
+          event_type, description, lead_coordinator
+        ) VALUES (
+          ${ev.id}, ${ev.title}, ${ev.date}, ${ev.startTime}, ${ev.endTime},
+          ${ev.location}, ${ev.googleMeetUrl || null}, ${ev.eventType},
+          ${ev.description}, ${ev.leadCoordinator}
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          date = EXCLUDED.date,
+          start_time = EXCLUDED.start_time,
+          end_time = EXCLUDED.end_time,
+          location = EXCLUDED.location,
+          google_meet_url = EXCLUDED.google_meet_url,
+          description = EXCLUDED.description;
+      `;
+      stats.events++;
+    }
+
+    // 3. Sync Members
+    for (const m of dbState.users) {
+      await sql`
+        INSERT INTO members (
+          id, full_name, student_id, email, phone, role, executive_position,
+          year_of_study, faculty, membership_status, dues_amount_kes, mpesa_ref,
+          joined_date, attendance_rate, debates_attended_count, total_debates_count,
+          speaker_points_avg, bio, alumni_occupation, alumni_organization
+        ) VALUES (
+          ${m.id}, ${m.fullName}, ${m.studentId}, ${m.email}, ${m.phone || ''},
+          ${m.role}, ${m.executivePosition || null}, ${m.yearOfStudy}, ${m.faculty},
+          ${m.membershipStatus}, ${m.duesAmountKes || 500}, ${m.mpesaRef || null},
+          ${m.joinedDate}, ${m.attendanceRate || 0}, ${m.debatesAttendedCount || 0},
+          ${m.totalDebatesCount || 0}, ${m.speakerPointsAvg || 70}, ${m.bio || null},
+          ${m.alumniOccupation || null}, ${m.alumniOrganization || null}
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          full_name = EXCLUDED.full_name,
+          membership_status = EXCLUDED.membership_status,
+          attendance_rate = EXCLUDED.attendance_rate;
+      `;
+      stats.members++;
+    }
+
+    recordNeonSuccess();
+    return { success: true, synced: stats };
+  } catch (err: any) {
+    recordNeonFailure(err);
+    return { success: false, synced: stats, error: err.message };
+  }
+}
+
 app.post('/api/db/init', async (_req: Request, res: Response) => {
   const result = await initializeNeonTables();
+  if (result.success) {
+    const syncResult = await syncLocalStateToNeon();
+    saveDatabaseToFile();
+    broadcastEvent('SYSTEM_REINITIALIZED', { neon: result, sync: syncResult });
+    return res.json({ ...result, sync: syncResult });
+  }
   saveDatabaseToFile();
   broadcastEvent('SYSTEM_REINITIALIZED', { neon: result });
   res.json(result);
+});
+
+app.post('/api/db/sync', async (_req: Request, res: Response) => {
+  const syncResult = await syncLocalStateToNeon();
+  res.json(syncResult);
 });
 
 // System fresh vs populated status
@@ -537,9 +629,10 @@ app.post('/api/auth/logout', (_req: Request, res: Response) => {
 // 3. MEMBERS ENDPOINTS (GET, POST / Upsert, Submit M-Pesa, Verify Dues)
 // =========================================================================
 app.get('/api/members', async (_req: Request, res: Response) => {
-  if (sql) {
+  if (sql && isNeonAvailable()) {
     try {
       const rows = await sql`SELECT * FROM members ORDER BY full_name ASC`;
+      recordNeonSuccess();
       if (rows.length > 0) {
         const mapped: Member[] = rows.map((r: any) => ({
           id: r.id,
@@ -569,6 +662,7 @@ app.get('/api/members', async (_req: Request, res: Response) => {
         return res.json(mapped);
       }
     } catch (err) {
+      recordNeonFailure(err);
       console.warn('Neon query failed for members, using root database.json:', err);
     }
   }
@@ -609,7 +703,9 @@ app.post('/api/members', async (req: Request, res: Response) => {
           executive_position = EXCLUDED.executive_position,
           bio = EXCLUDED.bio;
       `;
+      recordNeonSuccess();
     } catch (err) {
+      recordNeonFailure(err);
       console.error('Error upserting member to Neon:', err);
     }
   }
@@ -778,9 +874,10 @@ app.post('/api/transactions', async (req: Request, res: Response) => {
 // 5. DEBATE SESSIONS ENDPOINTS (GET, POST, PUT /:id)
 // =========================================================================
 app.get('/api/debates', async (_req: Request, res: Response) => {
-  if (sql) {
+  if (sql && isNeonAvailable()) {
     try {
       const rows = await sql`SELECT * FROM debate_sessions ORDER BY date DESC`;
+      recordNeonSuccess();
       if (rows.length > 0) {
         const mapped: DebateSession[] = rows.map((r: any) => ({
           id: r.id,
@@ -805,6 +902,7 @@ app.get('/api/debates', async (_req: Request, res: Response) => {
         return res.json(mapped);
       }
     } catch (err) {
+      recordNeonFailure(err);
       console.warn('Neon query error for debates:', err);
     }
   }
@@ -839,7 +937,9 @@ app.post('/api/debates', async (req: Request, res: Response) => {
           winning_team = EXCLUDED.winning_team,
           transcript = EXCLUDED.transcript;
       `;
+      recordNeonSuccess();
     } catch (err) {
+      recordNeonFailure(err);
       console.error('Error creating debate session in Neon:', err);
     }
   }
@@ -879,7 +979,9 @@ app.put('/api/debates/:id', async (req: Request, res: Response) => {
           transcript = ${JSON.stringify(d.transcript || [])}::jsonb
         WHERE id = ${id};
       `;
+      recordNeonSuccess();
     } catch (err) {
+      recordNeonFailure(err);
       console.error(`Error updating debate session ${id} in Neon:`, err);
     }
   }
@@ -1027,9 +1129,10 @@ app.put('/api/agendas/:id', async (req: Request, res: Response) => {
 // 7. ANNOUNCEMENTS ENDPOINTS (GET, POST)
 // =========================================================================
 app.get('/api/announcements', async (_req: Request, res: Response) => {
-  if (sql) {
+  if (sql && isNeonAvailable()) {
     try {
       const rows = await sql`SELECT * FROM announcements ORDER BY publish_date DESC`;
+      recordNeonSuccess();
       if (rows.length > 0) {
         const mapped: Announcement[] = rows.map((r: any) => ({
           id: r.id,
@@ -1047,6 +1150,7 @@ app.get('/api/announcements', async (_req: Request, res: Response) => {
         return res.json(mapped);
       }
     } catch (err) {
+      recordNeonFailure(err);
       console.warn('Neon query error for announcements:', err);
     }
   }
@@ -1072,7 +1176,9 @@ app.post('/api/announcements', async (req: Request, res: Response) => {
           priority = EXCLUDED.priority,
           pinned = EXCLUDED.pinned;
       `;
+      recordNeonSuccess();
     } catch (err) {
+      recordNeonFailure(err);
       console.error('Error saving announcement in Neon:', err);
     }
   }
@@ -1098,9 +1204,10 @@ app.post('/api/announcements', async (req: Request, res: Response) => {
 // 8. CALENDAR ACTIVITIES ENDPOINTS (GET, POST)
 // =========================================================================
 app.get('/api/events', async (_req: Request, res: Response) => {
-  if (sql) {
+  if (sql && isNeonAvailable()) {
     try {
       const rows = await sql`SELECT * FROM calendar_events ORDER BY date ASC`;
+      recordNeonSuccess();
       if (rows.length > 0) {
         const mapped: CalendarEvent[] = rows.map((r: any) => ({
           id: r.id,
@@ -1119,6 +1226,7 @@ app.get('/api/events', async (_req: Request, res: Response) => {
         return res.json(mapped);
       }
     } catch (err) {
+      recordNeonFailure(err);
       console.warn('Neon query error for events:', err);
     }
   }
@@ -1148,7 +1256,9 @@ app.post('/api/events', async (req: Request, res: Response) => {
           location = EXCLUDED.location,
           google_meet_url = EXCLUDED.google_meet_url;
       `;
+      recordNeonSuccess();
     } catch (err) {
+      recordNeonFailure(err);
       console.error('Error inserting calendar event to Neon:', err);
     }
   }
