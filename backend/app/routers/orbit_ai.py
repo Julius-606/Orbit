@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.models.study import StudyTask
+from app.models.study import StudyTask, BrainRotLevel
 from app.services.orbit_brain import OrbitAssistant
 import asyncio
 import logging
@@ -61,11 +61,15 @@ async def converse_with_orbit(request: ChatRequest, db: AsyncSession = Depends(g
                 await db.rollback()
 
             for task_data in assistant.tasks_to_create:
+                raw_rot = task_data.get("brain_rot_level", "mid")
+                rot_map = {"chill": BrainRotLevel.CHILL, "mid": BrainRotLevel.MID, "cooked": BrainRotLevel.COOKED}
+                safe_rot = raw_rot if isinstance(raw_rot, BrainRotLevel) else rot_map.get(str(raw_rot).lower(), BrainRotLevel.MID)
+
                 try:
                     new_task = StudyTask(
                         title=task_data.get("title", "Study Task"),
                         subject=task_data.get("subject", "Life Admin"),
-                        brain_rot_level=task_data.get("brain_rot_level", BrainRotLevel.MID),
+                        brain_rot_level=safe_rot,
                         is_reminder=task_data.get("is_reminder", False),
                         due_date=task_data.get("due_date")
                     )

@@ -115,6 +115,7 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
     var showNewSessionDialog by remember { mutableStateOf(false) }
     var showRenameSessionDialog by remember { mutableStateOf(false) }
     var renameSessionName by remember { mutableStateOf("") }
+    var sessionToClose by remember { mutableStateOf<TerminalSessionEntity?>(null) }
 
     // Add node inputs
     var newNodeName by remember { mutableStateOf("") }
@@ -317,18 +318,17 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                 color = if (isSelected) VsCodeTextBright else VsCodeText
                             )
 
-                            // Close session button if more than 1 session
-                            if (sessions.size > 1) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close Session",
-                                    tint = VsCodeText,
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .clickable { viewModel.deleteSession(session.id) }
-                                )
-                            }
+                            // Close or reset session button with confirmation
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close Bash Session",
+                                tint = if (isSelected) VsCodeTextBright else VsCodeText.copy(alpha = 0.6f),
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clip(CircleShape)
+                                    .clickable { sessionToClose = session }
+                            )
                         }
                     }
 
@@ -528,127 +528,254 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                         }
                     }
 
-                    // Terminal Input Line
-                    Row(
+                    // Terminal Input Section
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(VsCodeDark)
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
-                        // Prompt indicator
-                        Text(
-                            text = prompt.ifBlank { "$ " },
-                            color = VsCodeGreen,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-
-                        // Command input text field
-                        OutlinedTextField(
-                            value = manualCommandInput,
-                            onValueChange = { manualCommandInput = it },
+                        // Quick Terminal Keyboard Accessory Bar
+                        Row(
                             modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 4.dp),
-                            placeholder = {
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(bottom = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val keys = listOf("Tab", "Ctrl+C", "|", "&&", "-la", "grep", "sudo", "clear", "exit")
+                            keys.forEach { keyLabel ->
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = if (keyLabel == "exit") VsCodeErrorRed.copy(alpha = 0.2f) else VsCodeTabActive,
+                                    border = if (keyLabel == "exit") androidx.compose.foundation.BorderStroke(1.dp, VsCodeErrorRed.copy(alpha = 0.5f)) else null,
+                                    modifier = Modifier.clickable {
+                                        when (keyLabel) {
+                                            "exit" -> {
+                                                sessionToClose = activeSession
+                                            }
+                                            "Ctrl+C" -> {
+                                                viewModel.executeCommand("^C")
+                                                manualCommandInput = ""
+                                            }
+                                            "clear" -> {
+                                                viewModel.executeCommand("clear")
+                                                manualCommandInput = ""
+                                            }
+                                            "Tab" -> {
+                                                manualCommandInput += "    "
+                                            }
+                                            else -> {
+                                                manualCommandInput += if (manualCommandInput.isEmpty() || manualCommandInput.endsWith(" ")) keyLabel else " $keyLabel"
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Text(
+                                        text = keyLabel,
+                                        fontSize = 10.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (keyLabel == "exit") VsCodeErrorRed else VsCodeTextBright,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Compact prompt & history status bar
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = VsCodeAccentBlue.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = activeNode,
+                                        fontSize = 10.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = VsCodeAccentBlue,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    "Enter command...",
-                                    fontSize = 12.sp,
+                                    text = cwd.ifBlank { "~" },
+                                    color = VsCodeYellow,
                                     fontFamily = FontFamily.Monospace,
-                                    color = Color.Gray
+                                    fontSize = 11.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                            },
-                            singleLine = true,
-                            textStyle = androidx.compose.ui.text.TextStyle(
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
-                                color = VsCodeTextBright
-                            ),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                            keyboardActions = KeyboardActions(
-                                onSend = {
+                            }
+
+                            if (historyIndex >= 0 && recentCommands.isNotEmpty()) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = VsCodeYellow.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = "hist [${historyIndex + 1}/${recentCommands.size}]",
+                                        color = VsCodeYellow,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 10.sp,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Command Input Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = manualCommandInput,
+                                onValueChange = { manualCommandInput = it },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 4.dp),
+                                leadingIcon = {
+                                    Text(
+                                        text = "❯",
+                                        color = VsCodeGreen,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 15.sp
+                                    )
+                                },
+                                trailingIcon = {
                                     if (manualCommandInput.isNotBlank()) {
-                                        viewModel.executeCommand(manualCommandInput)
-                                        manualCommandInput = ""
-                                        historyIndex = -1
+                                        IconButton(onClick = { manualCommandInput = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Clear input",
+                                                tint = Color.Gray,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
                                     }
-                                }
-                            ),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = VsCodeAccentBlue,
-                                unfocusedBorderColor = VsCodeBorder,
-                                focusedContainerColor = VsCodeBlack,
-                                unfocusedContainerColor = VsCodeBlack
-                            )
-                        )
-
-                        // Up & Down History Navigation Chevrons
-                        IconButton(
-                            onClick = {
-                                if (recentCommands.isNotEmpty()) {
-                                    if (historyIndex < recentCommands.size - 1) {
-                                        historyIndex++
-                                        manualCommandInput = recentCommands[historyIndex]
+                                },
+                                placeholder = {
+                                    Text(
+                                        "Enter command (e.g. ls -la)...",
+                                        fontSize = 12.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = Color.Gray
+                                    )
+                                },
+                                singleLine = true,
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = VsCodeTextBright
+                                ),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                keyboardActions = KeyboardActions(
+                                    onSend = {
+                                        if (manualCommandInput.isNotBlank()) {
+                                            val cmd = manualCommandInput.trim()
+                                            if (cmd.equals("exit", ignoreCase = true) || cmd.equals("logout", ignoreCase = true) || cmd.equals("quit", ignoreCase = true)) {
+                                                sessionToClose = activeSession
+                                                manualCommandInput = ""
+                                            } else {
+                                                viewModel.executeCommand(manualCommandInput)
+                                                manualCommandInput = ""
+                                                historyIndex = -1
+                                            }
+                                        }
                                     }
-                                }
-                            },
-                            modifier = Modifier.size(32.dp),
-                            enabled = recentCommands.isNotEmpty()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowUp,
-                                contentDescription = "Previous Command",
-                                tint = if (recentCommands.isNotEmpty()) VsCodeText else Color.DarkGray,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = {
-                                if (recentCommands.isNotEmpty() && historyIndex > 0) {
-                                    historyIndex--
-                                    manualCommandInput = recentCommands[historyIndex]
-                                } else if (historyIndex == 0) {
-                                    historyIndex = -1
-                                    manualCommandInput = ""
-                                }
-                            },
-                            modifier = Modifier.size(32.dp),
-                            enabled = historyIndex >= 0
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Next Command",
-                                tint = if (historyIndex >= 0) VsCodeText else Color.DarkGray,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        // Run Button
-                        IconButton(
-                            onClick = {
-                                if (manualCommandInput.isNotBlank()) {
-                                    viewModel.executeCommand(manualCommandInput)
-                                    manualCommandInput = ""
-                                    historyIndex = -1
-                                }
-                            },
-                            enabled = manualCommandInput.isNotBlank() && !isExecuting,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(
-                                    if (manualCommandInput.isNotBlank()) VsCodeAccentBlue else Color.DarkGray,
-                                    RoundedCornerShape(6.dp)
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = VsCodeAccentBlue,
+                                    unfocusedBorderColor = VsCodeBorder,
+                                    focusedContainerColor = VsCodeBlack,
+                                    unfocusedContainerColor = VsCodeBlack
                                 )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Run Command",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
                             )
+
+                            // Up & Down History Navigation Chevrons
+                            IconButton(
+                                onClick = {
+                                    if (recentCommands.isNotEmpty()) {
+                                        if (historyIndex < recentCommands.size - 1) {
+                                            historyIndex++
+                                            manualCommandInput = recentCommands[historyIndex]
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp),
+                                enabled = recentCommands.isNotEmpty()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowUp,
+                                    contentDescription = "Previous Command",
+                                    tint = if (recentCommands.isNotEmpty()) VsCodeText else Color.DarkGray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    if (recentCommands.isNotEmpty() && historyIndex > 0) {
+                                        historyIndex--
+                                        manualCommandInput = recentCommands[historyIndex]
+                                    } else if (historyIndex == 0) {
+                                        historyIndex = -1
+                                        manualCommandInput = ""
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp),
+                                enabled = historyIndex >= 0
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Next Command",
+                                    tint = if (historyIndex >= 0) VsCodeText else Color.DarkGray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            // Run Button
+                            IconButton(
+                                onClick = {
+                                    if (manualCommandInput.isNotBlank()) {
+                                        val cmd = manualCommandInput.trim()
+                                        if (cmd.equals("exit", ignoreCase = true) || cmd.equals("logout", ignoreCase = true) || cmd.equals("quit", ignoreCase = true)) {
+                                            sessionToClose = activeSession
+                                            manualCommandInput = ""
+                                        } else {
+                                            viewModel.executeCommand(manualCommandInput)
+                                            manualCommandInput = ""
+                                            historyIndex = -1
+                                        }
+                                    }
+                                },
+                                enabled = manualCommandInput.isNotBlank() && !isExecuting,
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(
+                                        if (manualCommandInput.isNotBlank()) VsCodeAccentBlue else Color.DarkGray,
+                                        RoundedCornerShape(6.dp)
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Run Command",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -1478,6 +1605,59 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
         )
     }
 
+    // Confirmation dialog before closing a bash session
+    if (sessionToClose != null) {
+        val targetSession = sessionToClose!!
+        AlertDialog(
+            onDismissRequest = { sessionToClose = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = VsCodeErrorRed,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Close Bash Session?",
+                        fontWeight = FontWeight.Bold,
+                        color = VsCodeTextBright
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to close '${targetSession.name}'?\n\nAny running commands, background processes, or temporary shell variables in this session will be terminated.",
+                    color = VsCodeText,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteSession(targetSession.id)
+                        sessionToClose = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = VsCodeErrorRed)
+                ) {
+                    Text("Close Session", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { sessionToClose = null },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = VsCodeText)
+                ) {
+                    Text("Cancel")
+                }
+            },
+            containerColor = VsCodeTabActive,
+            shape = RoundedCornerShape(12.dp)
+        )
+    }
+
     // 5. Connect Node Dialog
     if (showAddNodeDialog) {
         AlertDialog(
@@ -1520,7 +1700,7 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
     }
 }
 
-// Single VS Code Log Item Component
+// Single VS Code Log Item Component with Enhanced Command Display
 @Composable
 fun VsCodeTerminalLogItem(
     log: TerminalLogEntryEntity,
@@ -1534,109 +1714,189 @@ fun VsCodeTerminalLogItem(
         sdf.format(Date(log.timestamp))
     }
 
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp)
-            .background(Color(0xFF141414), RoundedCornerShape(4.dp))
-            .padding(6.dp)
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF14161B)),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = if (log.exitCode != 0) VsCodeErrorRed.copy(alpha = 0.5f) else Color(0xFF262C36)
+        )
     ) {
-        // Command Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            // 1. Meta Header Bar (Exit Code, Duration, Timestamp & Actions)
             Row(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Exit code status dot
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(if (log.exitCode == 0) VsCodeSuccessGreen else VsCodeErrorRed)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = log.prompt.ifBlank { prompt },
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = VsCodeGreen
-                )
-                Text(
-                    text = log.command,
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = VsCodeTextBright
-                )
-            }
+                // Exit status pill & duration
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val isSuccess = log.exitCode == 0
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = if (isSuccess) Color(0xFF1B3320) else Color(0xFF381E1E)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSuccess) VsCodeSuccessGreen else VsCodeErrorRed)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isSuccess) "exit 0" else "exit ${log.exitCode}",
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSuccess) VsCodeSuccessGreen else VsCodeErrorRed
+                            )
+                        }
+                    }
 
-            // Duration & Timestamp
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (log.durationMs > 0) {
-                    Text(
-                        text = "${log.durationMs}ms",
-                        fontSize = 9.sp,
-                        fontFamily = FontFamily.Monospace,
-                        color = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    if (log.durationMs > 0) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "${log.durationMs}ms",
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color(0xFF8B949E)
+                        )
+                    }
                 }
-                Text(
-                    text = timeStr,
-                    fontSize = 9.sp,
-                    fontFamily = FontFamily.Monospace,
-                    color = Color.DarkGray
-                )
-                Spacer(modifier = Modifier.width(4.dp))
 
-                // Actions
-                Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Copy",
-                    tint = Color.Gray,
-                    modifier = Modifier
-                        .size(14.dp)
-                        .clickable { onCopy() }
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Icon(
-                    imageVector = Icons.Default.Replay,
-                    contentDescription = "Rerun",
-                    tint = VsCodeGreen,
-                    modifier = Modifier
-                        .size(14.dp)
-                        .clickable { onRerun() }
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Icon(
-                    imageVector = Icons.Default.BookmarkBorder,
-                    contentDescription = "Vault",
-                    tint = VsCodeYellow,
-                    modifier = Modifier
-                        .size(14.dp)
-                        .clickable { onSaveToVault() }
-                )
+                // Timestamp & Quick Action Icons
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = timeStr,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF6E7681)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    IconButton(onClick = onCopy, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy command & output",
+                            tint = Color(0xFF8B949E),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(onClick = onRerun, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Replay,
+                            contentDescription = "Rerun command",
+                            tint = VsCodeGreen,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(onClick = onSaveToVault, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.BookmarkBorder,
+                            contentDescription = "Save to Command Vault",
+                            tint = VsCodeYellow,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
             }
-        }
 
-        // Command Output
-        if (log.output.isNotBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
-            val isError = log.exitCode != 0 || log.output.startsWith("Error", ignoreCase = true)
-            Text(
-                text = log.output,
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
-                color = if (isError) VsCodeErrorRed else VsCodeText,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 12.dp)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 2. Full-Width Command Display Block
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color(0xFF0D1117),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF21262D)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    // Prompt Tag Row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    ) {
+                        Text(
+                            text = "orbit@node",
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF58A6FF)
+                        )
+                        Text(
+                            text = ":",
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color(0xFF8B949E)
+                        )
+                        Text(
+                            text = log.cwd.ifBlank { "~" },
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF7EE787)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "❯",
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = VsCodeGreen
+                        )
+                    }
+
+                    // User Executed Command (Bold, Clear, Full Width)
+                    Text(
+                        text = log.command,
+                        fontSize = 13.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFF0F6FC),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            // 3. Command Output Console
+            Spacer(modifier = Modifier.height(6.dp))
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color(0xFF080A0D),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val outputText = log.output.trim()
+                if (outputText.isNotBlank()) {
+                    val isError = log.exitCode != 0 || outputText.startsWith("Error", ignoreCase = true)
+                    Text(
+                        text = outputText,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = if (isError) Color(0xFFFF7B72) else Color(0xFFC9D1D9),
+                        lineHeight = 16.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    )
+                } else {
+                    Text(
+                        text = "(Completed with exit code ${log.exitCode} • no standard output)",
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF484F58),
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
         }
     }
 }

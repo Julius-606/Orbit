@@ -30,7 +30,15 @@ if settings.GEMINI_API_KEY:
 
 class TerminalManager:
     def __init__(self):
-        self.db_path = "vault.db"
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        candidate_path = os.path.join(base_dir, "vault.db")
+        try:
+            with open(candidate_path, "a"):
+                pass
+            self.db_path = candidate_path
+        except Exception:
+            import tempfile
+            self.db_path = os.path.join(tempfile.gettempdir(), "orbit_vault.db")
         self._init_vault()
         self.os_type = "windows" if os.name == "nt" else "linux"
         self.cwd = os.getcwd()
@@ -42,8 +50,8 @@ class TerminalManager:
             conn.execute("CREATE TABLE IF NOT EXISTS commands (id INTEGER PRIMARY KEY, name TEXT, cmd TEXT, category TEXT)")
             conn.commit()
             conn.close()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Vault init warning: {e}")
 
     def get_prompt(self, cwd: Optional[str] = None) -> str:
         active_cwd = cwd or self.cwd
@@ -54,10 +62,14 @@ class TerminalManager:
             return f"orbit@{platform.node()}:{folder}$ "
 
     def save_command(self, name, cmd, category="General"):
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("INSERT INTO commands (name, cmd, category) VALUES (?, ?, ?)", (name, cmd, category))
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute("CREATE TABLE IF NOT EXISTS commands (id INTEGER PRIMARY KEY, name TEXT, cmd TEXT, category TEXT)")
+            conn.execute("INSERT INTO commands (name, cmd, category) VALUES (?, ?, ?)", (name, cmd, category))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Error saving to vault: {e}")
 
     def get_vault_commands(self):
         try:
@@ -175,13 +187,24 @@ async def suggest_command(req: SuggestionRequest):
                 f"}}"
             )
 
-            response = await async_client.aio.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json"
-                )
-            )
+            target_models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.8-flash']
+            response = None
+            for m in target_models:
+                try:
+                    response = await async_client.aio.models.generate_content(
+                        model=m,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json"
+                        )
+                    )
+                    if response:
+                        break
+                except Exception as model_err:
+                    logger.warning(f"Terminal pilot model {m} fallback: {model_err}")
+
+            if not response:
+                raise Exception("All terminal suggestion models unavailable")
 
             data = json.loads(response.text)
             commands_list = data.get("commands", [])

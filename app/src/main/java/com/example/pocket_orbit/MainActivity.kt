@@ -82,17 +82,20 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = BottomNavItem.Assistant.route,
+                        startDestination = BottomNavItem.Dashboard.route,
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        composable(BottomNavItem.Assistant.route) {
-                            ChatScreen(viewModel = chatViewModel)
+                        composable(BottomNavItem.Dashboard.route) {
+                            DashboardScreen(viewModel = dashboardViewModel)
                         }
                         composable(BottomNavItem.Tracker.route) {
                             TrackerScreen(viewModel = dashboardViewModel)
                         }
                         composable(BottomNavItem.Terminal.route) {
                             TerminalScreen(viewModel = terminalViewModel)
+                        }
+                        composable(BottomNavItem.Assistant.route) {
+                            ChatScreen(viewModel = chatViewModel)
                         }
                         composable(BottomNavItem.Chill.route) {
                             GameScreen()
@@ -123,9 +126,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun OrbitBottomNav(navController: NavHostController) {
     val items = listOf(
-        BottomNavItem.Assistant,
+        BottomNavItem.Dashboard,
         BottomNavItem.Tracker,
         BottomNavItem.Terminal,
+        BottomNavItem.Assistant,
         BottomNavItem.Chill
     )
 

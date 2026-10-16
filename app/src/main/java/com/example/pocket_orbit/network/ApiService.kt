@@ -36,6 +36,12 @@ interface ApiService {
         @Body request: TaskCompletionRequest
     ): Response<Unit>
 
+    @POST("api/v1/study/tasks/")
+    suspend fun createStudyTask(
+        @Header("Authorization") token: String,
+        @Body payload: Map<String, @JvmSuppressWildcards Any?>
+    ): Response<Map<String, Any>>
+
     @POST("api/v1/orbit/converse")
     suspend fun converseWithOrbit(
         @Header("Authorization") token: String,

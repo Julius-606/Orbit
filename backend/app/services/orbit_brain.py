@@ -113,35 +113,48 @@ class OrbitAssistant:
                 contents.append(types.Content(role=h["role"], parts=[types.Part(text=h["parts"][0])]))
         contents.append(types.Content(role="user", parts=[types.Part(text=context_msg)]))
 
-        try:
-            response = await async_client.aio.models.generate_content(
-                model='gemini-3.8-flash',
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    system_instruction=self.system_prompt + """
-                    CRITICAL TASK INSTRUCTION:
-                    If the user wants to schedule, add, or set a reminder for a task/study session, you MUST call 'create_task_tool' with the title, subject, and due_date. 
-                    Additionally, always confirm in your text reply that the task has been created.
-                    """,
-                    tools=[types.Tool(function_declarations=[
-                        types.FunctionDeclaration(
-                            name="create_task_tool",
-                            description="Creates a task or reminder in Orbit Life-OS.",
-                            parameters=types.Schema(
-                                type="OBJECT",
-                                properties={
-                                    "title": types.Schema(type="STRING", description="Title of the task"),
-                                    "subject": types.Schema(type="STRING", description="Subject or Category, e.g. Internal Medicine, Forex, Life Admin"),
-                                    "due_date": types.Schema(type="STRING", description="ISO 8601 formatted due date string"),
-                                    "brain_rot_level": types.Schema(type="STRING", description="chill, mid, or cooked"),
-                                    "is_reminder": types.Schema(type="BOOLEAN", description="Whether this is a notification reminder")
-                                },
-                                required=["title", "subject", "due_date"]
-                            )
-                        )
-                    ])]
+        gen_config = types.GenerateContentConfig(
+            system_instruction=self.system_prompt + """
+            CRITICAL TASK INSTRUCTION:
+            If the user wants to schedule, add, or set a reminder for a task/study session, you MUST call 'create_task_tool' with the title, subject, and due_date. 
+            Additionally, always confirm in your text reply that the task has been created.
+            """,
+            tools=[types.Tool(function_declarations=[
+                types.FunctionDeclaration(
+                    name="create_task_tool",
+                    description="Creates a task or reminder in Orbit Life-OS.",
+                    parameters=types.Schema(
+                        type="OBJECT",
+                        properties={
+                            "title": types.Schema(type="STRING", description="Title of the task"),
+                            "subject": types.Schema(type="STRING", description="Subject or Category, e.g. Internal Medicine, Forex, Life Admin"),
+                            "due_date": types.Schema(type="STRING", description="ISO 8601 formatted due date string"),
+                            "brain_rot_level": types.Schema(type="STRING", description="chill, mid, or cooked"),
+                            "is_reminder": types.Schema(type="BOOLEAN", description="Whether this is a notification reminder")
+                        },
+                        required=["title", "subject", "due_date"]
+                    )
                 )
-            )
+            ])]
+        )
+
+        try:
+            target_models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']
+            response = None
+            for m in target_models:
+                try:
+                    response = await async_client.aio.models.generate_content(
+                        model=m,
+                        contents=contents,
+                        config=gen_config
+                    )
+                    if response:
+                        break
+                except Exception as model_err:
+                    logger.warning(f"Orbit Brain model {m} spike/error: {model_err}. Falling back...")
+
+            if not response:
+                raise Exception("All Orbit Brain generative models are currently busy.")
 
             # Sync tool results to self.tasks_to_create from function call candidates
             tool_created_titles = []

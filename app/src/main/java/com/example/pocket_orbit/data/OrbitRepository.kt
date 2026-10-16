@@ -16,6 +16,7 @@ class OrbitRepository(
     private val secretToken: String
 ) {
     val pendingTasks: Flow<List<StudyTaskEntity>> = studyTaskDao.getPendingTasks()
+    val allTasks: Flow<List<StudyTaskEntity>> = studyTaskDao.getAllTasks()
 
     suspend fun refreshTasksFromVM() {
         try {
@@ -37,6 +38,58 @@ class OrbitRepository(
             }
         } catch (e: Exception) {
             Log.w("OrbitRepo", "Network unreachable (${e.message}). Operating in offline-first mode.")
+        }
+    }
+
+    suspend fun createTask(
+        title: String,
+        subject: String,
+        brainRotLevel: String,
+        dueDate: java.util.Date?,
+        isReminder: Boolean,
+        remarks: String?
+    ): StudyTaskEntity {
+        val newId = (System.currentTimeMillis() % 10000000).toInt()
+        val task = StudyTaskEntity(
+            id = newId,
+            title = title,
+            subject = subject.ifBlank { "General Med" },
+            brainRotLevel = brainRotLevel.lowercase(),
+            isCompleted = false,
+            dueDate = dueDate,
+            remarks = remarks,
+            isReminder = isReminder
+        )
+        studyTaskDao.insertTask(task)
+        Log.d("OrbitRepo", "Task $newId created locally: $title (Reminder: $isReminder)")
+
+        try {
+            val isoDate = dueDate?.let {
+                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+                sdf.format(it)
+            }
+            val payload = mapOf(
+                "title" to title,
+                "subject" to subject,
+                "brainRotLevel" to brainRotLevel,
+                "isReminder" to isReminder,
+                "remarks" to remarks,
+                "dueDate" to isoDate
+            )
+            apiService.createStudyTask("Bearer $secretToken", payload)
+            Log.d("OrbitRepo", "Created task synced to Orbit Brain.")
+        } catch (e: Exception) {
+            Log.w("OrbitRepo", "Cloud sync for new task pending offline: ${e.message}")
+        }
+        return task
+    }
+
+    suspend fun deleteTask(taskId: Int) {
+        try {
+            studyTaskDao.deleteTask(taskId)
+            Log.d("OrbitRepo", "Task $taskId deleted locally.")
+        } catch (e: Exception) {
+            Log.e("OrbitRepo", "Error deleting task $taskId: ${e.message}")
         }
     }
 

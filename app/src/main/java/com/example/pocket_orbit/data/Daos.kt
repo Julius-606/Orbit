@@ -27,6 +27,15 @@ interface StudyTaskDao {
     @Query("UPDATE study_tasks SET isCompleted = 1, remarks = :remarks WHERE id = :taskId")
     suspend fun markTaskCompleted(taskId: Int, remarks: String?)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTask(task: StudyTaskEntity): Long
+
+    @Query("SELECT * FROM study_tasks ORDER BY isCompleted ASC, dueDate ASC, id DESC")
+    fun getAllTasks(): Flow<List<StudyTaskEntity>>
+
+    @Query("DELETE FROM study_tasks WHERE id = :taskId")
+    suspend fun deleteTask(taskId: Int)
+
     @Query("SELECT * FROM study_tasks WHERE isCompleted = 1 AND remarks IS NOT NULL")
     suspend fun getUnsyncedCompletions(): List<StudyTaskEntity>
 }
