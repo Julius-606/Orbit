@@ -46,11 +46,12 @@ COPY --chown=orbituser:orbituser . $HOME/app
 
 USER orbituser
 
-# Install DebateHub dependencies if present and prebuild assets
+# Install and build DebateHub independently if present. Its build output is
+# consumed by the internal Node process; Orbit remains the public process.
 RUN if [ -d "$HOME/app/DebateHub" ]; then \
         cd $HOME/app/DebateHub && \
-        (npm install --production=false || npm install --legacy-peer-deps || true) && \
-        (VITE_BASE=/debatehub/ npm run build || true); \
+        npm install --include=dev && \
+        VITE_BASE=/debatehub/ npm run build; \
     fi
 
 # Hugging Face default port

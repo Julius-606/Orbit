@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
                 <>
                   <AlertCircle className="w-4 h-4 text-amber-400" />
                   <span className="text-amber-300">
-                    {status.configured ? 'Configured but connection failed' : 'Awaiting NEON_DATABASE_URL'}
+                    {status.configured ? 'Configured but connection failed' : 'Awaiting DEBATEHUB_NEON_DATABASE_URL'}
                   </span>
                 </>
               )}
@@ -281,7 +281,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
                 Copy the connection string (e.g. <code className="text-amber-300 bg-slate-900 px-1 py-0.5 rounded font-mono text-[10px]">postgresql://user:pass@ep-xyz.us-east-2.aws.neon.tech/neondb?sslmode=require</code>).
               </li>
               <li>
-                Set the environment variable <code className="text-amber-300 bg-slate-900 px-1 py-0.5 rounded font-mono text-[10px]">NEON_DATABASE_URL</code> in your <code className="font-mono text-[10px]">.env</code> file or Secrets.
+                Set the environment variable <code className="text-amber-300 bg-slate-900 px-1 py-0.5 rounded font-mono text-[10px]">DEBATEHUB_NEON_DATABASE_URL</code> in your <code className="font-mono text-[10px]">.env</code> file or Hugging Face Space Secrets.
               </li>
               <li>
                 Click <strong>"Initialize PostgreSQL Tables"</strong> below (or run the copied SQL in Neon's SQL Editor).

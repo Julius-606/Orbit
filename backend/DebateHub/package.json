@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --platform=node --bundle --outfile=server.js --external:vite --external:express --external:dotenv --external:@neondatabase/serverless",
+    "build": "vite build && esbuild server.ts --platform=node --bundle --outfile=server.js --format=esm --external:vite --external:express --external:dotenv --external:@neondatabase/serverless",
     "start": "node server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",

@@ -16,9 +16,7 @@ dotenv.config();
 // Dedicated secret for DebateHub Neon DB, separate from Orbit's database URL
 const rawDatabaseUrl =
   process.env.DEBATEHUB_NEON_DATABASE_URL ||
-  process.env.DEBATEHUB_DATABASE_URL ||
-  process.env.NEON_DATABASE_URL ||
-  process.env.DATABASE_URL;
+  process.env.DEBATEHUB_DATABASE_URL;
 
 function sanitizeNeonUrl(raw?: string): string {
   if (!raw) return '';
@@ -73,7 +71,7 @@ export async function initializeNeonTables(): Promise<{ success: boolean; messag
   if (!sql) {
     return {
       success: false,
-      message: 'NEON_DATABASE_URL environment variable is not set. Add it in AI Studio Secrets or .env file.',
+      message: 'DEBATEHUB_NEON_DATABASE_URL environment variable is not set. Add it in Hugging Face Space Secrets or .env file.',
     };
   }
 

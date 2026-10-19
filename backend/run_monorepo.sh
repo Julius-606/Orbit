@@ -28,7 +28,8 @@ if [ -d "$DEBATEHUB_DIR" ]; then
             echo "ℹ️ DEBATEHUB_NEON_DATABASE_URL not detected. DebateHub will operate with local JSON persistence until Neon secret is added."
         fi
 
-        # Run with tsx, node, or npm
+        # Prefer the production bundle built by the image. Development fallbacks
+        # are retained for local runs where the bundle may not exist yet.
         if [ -f "server.js" ]; then
             node server.js
         elif command -v npx >/dev/null 2>&1; then

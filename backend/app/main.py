@@ -154,6 +154,16 @@ async def root():
     """Instantly redirects you to the beautiful Swagger UI."""
     return RedirectResponse(url="/docs")
 
+@app.get("/orbit", include_in_schema=False)
+async def orbit_dashboard():
+    """Public Orbit entrypoint preserved for the shared Hugging Face Space."""
+    return RedirectResponse(url="/docs")
+
+@app.get("/admin", include_in_schema=False)
+async def admin_dashboard():
+    """Compatibility alias for the Trace admin entrypoint on the shared space."""
+    return RedirectResponse(url="/docs")
+
 @app.get("/health", tags=["System"])
 async def health_check():
     """Render/HF uses this to verify the deployment didn't crash."""
@@ -219,7 +229,6 @@ async def debatehub_integration_status():
     neon_configured = bool(
         os.getenv("DEBATEHUB_NEON_DATABASE_URL")
         or os.getenv("DEBATEHUB_DATABASE_URL")
-        or os.getenv("NEON_DATABASE_URL")
     )
     return {
         "module": "DebateHub",
@@ -239,6 +248,10 @@ async def forward_to_debatehub(request: Request, subpath: str = ""):
     Handles streaming SSE (Server-Sent Events), normal HTTP verbs, query params, and headers.
     """
     clean_subpath = subpath.lstrip("/")
+    if clean_subpath.startswith("debatehub/"):
+        clean_subpath = clean_subpath[len("debatehub/"):]
+    elif clean_subpath == "debatehub":
+        clean_subpath = ""
     target_url = f"{DEBATEHUB_INTERNAL_URL}/{clean_subpath}" if clean_subpath else f"{DEBATEHUB_INTERNAL_URL}/"
     if request.url.query:
         target_url += f"?{request.url.query}"
@@ -288,7 +301,6 @@ async def forward_to_debatehub(request: Request, subpath: str = ""):
         neon_configured = bool(
             os.getenv("DEBATEHUB_NEON_DATABASE_URL")
             or os.getenv("DEBATEHUB_DATABASE_URL")
-            or os.getenv("NEON_DATABASE_URL")
         )
         return JSONResponse(
             status_code=200 if request.method == "GET" and (not clean_subpath or "status" in clean_subpath) else 503,
