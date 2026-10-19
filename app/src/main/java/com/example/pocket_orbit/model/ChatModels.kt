@@ -14,7 +14,13 @@ data class ChatMessage(
 
 // This is what we send to the FastAPI VM
 data class ChatRequest(
-    val message: String
+    val message: String,
+    val history: List<ChatHistoryMessage> = emptyList()
+)
+
+data class ChatHistoryMessage(
+    val role: String,
+    val content: String
 )
 
 // This is what the FastAPI VM replies with

@@ -16,13 +16,14 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.DELETE
 import retrofit2.http.Path
 
 interface ApiService {
     @GET("api/v1/study/tasks/pending")
     suspend fun getPendingTasks(
         @Header("Authorization") token: String
-    ): Response<List<StudyTaskEntity>>
+    ): Response<PendingTasksResponse>
 
     @GET("api/v1/tasks/current-vibe")
     suspend fun getCurrentVibe(
@@ -41,6 +42,19 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body payload: Map<String, @JvmSuppressWildcards Any?>
     ): Response<Map<String, Any>>
+
+    @PUT("api/v1/study/tasks/{task_id}")
+    suspend fun updateStudyTask(
+        @Header("Authorization") token: String,
+        @Path("task_id") taskId: Int,
+        @Body payload: Map<String, @JvmSuppressWildcards Any?>
+    ): Response<Map<String, Any>>
+
+    @DELETE("api/v1/study/tasks/{task_id}")
+    suspend fun deleteStudyTask(
+        @Header("Authorization") token: String,
+        @Path("task_id") taskId: Int
+    ): Response<Unit>
 
     @POST("api/v1/orbit/converse")
     suspend fun converseWithOrbit(
@@ -97,6 +111,10 @@ interface ApiService {
 
 data class TaskCompletionRequest(
     val remarks: String?
+)
+
+data class PendingTasksResponse(
+    val data: List<StudyTaskEntity> = emptyList()
 )
 
 data class VibeResponse(

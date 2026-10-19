@@ -26,7 +26,7 @@ class OrbitRepository(
             val response = apiService.getPendingTasks("Bearer $secretToken")
 
             if (response.isSuccessful && response.body() != null) {
-                val newTasks = response.body()!!
+                val newTasks = response.body()!!.data
                 if (newTasks.isNotEmpty()) {
                     studyTaskDao.clearTasks()
                     studyTaskDao.insertTasks(newTasks)
@@ -90,6 +90,7 @@ class OrbitRepository(
     suspend fun updateTask(task: StudyTaskEntity) {
         try {
             studyTaskDao.insertTask(task)
+            apiService.updateStudyTask("******", task.id, taskPayload(task))
             Log.d("OrbitRepo", "Task ${task.id} updated locally: ${task.title}")
         } catch (e: Exception) {
             Log.e("OrbitRepo", "Error updating task ${task.id}: ${e.message}")
@@ -99,9 +100,24 @@ class OrbitRepository(
     suspend fun deleteTask(taskId: Int) {
         try {
             studyTaskDao.deleteTask(taskId)
+            apiService.deleteStudyTask("******", taskId)
             Log.d("OrbitRepo", "Task $taskId deleted locally.")
         } catch (e: Exception) {
             Log.e("OrbitRepo", "Error deleting task $taskId: ${e.message}")
+        }
+
+        private fun taskPayload(task: StudyTaskEntity): Map<String, Any?> {
+            val isoDate = task.dueDate?.let {
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).format(it)
+            }
+            return mapOf(
+                "title" to task.title,
+                "subject" to task.subject,
+                "brain_rot_level" to task.brainRotLevel,
+                "is_reminder" to task.isReminder,
+                "remarks" to task.remarks,
+                "due_date" to isoDate
+            )
         }
     }
 

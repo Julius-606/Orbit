@@ -14,7 +14,6 @@ class GeminiKeyRotationManager:
     """
     Manages rotation across multiple Gemini API keys specified in `GEMINI_API_KEYS`.
     Format: A single comma-separated string, e.g. "AIzaSyKey1...,AIzaSyKey2...,AIzaSyKey3..."
-    Falls back gracefully to legacy `GEMINI_API_KEY`.
     """
     def __init__(self):
         self._lock = threading.Lock()
@@ -25,8 +24,6 @@ class GeminiKeyRotationManager:
     def reload_keys(self):
         with self._lock:
             raw_multi = os.getenv("GEMINI_API_KEYS", "")
-            raw_single = os.getenv("GEMINI_API_KEY", "")
-
             keys: List[str] = []
             if raw_multi:
                 # Comma-separated: AIzaSy...,AIzaSy...
@@ -35,18 +32,13 @@ class GeminiKeyRotationManager:
                     if clean and clean not in keys:
                         keys.append(clean)
 
-            if raw_single:
-                clean_single = raw_single.strip().strip("'\"")
-                if clean_single and clean_single not in keys:
-                    keys.append(clean_single)
-
             self._keys = keys
             self._current_index = 0
 
             if self._keys:
                 logger.info(f"🔑 Gemini Key Rotation initialized with {len(self._keys)} active key(s).")
             else:
-                logger.warning("⚠️ No Gemini API keys found in GEMINI_API_KEYS or GEMINI_API_KEY.")
+                logger.warning("⚠️ No Gemini API keys found in GEMINI_API_KEYS.")
 
     @property
     def key_count(self) -> int:

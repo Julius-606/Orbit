@@ -56,7 +56,7 @@ private val MatrixPurple = Color(0xFFBD00FF)
 // ================================================================================
 @Composable
 fun GameScreen() {
-    var selectedGameTab by remember { mutableIntStateOf(0) } // 0: Scalper, 1: Memory Matrix, 2: Brick Breaker
+    var selectedGameTab by remember { mutableIntStateOf(0) }
 
     Column(
         modifier = Modifier
@@ -93,6 +93,7 @@ fun GameScreen() {
                                 color = Color(0xFF00FFCC)
                             )
                         }
+
                     }
                 }
 
@@ -109,7 +110,9 @@ fun GameScreen() {
                     val games = listOf(
                         Triple(0, "🚀 Space Scalper", CyberBlue),
                         Triple(1, "⚡ Memory Matrix", NeonPink),
-                        Triple(2, "🧱 Orbit Breaker", PipGold)
+                        Triple(2, "🧱 Orbit Breaker", PipGold),
+                        Triple(3, "🎯 Reaction Rush", BullishGreen),
+                        Triple(4, "🎲 Zen Dice", MatrixPurple)
                     )
 
                     games.forEach { (index, title, accent) ->
@@ -142,8 +145,68 @@ fun GameScreen() {
                 0 -> SpaceScalperGame()
                 1 -> CyberMatrixGame()
                 2 -> OrbitBreakerGame()
+                3 -> ReactionRushGame()
+                4 -> ZenDiceGame()
             }
         }
+    }
+}
+
+@Composable
+private fun ReactionRushGame() {
+    var score by remember { mutableIntStateOf(0) }
+    var target by remember { mutableIntStateOf(Random.nextInt(0, 9)) }
+    var rounds by remember { mutableIntStateOf(0) }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Reaction Rush", color = BullishGreen, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("Tap the highlighted pad before the round changes.", color = Color.LightGray)
+        Spacer(Modifier.height(12.dp))
+        Text("Score: $score  •  Round: $rounds", color = Color.White)
+        Spacer(Modifier.height(20.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            repeat(3) { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    repeat(3) { column ->
+                        val index = row * 3 + column
+                        Box(
+                            Modifier.size(72.dp).clip(RoundedCornerShape(12.dp))
+                                .background(if (index == target) BullishGreen else Color(0xFF182234))
+                                .clickable {
+                                    score += if (index == target) 10 else -2
+                                    rounds++
+                                    target = Random.nextInt(0, 9)
+                                }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ZenDiceGame() {
+    var roll by remember { mutableIntStateOf(0) }
+    var total by remember { mutableIntStateOf(0) }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Zen Dice", color = MatrixPurple, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("A tiny luck break for your brain.", color = Color.LightGray)
+        Spacer(Modifier.height(24.dp))
+        Text(if (roll == 0) "🎲" else roll.toString(), fontSize = 64.sp, color = Color.White)
+        Text("Session total: $total", color = Color.LightGray)
+        Spacer(Modifier.height(20.dp))
+        Button(onClick = {
+            roll = Random.nextInt(1, 7)
+            total += roll
+        }) { Text("ROLL") }
     }
 }
 

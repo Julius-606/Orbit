@@ -26,6 +26,7 @@ class TaskCreatePayload(BaseModel):
     brain_rot_level: str = "mid"
     is_reminder: bool = False
     due_date: Optional[datetime] = None
+    remarks: Optional[str] = None
 
 class TaskCompletePayload(BaseModel):
     remarks: Optional[str] = None
@@ -103,7 +104,8 @@ async def create_task(task_data: TaskCreatePayload, db: AsyncSession = Depends(g
             subject=task_data.subject,
             brain_rot_level=safe_rot,
             is_reminder=task_data.is_reminder,
-            due_date=task_data.due_date
+            due_date=task_data.due_date,
+            remarks=task_data.remarks
         )
         db.add(new_task)
         await db.commit()
@@ -116,6 +118,22 @@ async def create_task(task_data: TaskCreatePayload, db: AsyncSession = Depends(g
         logger.error(f"Failed to create task: {str(e)}")
         await db.rollback()
         raise HTTPException(status_code=400, detail="Task creation failed.")
+
+@router.put("/{task_id}", status_code=status.HTTP_200_OK)
+async def update_task(task_id: int, task_data: TaskCreatePayload, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(StudyTask).where(StudyTask.id == task_id))
+    task = result.scalars().first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    rot_map = {"chill": BrainRotLevel.CHILL, "mid": BrainRotLevel.MID, "cooked": BrainRotLevel.COOKED}
+    task.title = task_data.title
+    task.subject = task_data.subject
+    task.brain_rot_level = rot_map.get(task_data.brain_rot_level.lower(), BrainRotLevel.MID)
+    task.is_reminder = task_data.is_reminder
+    task.due_date = task_data.due_date
+    task.remarks = task_data.remarks
+    await db.commit()
+    return {"status": "success", "message": "Task updated.", "id": task.id}
 
 @router.post("/{task_id}/complete", status_code=status.HTTP_200_OK)
 async def complete_task(task_id: int, payload: TaskCompletePayload, db: AsyncSession = Depends(get_db)):

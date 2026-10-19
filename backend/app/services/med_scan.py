@@ -6,15 +6,14 @@
 import logging
 import google.generativeai as genai
 # 🚀 FIX: Added 'app.' prefix
-from app.core.config import settings
+from app.core.key_rotation import gemini_key_manager
 
 logger = logging.getLogger("Med-Scan")
 
 class RadiologistEngine:
     def __init__(self):
-        if settings.GEMINI_API_KEY:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+        if gemini_key_manager.has_keys():
+            self.model = True
             logger.info("Med-Scan OCR initialized. Ready to decode hieroglyphics.")
         else:
             self.model = None
@@ -22,7 +21,7 @@ class RadiologistEngine:
 
     async def scan_chart(self, image_bytes: bytes) -> dict:
         if not self.model:
-            return {"status": "error", "message": "API Key missing. Cannot process image."}
+            return {"status": "error", "message": "GEMINI_API_KEYS is missing. Cannot process image."}
 
         logger.info("Processing new medical chart... Hold tight.")
 
@@ -33,11 +32,17 @@ class RadiologistEngine:
         If the handwriting is absolutely cooked and illegible, just do your best and flag it for manual review.
         """
 
-        try:
-            response = self.model.generate_content([prompt, image_bytes])
-            return {"status": "success", "extracted_data": response.text}
-        except Exception as e:
-            logger.error(f"Med-Scan hit a snag: {e}")
-            return {"status": "error", "message": "Failed to decode the chart. Might actually be a demon spell."}
+        for _ in range(max(1, gemini_key_manager.key_count)):
+            key = gemini_key_manager.get_current_key()
+            if not key:
+                break
+            try:
+                genai.configure(api_key=key)
+                response = genai.GenerativeModel('gemini-2.5-flash').generate_content([prompt, image_bytes])
+                return {"status": "success", "extracted_data": response.text}
+            except Exception as e:
+                logger.warning("Med-Scan key failed; rotating: %s", e)
+                gemini_key_manager.rotate_to_next_key()
+        return {"status": "error", "message": "All Gemini keys failed to decode the chart."}
 
 radiologist = RadiologistEngine()

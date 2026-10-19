@@ -22,8 +22,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
-    # Agent APIs (Single or Multi-key comma-separated rotation: Alz...,Alz...)
-    GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
+    # Agent APIs (comma-separated rotation: Alz...,Alz...)
     GEMINI_API_KEYS: Optional[str] = os.getenv("GEMINI_API_KEYS")
 
     # Forex Guardian (MT5)

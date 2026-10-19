@@ -15,6 +15,7 @@ import com.example.pocket_orbit.data.ChatMessageEntity
 import com.example.pocket_orbit.data.ChatSessionEntity
 import com.example.pocket_orbit.model.ChatMessage
 import com.example.pocket_orbit.model.ChatRequest
+import com.example.pocket_orbit.model.ChatHistoryMessage
 import com.example.pocket_orbit.network.ApiService
 import com.example.pocket_orbit.network.RetrofitClient
 import kotlinx.coroutines.Job
@@ -182,7 +183,15 @@ class ChatViewModel(
             try {
                 val response = apiService.converseWithOrbit(
                     token = "Bearer $secretToken",
-                    request = ChatRequest(message = trimmed)
+                    request = ChatRequest(
+                        message = trimmed,
+                        history = _messages.value.takeLast(20).map {
+                            ChatHistoryMessage(
+                                role = if (it.isFromUser) "user" else "model",
+                                content = it.text
+                            )
+                        }
+                    )
                 )
 
                 if (response.isSuccessful && response.body() != null) {
