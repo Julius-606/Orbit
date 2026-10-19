@@ -65,6 +65,12 @@ interface ChatDao {
 
     @Query("DELETE FROM chat_messages WHERE sessionId = :sessionId")
     suspend fun clearSessionHistory(sessionId: String)
+
+    @Query("DELETE FROM chat_sessions WHERE id = :sessionId")
+    suspend fun deleteSession(sessionId: String)
+
+    @Query("UPDATE chat_sessions SET title = :newTitle WHERE id = :sessionId")
+    suspend fun renameSession(sessionId: String, newTitle: String)
 }
 
 @Dao

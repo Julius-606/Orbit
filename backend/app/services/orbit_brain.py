@@ -13,15 +13,19 @@ import pytz
 
 from app.models.study import BrainRotLevel
 from app.core.config import settings
+from app.core.key_rotation import gemini_key_manager
 
 logger = logging.getLogger("Orbit-Brain")
 
-# Initialize Async Client
-async_client = None
-if settings.GEMINI_API_KEY:
-    async_client = genai.Client(api_key=settings.GEMINI_API_KEY, http_options={'api_version': 'v1alpha'})
-else:
-    logger.error("GEMINI_API_KEY is missing! Orbit is clinically brain dead. 💀")
+def get_orbit_genai_client():
+    key = gemini_key_manager.get_current_key()
+    if not key:
+        return None
+    try:
+        return genai.Client(api_key=key, http_options={'api_version': 'v1alpha'})
+    except Exception as e:
+        logger.warning(f"Error creating GenAI client with key: {e}")
+        return None
 
 class OrbitAssistant:
     def __init__(self, db_session=None):
@@ -99,8 +103,8 @@ class OrbitAssistant:
             return f"ERROR: {e}"
 
     async def chat(self, user_message: str, history: list = None) -> str:
-        if not async_client:
-            return "Brain offline: GEMINI_API_KEY missing. Please configure your API key in the environment."
+        if not gemini_key_manager.has_keys():
+            return "Brain offline: GEMINI_API_KEYS missing. Please configure your API key(s) in the environment."
 
         nairobi_now = datetime.now(self.user_tz).strftime("%Y-%m-%d %H:%M:%S")
         context_msg = f"[EAT: {nairobi_now}] {user_message}"
@@ -141,17 +145,33 @@ class OrbitAssistant:
         try:
             target_models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']
             response = None
-            for m in target_models:
-                try:
-                    response = await async_client.aio.models.generate_content(
-                        model=m,
-                        contents=contents,
-                        config=gen_config
-                    )
-                    if response:
-                        break
-                except Exception as model_err:
-                    logger.warning(f"Orbit Brain model {m} spike/error: {model_err}. Falling back...")
+            max_rotation_attempts = max(1, gemini_key_manager.key_count)
+
+            for attempt in range(max_rotation_attempts):
+                client = get_orbit_genai_client()
+                if not client:
+                    gemini_key_manager.rotate_to_next_key()
+                    continue
+
+                for m in target_models:
+                    try:
+                        response = await client.aio.models.generate_content(
+                            model=m,
+                            contents=contents,
+                            config=gen_config
+                        )
+                        if response:
+                            break
+                    except Exception as model_err:
+                        err_str = str(model_err).lower()
+                        if "quota" in err_str or "429" in err_str or "resource_exhausted" in err_str or "invalid" in err_str:
+                            logger.warning(f"Key quota exhausted on model {m}. Rotating Gemini key...")
+                            gemini_key_manager.rotate_to_next_key()
+                            break # Break to next rotation attempt
+                        logger.warning(f"Orbit Brain model {m} spike/error: {model_err}. Falling back...")
+
+                if response:
+                    break
 
             if not response:
                 raise Exception("All Orbit Brain generative models are currently busy.")

@@ -16,17 +16,19 @@ import asyncio
 from google import genai
 from google.genai import types
 from app.core.config import settings
+from app.core.key_rotation import gemini_key_manager
 from app.core.nodes import cluster_manager
 
 router = APIRouter(prefix="/terminal", tags=["Terminal Pilot"])
 
-# Initialize Gemini Async Client
-async_client = None
-if settings.GEMINI_API_KEY:
+def get_terminal_genai_client():
+    key = gemini_key_manager.get_current_key()
+    if not key:
+        return None
     try:
-        async_client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    except Exception as e:
-        pass
+        return genai.Client(api_key=key)
+    except Exception:
+        return None
 
 class TerminalManager:
     def __init__(self):
@@ -189,19 +191,35 @@ async def suggest_command(req: SuggestionRequest):
 
             target_models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.8-flash']
             response = None
-            for m in target_models:
-                try:
-                    response = await async_client.aio.models.generate_content(
-                        model=m,
-                        contents=prompt,
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json"
+            max_rotation_attempts = max(1, gemini_key_manager.key_count)
+
+            for attempt in range(max_rotation_attempts):
+                client = get_terminal_genai_client()
+                if not client:
+                    gemini_key_manager.rotate_to_next_key()
+                    continue
+
+                for m in target_models:
+                    try:
+                        response = await client.aio.models.generate_content(
+                            model=m,
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                response_mime_type="application/json"
+                            )
                         )
-                    )
-                    if response:
-                        break
-                except Exception as model_err:
-                    logger.warning(f"Terminal pilot model {m} fallback: {model_err}")
+                        if response:
+                            break
+                    except Exception as model_err:
+                        err_str = str(model_err).lower()
+                        if "quota" in err_str or "429" in err_str or "resource_exhausted" in err_str or "invalid" in err_str:
+                            logger.warning(f"Terminal pilot key quota exceeded on {m}. Rotating key...")
+                            gemini_key_manager.rotate_to_next_key()
+                            break
+                        logger.warning(f"Terminal pilot model {m} fallback: {model_err}")
+
+                if response:
+                    break
 
             if not response:
                 raise Exception("All terminal suggestion models unavailable")

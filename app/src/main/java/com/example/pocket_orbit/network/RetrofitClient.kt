@@ -35,8 +35,15 @@ object RetrofitClient {
     }
 
     fun updateBaseUrl(newUrl: String) {
-        if (newUrl.isBlank()) return
-        val formatted = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+        val trimmed = newUrl.trim()
+        if (trimmed.isBlank()) return
+        var formatted = trimmed
+        if (!formatted.startsWith("http://") && !formatted.startsWith("https://")) {
+            formatted = "http://$formatted"
+        }
+        if (!formatted.endsWith("/")) {
+            formatted = "$formatted/"
+        }
         currentBaseUrl = formatted
         sharedPrefs?.edit()?.putString(KEY_BASE_URL, formatted)?.apply()
         rebuildRetrofit()

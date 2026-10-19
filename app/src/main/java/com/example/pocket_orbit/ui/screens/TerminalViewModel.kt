@@ -20,9 +20,13 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 class TerminalViewModel(
-    private val apiService: ApiService,
+    apiService: ApiService? = null,
     private val terminalDao: TerminalDao
 ) : ViewModel() {
+
+    // Dynamic resolution ensures commands ALWAYS target the user's custom Backend Server / Space URL
+    private val apiService: ApiService
+        get() = RetrofitClient.apiService
 
     private val gson = Gson()
     private val secretToken = "Bearer ${BuildConfig.ORBIT_SECRET_TOKEN}"

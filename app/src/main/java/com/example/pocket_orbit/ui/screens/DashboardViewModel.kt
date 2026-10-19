@@ -161,6 +161,27 @@ class DashboardViewModel(
         }
     }
 
+    fun updateTask(
+        task: StudyTaskEntity,
+        context: Context? = null
+    ) {
+        viewModelScope.launch {
+            repository.updateTask(task)
+            if (context != null) {
+                NotificationHelper.cancelAlarm(context, task.id)
+                if (task.isReminder && task.dueDate != null && task.dueDate.time > System.currentTimeMillis()) {
+                    NotificationHelper.scheduleAlarm(
+                        context = context,
+                        taskId = task.id,
+                        title = task.title,
+                        subject = task.subject,
+                        triggerAtMillis = task.dueDate.time
+                    )
+                }
+            }
+        }
+    }
+
     fun deleteTask(taskId: Int, context: Context? = null) {
         viewModelScope.launch {
             if (context != null) {

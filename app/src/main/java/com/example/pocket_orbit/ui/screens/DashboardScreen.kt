@@ -57,6 +57,8 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
     var showCreateDialog by remember { mutableStateOf(false) }
     var createDialogIsReminder by remember { mutableStateOf(false) }
     var createDialogTargetDate by remember { mutableStateOf<Date?>(null) }
+    var taskToEdit by remember { mutableStateOf<StudyTaskEntity?>(null) }
+    var taskToDelete by remember { mutableStateOf<StudyTaskEntity?>(null) }
 
     // Next top-priority focus task
     val nextPriorityTask = remember(pendingTasks) {
@@ -397,9 +399,11 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                                     onToggleComplete = {
                                         viewModel.markTaskCompleted(task.id, context)
                                     },
+                                    onEdit = {
+                                        taskToEdit = task
+                                    },
                                     onDelete = {
-                                        viewModel.deleteTask(task.id, context)
-                                        Toast.makeText(context, "Item removed", Toast.LENGTH_SHORT).show()
+                                        taskToDelete = task
                                     }
                                 )
                             }
@@ -607,6 +611,59 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     remarks = remarks,
                     context = context
                 )
+            }
+        )
+    }
+
+    // Edit Task / Reminder Dialog
+    if (taskToEdit != null) {
+        val target = taskToEdit!!
+        CreateTaskReminderDialog(
+            taskToEdit = target,
+            onDismiss = { taskToEdit = null },
+            onSave = { title, subject, brainRot, dueDate, isRem, remarks ->
+                viewModel.updateTask(
+                    task = target.copy(
+                        title = title,
+                        subject = subject,
+                        brainRotLevel = brainRot,
+                        dueDate = dueDate,
+                        isReminder = isRem,
+                        remarks = remarks
+                    ),
+                    context = context
+                )
+                taskToEdit = null
+            }
+        )
+    }
+
+    // Confirm Delete Dialog for Tasks/Reminders
+    if (taskToDelete != null) {
+        val target = taskToDelete!!
+        AlertDialog(
+            onDismissRequest = { taskToDelete = null },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Delete Entry?", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("Are you sure you want to delete '${target.title}'?\nAny pending alarms and notifications for this item will be cancelled.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteTask(target.id, context)
+                        taskToDelete = null
+                        Toast.makeText(context, "Deleted from schedule", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { taskToDelete = null }) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -864,6 +921,7 @@ fun MarkerLegendItem(color: Color, label: String) {
 fun AgendaTaskItem(
     task: StudyTaskEntity,
     onToggleComplete: () -> Unit,
+    onEdit: () -> Unit = {},
     onDelete: () -> Unit
 ) {
     val rotLevel = task.brainRotLevel.lowercase()
@@ -972,13 +1030,24 @@ fun AgendaTaskItem(
                 }
             }
 
-            IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                    modifier = Modifier.size(16.dp)
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
     }

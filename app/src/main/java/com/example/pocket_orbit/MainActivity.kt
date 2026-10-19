@@ -7,12 +7,17 @@
 
 package com.example.pocket_orbit
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -52,6 +57,17 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val context = LocalContext.current
 
+                // Request Notification Permission on Android 13+ (API 33+)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    val notifLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.RequestPermission(),
+                        onResult = { _ -> }
+                    )
+                    LaunchedEffect(Unit) {
+                        notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
+
                 val database = remember { AppDatabase.getDatabase(context) }
                 val apiService = remember { RetrofitClient.apiService }
 
@@ -66,6 +82,7 @@ class MainActivity : ComponentActivity() {
                 val dashboardViewModel = remember { DashboardViewModel(repository) }
                 val chatViewModel = remember { 
                     ChatViewModel(
+                        chatDao = database.chatDao(),
                         apiService = apiService
                     ) 
                 }

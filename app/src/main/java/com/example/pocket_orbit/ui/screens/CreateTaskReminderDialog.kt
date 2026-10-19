@@ -29,29 +29,34 @@ import androidx.compose.ui.window.DialogProperties
 import java.text.SimpleDateFormat
 import java.util.*
 
+import com.example.pocket_orbit.data.StudyTaskEntity
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTaskReminderDialog(
     initialDate: Date? = null,
     isReminderDefault: Boolean = false,
+    taskToEdit: StudyTaskEntity? = null,
     onDismiss: () -> Unit,
     onSave: (title: String, subject: String, brainRotLevel: String, dueDate: Date?, isReminder: Boolean, remarks: String?) -> Unit
 ) {
     val context = LocalContext.current
 
-    var title by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(taskToEdit?.title ?: "") }
     var titleError by remember { mutableStateOf(false) }
-    var isReminder by remember { mutableStateOf(isReminderDefault) }
-    var selectedSubject by remember { mutableStateOf("General Med") }
+    var isReminder by remember { mutableStateOf(taskToEdit?.isReminder ?: isReminderDefault) }
+    var selectedSubject by remember { mutableStateOf(taskToEdit?.subject ?: "General Med") }
     var customSubject by remember { mutableStateOf("") }
     var showCustomSubjectInput by remember { mutableStateOf(false) }
-    var selectedBrainRot by remember { mutableStateOf("chill") }
-    var remarks by remember { mutableStateOf("") }
+    var selectedBrainRot by remember { mutableStateOf(taskToEdit?.brainRotLevel ?: "chill") }
+    var remarks by remember { mutableStateOf(taskToEdit?.remarks ?: "") }
 
     // Date & Time Calendar State
     val initialCal = remember {
         Calendar.getInstance().apply {
-            if (initialDate != null) {
+            if (taskToEdit?.dueDate != null) {
+                time = taskToEdit.dueDate
+            } else if (initialDate != null) {
                 time = initialDate
             } else {
                 add(Calendar.HOUR_OF_DAY, 2)
@@ -59,7 +64,7 @@ fun CreateTaskReminderDialog(
         }
     }
     var selectedCalendar by remember { mutableStateOf(initialCal) }
-    var hasSetCustomDate by remember { mutableStateOf(initialDate != null) }
+    var hasSetCustomDate by remember { mutableStateOf(taskToEdit?.dueDate != null || initialDate != null) }
 
     val presetSubjects = listOf("General Med", "Pathology", "Forex XAUUSD", "Coding", "Syllabus Grind", "Life Admin", "+ Custom")
 
@@ -110,12 +115,16 @@ fun CreateTaskReminderDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = if (isReminder) "Setup Reminder ⏰" else "New Study Task 🪐",
+                                text = if (taskToEdit != null) {
+                                    if (isReminder) "Edit Reminder ⏰" else "Edit Study Task ✏️"
+                                } else {
+                                    if (isReminder) "Setup Reminder ⏰" else "New Study Task 🪐"
+                                },
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Assistant Protocol • Manual Dispatch",
+                                text = if (taskToEdit != null) "Update Schedule & Parameters" else "Assistant Protocol • Manual Dispatch",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -467,7 +476,7 @@ fun CreateTaskReminderDialog(
 
                             Toast.makeText(
                                 context,
-                                if (isReminder) "Reminder set for ${timeDisplayFormat.format(selectedCalendar.time)}!" else "Task added to Ledger!",
+                                if (taskToEdit != null) "Task updated successfully!" else if (isReminder) "Reminder set for ${timeDisplayFormat.format(selectedCalendar.time)}!" else "Task added to Ledger!",
                                 Toast.LENGTH_SHORT
                             ).show()
                             onDismiss()
@@ -478,13 +487,13 @@ fun CreateTaskReminderDialog(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(
-                            imageVector = if (isReminder) Icons.Default.AlarmOn else Icons.Default.Check,
+                            imageVector = if (taskToEdit != null) Icons.Default.Save else if (isReminder) Icons.Default.AlarmOn else Icons.Default.Check,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isReminder) "Set Reminder" else "Create Task",
+                            text = if (taskToEdit != null) "Save Changes" else if (isReminder) "Set Reminder" else "Create Task",
                             fontWeight = FontWeight.Bold
                         )
                     }

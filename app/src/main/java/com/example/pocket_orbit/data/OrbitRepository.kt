@@ -8,13 +8,16 @@ package com.example.pocket_orbit.data
 import android.util.Log
 import com.example.pocket_orbit.network.ApiService
 import com.example.pocket_orbit.network.TaskCompletionRequest
+import com.example.pocket_orbit.network.RetrofitClient
 import kotlinx.coroutines.flow.Flow
 
 class OrbitRepository(
     private val studyTaskDao: StudyTaskDao,
-    private val apiService: ApiService,
-    private val secretToken: String
+    apiService: ApiService? = null,
+    private val secretToken: String = ""
 ) {
+    private val apiService: ApiService get() = RetrofitClient.apiService
+
     val pendingTasks: Flow<List<StudyTaskEntity>> = studyTaskDao.getPendingTasks()
     val allTasks: Flow<List<StudyTaskEntity>> = studyTaskDao.getAllTasks()
 
@@ -82,6 +85,15 @@ class OrbitRepository(
             Log.w("OrbitRepo", "Cloud sync for new task pending offline: ${e.message}")
         }
         return task
+    }
+
+    suspend fun updateTask(task: StudyTaskEntity) {
+        try {
+            studyTaskDao.insertTask(task)
+            Log.d("OrbitRepo", "Task ${task.id} updated locally: ${task.title}")
+        } catch (e: Exception) {
+            Log.e("OrbitRepo", "Error updating task ${task.id}: ${e.message}")
+        }
     }
 
     suspend fun deleteTask(taskId: Int) {

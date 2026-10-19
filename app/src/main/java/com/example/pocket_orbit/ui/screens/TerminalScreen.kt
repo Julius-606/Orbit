@@ -111,6 +111,7 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
     var showNodeSheet by remember { mutableStateOf(false) }
     var showHistorySheet by remember { mutableStateOf(false) }
     var showVaultSheet by remember { mutableStateOf(false) }
+    var showPilotArchivesSheet by remember { mutableStateOf(false) }
     var showAddNodeDialog by remember { mutableStateOf(false) }
     var showNewSessionDialog by remember { mutableStateOf(false) }
     var showRenameSessionDialog by remember { mutableStateOf(false) }
@@ -267,6 +268,18 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+                        // Pilot AI Archives
+                        IconButton(
+                            onClick = { showPilotArchivesSheet = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Psychology,
+                                contentDescription = "AI Pilot Archives",
+                                tint = VsCodeYellow,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                         // Clear Session
                         IconButton(
                             onClick = { viewModel.clearSessionTerminal() },
@@ -278,6 +291,54 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                 tint = VsCodeText,
                                 modifier = Modifier.size(18.dp)
                             )
+                        }
+                    }
+                }
+
+                // Target Server / Space URL Status Banner
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showNodeSheet = true },
+                    color = Color(0xFF131B26)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(if (backendOnline) Color(0xFF00FF66) else Color(0xFFFF5252))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Target: ${RetrofitClient.currentBaseUrl}",
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = VsCodeTextBright,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = if (backendOnline) Color(0xFF00FF66).copy(alpha = 0.2f) else Color(0xFFFF5252).copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = if (backendOnline) "CONNECTED" else "DISCONNECTED",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (backendOnline) Color(0xFF00FF66) else Color(0xFFFF5252),
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Edit URL", fontSize = 10.sp, color = VsCodeAccentBlue, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -317,6 +378,23 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected) VsCodeTextBright else VsCodeText
                             )
+
+                            // Label / Edit button for selected tab
+                            if (isSelected) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Rename Bash Label",
+                                    tint = VsCodeAccentBlue,
+                                    modifier = Modifier
+                                        .size(13.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            renameSessionName = session.name
+                                            showRenameSessionDialog = true
+                                        }
+                                )
+                            }
 
                             // Close or reset session button with confirmation
                             Spacer(modifier = Modifier.width(6.dp))
@@ -1696,6 +1774,259 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
             dismissButton = {
                 TextButton(onClick = { showAddNodeDialog = false }) { Text("Cancel") }
             }
+        )
+    }
+
+    // 6. AI Pilot Archives Sheet
+    if (showPilotArchivesSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showPilotArchivesSheet = false },
+            containerColor = VsCodeDark
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "AI PILOT ARCHIVES & PROCEDURES 🧠",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = VsCodeYellow,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = "${sessionPilotChats.size} AI briefings saved for this session",
+                            fontSize = 11.sp,
+                            color = Color.Gray
+                        )
+                    }
+
+                    IconButton(onClick = { showPilotArchivesSheet = false }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = VsCodeText)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                if (sessionPilotChats.isEmpty()) {
+                    Text(
+                        text = "No AI pilot briefings recorded yet. Ask Pilot in Auto mode to generate procedures.",
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(vertical = 24.dp)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 420.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(sessionPilotChats.reversed(), key = { it.id }) { chat ->
+                            val timeStr = remember(chat.timestamp) {
+                                SimpleDateFormat("MMM d, hh:mm a", Locale.getDefault()).format(Date(chat.timestamp))
+                            }
+                            val recCommands = remember(chat.recommendedCommandsJson) {
+                                viewModel.parseRecommendedCommands(chat.recommendedCommandsJson)
+                            }
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
+                                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(VsCodeBorder))
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = VsCodeAccentBlue.copy(alpha = 0.2f)
+                                        ) {
+                                            Text(
+                                                text = "GOAL",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = VsCodeAccentBlue,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = timeStr,
+                                            fontSize = 10.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        text = chat.userGoal,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = VsCodeTextBright
+                                    )
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    Text(
+                                        text = chat.aiExplanation,
+                                        fontSize = 11.sp,
+                                        color = VsCodeText,
+                                        lineHeight = 16.sp
+                                    )
+
+                                    if (recCommands.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "PROCEDURE STEPS (${recCommands.size}):",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = VsCodeGreen,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+
+                                        recCommands.forEach { step ->
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = Color(0xFF282828),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 2.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = "${step.step}. ${step.desc}",
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = VsCodeYellow
+                                                        )
+                                                        Text(
+                                                            text = step.cmd,
+                                                            fontSize = 11.sp,
+                                                            fontFamily = FontFamily.Monospace,
+                                                            color = VsCodeTextBright
+                                                        )
+                                                    }
+
+                                                    Row {
+                                                        IconButton(
+                                                            onClick = {
+                                                                viewModel.executeCommand(step.cmd)
+                                                                showPilotArchivesSheet = false
+                                                            },
+                                                            modifier = Modifier.size(26.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.PlayArrow,
+                                                                contentDescription = "Run",
+                                                                tint = VsCodeGreen,
+                                                                modifier = Modifier.size(16.dp)
+                                                            )
+                                                        }
+                                                        IconButton(
+                                                            onClick = {
+                                                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                                                clipboard.setPrimaryClip(ClipData.newPlainText("cmd", step.cmd))
+                                                                Toast.makeText(context, "Command copied", Toast.LENGTH_SHORT).show()
+                                                            },
+                                                            modifier = Modifier.size(26.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.ContentCopy,
+                                                                contentDescription = "Copy",
+                                                                tint = Color.Gray,
+                                                                modifier = Modifier.size(14.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+
+    // 7. Rename / Label Session Dialog
+    if (showRenameSessionDialog && activeSession != null) {
+        AlertDialog(
+            onDismissRequest = { showRenameSessionDialog = false },
+            title = {
+                Text(
+                    text = "Label Terminal Bash",
+                    fontWeight = FontWeight.Bold,
+                    color = VsCodeTextBright
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Assign a label to '${activeSession?.name}' to track your servers, bots, and tasks:",
+                        fontSize = 12.sp,
+                        color = VsCodeText
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = renameSessionName,
+                        onValueChange = { renameSessionName = it },
+                        label = { Text("Bash Label") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Quick Presets:", fontSize = 11.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("1: main-bash", "2: fast-api", "3: mt5-forex", "4: git-sync", "5: build-run", "6: monitor").forEach { preset ->
+                            FilterChip(
+                                selected = renameSessionName == preset,
+                                onClick = { renameSessionName = preset },
+                                label = { Text(preset, fontSize = 10.sp) }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (renameSessionName.isNotBlank()) {
+                            viewModel.renameSession(activeSession!!.id, renameSessionName.trim())
+                        }
+                        showRenameSessionDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = VsCodeAccentBlue)
+                ) { Text("Save Label") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameSessionDialog = false }) { Text("Cancel") }
+            },
+            containerColor = VsCodeTabActive,
+            shape = RoundedCornerShape(12.dp)
         )
     }
 }

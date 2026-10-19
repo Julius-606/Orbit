@@ -41,6 +41,15 @@ object NotificationHelper {
         notificationManager.notify(taskId, notification)
     }
 
+    fun sendTestNotification(context: Context) {
+        showTaskReminder(
+            context = context,
+            taskId = 9999,
+            title = "Notification Engine Active! 🔔",
+            subject = "Pocket Orbit is ready to alert you on your phone"
+        )
+    }
+
     fun scheduleAlarm(context: Context, taskId: Int, title: String, subject: String, triggerAtMillis: Long) {
         try {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? android.app.AlarmManager ?: return
