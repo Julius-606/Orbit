@@ -20,8 +20,8 @@ class OrbitSpeak:
             logger.warning("No Gemini API key found. Orbit is currently mute. 🤐")
 
     async def generate_response(self, prompt: str, context: str = "chilling") -> str:
-        if not self.model:
-            return "Bro, you forgot to give me my API key. Check the .env file."
+        if not gemini_key_manager.has_keys():
+            return "Bro, you forgot to give me my API key. Check the .env file or GEMINI_API_KEYS variable."
 
         system_prompt = f"""
         You are Orbit, an advanced Life-OS assistant. 
@@ -39,7 +39,7 @@ class OrbitSpeak:
                 break
             try:
                 genai.configure(api_key=key)
-                response = genai.GenerativeModel('gemini-3.8-flash').generate_content(full_prompt)
+                response = genai.GenerativeModel('gemini-2.5-flash').generate_content(full_prompt)
                 return response.text
             except Exception as e:
                 logger.warning("Gemini key failed; rotating to the next key: %s", e)

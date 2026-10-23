@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pocket_orbit.data.StudyTaskEntity
+import com.example.pocket_orbit.network.NotificationHelper
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -277,6 +278,15 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     ) {
                         viewModel.syncTasks()
                         Toast.makeText(context, "Syncing with Orbit Cloud...", Toast.LENGTH_SHORT).show()
+                    }
+
+                    ActionChipButton(
+                        text = "Test Alert 🔔",
+                        icon = Icons.Default.NotificationsActive,
+                        color = Color(0xFF00E676)
+                    ) {
+                        NotificationHelper.sendTestNotification(context)
+                        Toast.makeText(context, "Test notification triggered!", Toast.LENGTH_SHORT).show()
                     }
                 }
             }

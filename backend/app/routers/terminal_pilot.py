@@ -13,11 +13,14 @@ import json
 import sqlite3
 import platform
 import asyncio
+import logging
 from google import genai
 from google.genai import types
 from app.core.config import settings
 from app.core.key_rotation import gemini_key_manager
 from app.core.nodes import cluster_manager
+
+logger = logging.getLogger("TerminalPilot")
 
 router = APIRouter(prefix="/terminal", tags=["Terminal Pilot"])
 
@@ -169,7 +172,7 @@ async def suggest_command(req: SuggestionRequest):
     os_name = "Windows (PowerShell)" if manager.os_type == "windows" else "Linux/Unix (bash)"
     cwd = manager.cwd
 
-    if async_client:
+    if gemini_key_manager.has_keys():
         try:
             prompt = (
                 f"You are an expert DevOps and Systems Administrator in a VS Code terminal environment.\n"

@@ -38,6 +38,12 @@ interface StudyTaskDao {
 
     @Query("SELECT * FROM study_tasks WHERE isCompleted = 1 AND remarks IS NOT NULL")
     suspend fun getUnsyncedCompletions(): List<StudyTaskEntity>
+
+    @Query("SELECT * FROM study_tasks WHERE isCompleted = 0 ORDER BY dueDate ASC, id DESC LIMIT 1")
+    suspend fun getNextPendingTask(): StudyTaskEntity?
+
+    @Query("SELECT COUNT(*) FROM study_tasks WHERE isCompleted = 0")
+    suspend fun getPendingCountDirect(): Int
 }
 
 @Dao

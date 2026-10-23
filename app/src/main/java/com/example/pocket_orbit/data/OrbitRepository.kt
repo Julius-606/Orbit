@@ -105,20 +105,20 @@ class OrbitRepository(
         } catch (e: Exception) {
             Log.e("OrbitRepo", "Error deleting task $taskId: ${e.message}")
         }
+    }
 
-        private fun taskPayload(task: StudyTaskEntity): Map<String, Any?> {
-            val isoDate = task.dueDate?.let {
-                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).format(it)
-            }
-            return mapOf(
-                "title" to task.title,
-                "subject" to task.subject,
-                "brain_rot_level" to task.brainRotLevel,
-                "is_reminder" to task.isReminder,
-                "remarks" to task.remarks,
-                "due_date" to isoDate
-            )
+    private fun taskPayload(task: StudyTaskEntity): Map<String, Any?> {
+        val isoDate = task.dueDate?.let {
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).format(it)
         }
+        return mapOf(
+            "title" to task.title,
+            "subject" to task.subject,
+            "brain_rot_level" to task.brainRotLevel,
+            "is_reminder" to task.isReminder,
+            "remarks" to task.remarks,
+            "due_date" to isoDate
+        )
     }
 
     suspend fun markTaskComplete(taskId: Int) {

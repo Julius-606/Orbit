@@ -95,6 +95,7 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
     val currentSuggestion by viewModel.currentSuggestion.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isExecuting by viewModel.isExecuting.collectAsState()
+    val backendOnline = connectionStatus.contains("online", ignoreCase = true) || connectionStatus.contains("connected", ignoreCase = true)
 
     // Screen tab: 0 = Manual VS Code Terminal, 1 = Auto Pilot Mode
     var selectedDeckTab by remember { mutableIntStateOf(0) }
@@ -1910,7 +1911,7 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                                 ) {
                                                     Column(modifier = Modifier.weight(1f)) {
                                                         Text(
-                                                            text = "${step.step}. ${step.desc}",
+                                                            text = "${step.step}. ${step.title}",
                                                             fontSize = 11.sp,
                                                             fontWeight = FontWeight.SemiBold,
                                                             color = VsCodeYellow
@@ -1940,9 +1941,8 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                                         }
                                                         IconButton(
                                                             onClick = {
-                                                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                                                clipboard.setPrimaryClip(ClipData.newPlainText("cmd", step.cmd))
-                                                                Toast.makeText(context, "Command copied", Toast.LENGTH_SHORT).show()
+                                                                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(step.cmd))
+                                                                android.widget.Toast.makeText(context, "Command copied", android.widget.Toast.LENGTH_SHORT).show()
                                                             },
                                                             modifier = Modifier.size(26.dp)
                                                         ) {

@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
+    && npm install -g bun \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
@@ -50,7 +51,8 @@ USER orbituser
 # consumed by the internal Node process; Orbit remains the public process.
 RUN if [ -d "$HOME/app/DebateHub" ]; then \
         cd $HOME/app/DebateHub && \
-        npm install --include=dev && \
+        rm -f package-lock.json && \
+        (bun install || npm install --include=dev --legacy-peer-deps --no-audit) && \
         VITE_BASE=/debatehub/ npm run build; \
     fi
 
