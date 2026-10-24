@@ -5,7 +5,9 @@
 ################################################################################
 
 # Core Framework
+greenlet
 fastapi>=0.115.0,<1
+uvicorn
 uvicorn[standard]>=0.32.0,<1
 python-dotenv==1.0.0
 httpx>=0.25.0
