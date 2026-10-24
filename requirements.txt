@@ -3,19 +3,19 @@
 # ==============================================================================
 
 # Core ASGI Web Server
-fastapi==0.104.1
-uvicorn[standard]==0.24.0.post1
+fastapi>=0.115.0,<1
+uvicorn[standard]>=0.32.0,<1
 python-dotenv==1.0.0
 httpx>=0.25.0
 
 # Database & Async ORM
-sqlalchemy==2.0.23
-asyncpg==0.29.0
-alembic==1.12.1
+sqlalchemy>=2.0.36,<3
+asyncpg>=0.31.0,<0.33
+alembic>=1.14.0,<2
 
 # Security & Data Validation
-pydantic==2.5.2
-pydantic-settings==2.1.0
+pydantic>=2.10.0,<3
+pydantic-settings>=2.6.0,<3
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
@@ -23,7 +23,7 @@ passlib[bcrypt]==1.7.4
 google-genai>=0.3.0
 
 # System Telemetry & Utilities
-pandas==2.1.3
+pandas>=2.3.3,<3
 redis==5.0.1
 psutil>=5.9.0
 zeroconf>=0.112.0
