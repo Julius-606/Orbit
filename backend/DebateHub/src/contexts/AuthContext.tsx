@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Member, ClubNotification } from '../types';
 import { liveSync } from '../services/liveSync';
-import { auth, signInWithGoogle, signOutUser, onAuthStateChanged, FirebaseUser } from '../lib/firebase';
+
+interface FirebaseUser {
+  email: string | null;
+  displayName?: string | null;
+}
 
 interface RegisterData {
   fullName: string;
@@ -198,16 +202,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Firebase onAuthStateChanged listener
-    const unsubscribeFirebase = onAuthStateChanged(auth, (fbUser) => {
-      if (fbUser && fbUser.email) {
-        resolveGoogleUser(fbUser);
-      }
-    });
-
     return () => {
       isMounted = false;
-      unsubscribeFirebase();
     };
   }, [checkSystemStatus, fetchMembers, fetchNotifications, resolveGoogleUser]);
 
@@ -287,25 +283,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_ID_KEY);
-    signOutUser().catch(() => {});
     setCurrentUser(null);
     setNotifications([]);
   };
 
-  // Google sign in via Firebase with resilient iframe fallback
+  // Google sign in with resilient email identifier fallback
   const loginWithGoogle = async () => {
     try {
-      const user = await signInWithGoogle();
-      if (user && user.email) {
-        await resolveGoogleUser(user);
-        return;
-      }
-    } catch (popupErr: any) {
-      console.warn('[Auth] Google popup error or blocked by browser/iframe:', popupErr);
-      // Resilient fallback for preview if popup is blocked
       const emailPrompt = window.prompt(
         'Enter your Google account email to sign in to GLUK Debate Club:',
-        'juliusgachoki26@gmail.com'
+        currentUser?.email || 'juliusgachoki26@gmail.com'
       );
       if (emailPrompt) {
         await resolveGoogleUser({
@@ -313,6 +300,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: emailPrompt.split('@')[0].replace(/[._]/g, ' '),
         });
       }
+    } catch (err: any) {
+      console.warn('[Auth] Google sign in error:', err);
     }
   };
 

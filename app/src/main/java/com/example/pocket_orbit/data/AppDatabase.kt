@@ -24,7 +24,7 @@ import androidx.room.TypeConverters
         TerminalPilotChatEntity::class,
         TerminalCommandVaultEntity::class
     ],
-    version = 4, // Bumped for VS Code Terminal session persistence framework
+    version = 5, // Bumped for Terminal Pilot attached log context persistence
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)

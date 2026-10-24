@@ -23,7 +23,7 @@ class GeminiKeyRotationManager:
 
     def reload_keys(self):
         with self._lock:
-            raw_multi = os.getenv("GEMINI_API_KEYS", "")
+            raw_multi = os.getenv("GEMINI_API_KEYS", "") or os.getenv("GEMINI_API_KEY", "")
             keys: List[str] = []
             if raw_multi:
                 # Comma-separated: AIzaSy...,AIzaSy...

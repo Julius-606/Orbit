@@ -93,6 +93,7 @@ class CommandRequest(BaseModel):
 
 class SuggestionRequest(BaseModel):
     user_goal: str
+    terminal_output: Optional[str] = None
 
 class SuggestedStep(BaseModel):
     step: int
@@ -128,6 +129,7 @@ async def get_status():
     return {
         "active_node": cluster_manager.active_node_name,
         "nodes": list(cluster_manager.nodes.keys()),
+        "nodes_details": cluster_manager.get_nodes_info(),
         "telemetry": {
             "cpu": telemetry.get("cpu", 0),
             "ram": telemetry.get("ram", 0),
@@ -172,18 +174,30 @@ async def suggest_command(req: SuggestionRequest):
     os_name = "Windows (PowerShell)" if manager.os_type == "windows" else "Linux/Unix (bash)"
     cwd = manager.cwd
 
+    terminal_log_snippet = ""
+    if req.terminal_output and req.terminal_output.strip():
+        clean_logs = req.terminal_output.strip()[:4000]
+        terminal_log_snippet = (
+            f"\n\n--- ACTUAL TERMINAL EXECUTION LOGS & CONTEXT ---\n"
+            f"```\n{clean_logs}\n```\n"
+            f"DIAGNOSTIC INSTRUCTIONS: The user has attached the above terminal output or error logs from their active session. "
+            f"Analyze any error messages, exit codes, missing dependencies, tracebacks, or system states to diagnose the exact problem "
+            f"and provide precise, working remedial commands.\n"
+        )
+
     if gemini_key_manager.has_keys():
         try:
             prompt = (
                 f"You are an expert DevOps and Systems Administrator in a VS Code terminal environment.\n"
                 f"Operating System: {os_name}\n"
                 f"Current Working Directory: {cwd}\n"
-                f"User Goal: {req.user_goal}\n\n"
+                f"User Goal: {req.user_goal}\n"
+                f"{terminal_log_snippet}\n"
                 f"Generate a concise, safe procedure to accomplish this goal. You may provide a single command "
-                f"or a sequence of procedure steps (up to 4 steps) if the task involves multiple steps (e.g. git, docker, setup).\n"
+                f"or a sequence of procedure steps (up to 4 steps) if the task involves multiple steps (e.g. git, docker, setup, debugging).\n"
                 f"Return strictly valid JSON with this structure:\n"
                 f"{{\n"
-                f"  \"explanation\": \"Brief explanation of what this procedure does\",\n"
+                f"  \"explanation\": \"Brief explanation of what this procedure does and why (referencing any log errors if diagnosed)\",\n"
                 f"  \"command\": \"The primary command or one-liner\",\n"
                 f"  \"commands\": [\n"
                 f"    {{\"step\": 1, \"title\": \"Step description\", \"cmd\": \"exact command\"}},\n"
@@ -239,6 +253,36 @@ async def suggest_command(req: SuggestionRequest):
             pass
 
     # Heuristic fallback if API key is absent or network fails
+    log_lower = (req.terminal_output or "").lower()
+    if "permission denied" in log_lower or "eacces" in log_lower:
+        cmd_fix = "sudo !!" if manager.os_type != "windows" else "Start-Process powershell -Verb runAs"
+        return {
+            "explanation": "Permission denied error detected in terminal logs. Elevation or permission adjustment required.",
+            "command": cmd_fix,
+            "commands": [
+                {"step": 1, "title": "Inspect file ownership and permissions", "cmd": "ls -la" if manager.os_type != "windows" else "Get-Acl ."},
+                {"step": 2, "title": "Execute with elevated permissions", "cmd": cmd_fix}
+            ]
+        }
+    elif "command not found" in log_lower or "not recognized as" in log_lower:
+        return {
+            "explanation": "Missing command or binary detected in terminal output. Inspecting PATH and environment.",
+            "command": "echo $PATH" if manager.os_type != "windows" else "echo $env:PATH",
+            "commands": [
+                {"step": 1, "title": "Inspect executable path variable", "cmd": "echo $PATH" if manager.os_type != "windows" else "echo $env:PATH"},
+                {"step": 2, "title": "Verify available developer toolchains", "cmd": "which git node python3 2>/dev/null || where.exe git node python"}
+            ]
+        }
+    elif "port" in log_lower and ("already in use" in log_lower or "eaddrinuse" in log_lower or "bind" in log_lower):
+        return {
+            "explanation": "Port binding collision detected in logs. Locating and freeing busy network socket.",
+            "command": "lsof -i -P -n | grep LISTEN" if manager.os_type != "windows" else "netstat -ano | findstr LISTENING",
+            "commands": [
+                {"step": 1, "title": "Find listening port and PID", "cmd": "lsof -i -P -n | grep LISTEN" if manager.os_type != "windows" else "netstat -ano | findstr LISTENING"},
+                {"step": 2, "title": "Terminate conflicting process", "cmd": "kill -9 <PID>" if manager.os_type != "windows" else "taskkill /F /PID <PID>"}
+            ]
+        }
+
     goal_lower = req.user_goal.lower()
     if "git" in goal_lower or "commit" in goal_lower or "push" in goal_lower:
         return {
@@ -300,15 +344,39 @@ async def save_to_vault(req: VaultSaveRequest):
     manager.save_command(req.name, req.cmd, req.category or "General")
     return {"status": "success", "message": "Command saved to vault"}
 
+@router.get("/nodes")
+async def list_nodes():
+    return {
+        "active_node": cluster_manager.active_node_name,
+        "nodes": cluster_manager.get_nodes_info()
+    }
+
 @router.post("/nodes/connect")
 async def connect_node(req: ConnectNodeRequest):
     cluster_manager.add_node(req.name, req.host, req.port)
-    return {"status": "success", "message": f"Node {req.name} attached"}
+    return {
+        "status": "success",
+        "message": f"Node '{req.name}' registered to cluster",
+        "active_node": cluster_manager.active_node_name,
+        "nodes": list(cluster_manager.nodes.keys())
+    }
 
 @router.post("/nodes/select")
 async def select_node(req: SelectNodeRequest):
     cluster_manager.select_node(req.name)
     return {"status": "success", "selected": cluster_manager.active_node_name}
+
+@router.delete("/nodes/{name}")
+async def disconnect_node(name: str):
+    removed = cluster_manager.remove_node(name)
+    if not removed:
+        raise HTTPException(status_code=400, detail=f"Cannot remove protected or nonexistent node '{name}'")
+    return {
+        "status": "success",
+        "message": f"Node '{name}' removed",
+        "active_node": cluster_manager.active_node_name,
+        "nodes": list(cluster_manager.nodes.keys())
+    }
 
 @router.post("/clear")
 async def clear_terminal():

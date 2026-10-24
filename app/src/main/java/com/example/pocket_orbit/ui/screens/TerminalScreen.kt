@@ -93,6 +93,7 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
     val nodesList by viewModel.nodesList.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
     val currentSuggestion by viewModel.currentSuggestion.collectAsState()
+    val attachedLog by viewModel.attachedLog.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isExecuting by viewModel.isExecuting.collectAsState()
     val backendOnline = connectionStatus.contains("online", ignoreCase = true) || connectionStatus.contains("connected", ignoreCase = true)
@@ -113,6 +114,10 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
     var showHistorySheet by remember { mutableStateOf(false) }
     var showVaultSheet by remember { mutableStateOf(false) }
     var showPilotArchivesSheet by remember { mutableStateOf(false) }
+    var showLogPickerSheet by remember { mutableStateOf(false) }
+    var showCustomLogDialog by remember { mutableStateOf(false) }
+    var customLogSnippetInput by remember { mutableStateOf("") }
+    var customLogCommandInput by remember { mutableStateOf("") }
     var showAddNodeDialog by remember { mutableStateOf(false) }
     var showNewSessionDialog by remember { mutableStateOf(false) }
     var showRenameSessionDialog by remember { mutableStateOf(false) }
@@ -122,6 +127,7 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
     // Add node inputs
     var newNodeName by remember { mutableStateOf("") }
     var newNodeHost by remember { mutableStateOf("") }
+    var newNodePort by remember { mutableStateOf("8888") }
 
     // New session inputs
     var newSessionCustomName by remember { mutableStateOf("") }
@@ -545,6 +551,11 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                                 command = log.command
                                             )
                                             Toast.makeText(context, "Saved to Vault", Toast.LENGTH_SHORT).show()
+                                        },
+                                        onAskPilotWithLog = {
+                                            viewModel.attachLogEntry(log)
+                                            selectedDeckTab = 1
+                                            Toast.makeText(context, "Attached log to AI Pilot", Toast.LENGTH_SHORT).show()
                                         }
                                     )
                                 }
@@ -889,25 +900,91 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                 modifier = Modifier.padding(vertical = 4.dp)
                             )
 
-                            sessionPilotChats.takeLast(3).forEach { chat ->
+                            sessionPilotChats.takeLast(4).forEach { chat ->
                                 // User Goal Bubble
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 2.dp),
+                                        .padding(vertical = 3.dp),
                                     horizontalArrangement = Arrangement.End
                                 ) {
                                     Surface(
                                         shape = RoundedCornerShape(12.dp, 12.dp, 2.dp, 12.dp),
                                         color = Color(0xFF37474F),
-                                        modifier = Modifier.widthIn(max = 280.dp)
+                                        modifier = Modifier.widthIn(max = 300.dp)
                                     ) {
-                                        Text(
-                                            text = chat.userGoal,
-                                            fontSize = 11.sp,
-                                            color = Color.White,
-                                            modifier = Modifier.padding(8.dp)
-                                        )
+                                        Column(modifier = Modifier.padding(10.dp)) {
+                                            Text(
+                                                text = chat.userGoal,
+                                                fontSize = 11.sp,
+                                                color = Color.White
+                                            )
+
+                                            // If prompt included attached terminal output logs, render expandable context chip
+                                            if (!chat.attachedLogs.isNullOrBlank()) {
+                                                var logsExpanded by remember { mutableStateOf(false) }
+                                                val lineCount = remember(chat.attachedLogs) { chat.attachedLogs.lines().size }
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = Color(0xFF1E2633),
+                                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2E3E56)),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clickable { logsExpanded = !logsExpanded }
+                                                ) {
+                                                    Column(modifier = Modifier.padding(6.dp)) {
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Terminal,
+                                                                    contentDescription = null,
+                                                                    tint = Color(0xFF81D4FA),
+                                                                    modifier = Modifier.size(12.dp)
+                                                                )
+                                                                Spacer(modifier = Modifier.width(4.dp))
+                                                                Text(
+                                                                    text = "Attached Logs ($lineCount lines)",
+                                                                    fontSize = 9.sp,
+                                                                    fontFamily = FontFamily.Monospace,
+                                                                    fontWeight = FontWeight.SemiBold,
+                                                                    color = Color(0xFF81D4FA)
+                                                                )
+                                                            }
+                                                            Icon(
+                                                                imageVector = if (logsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                                contentDescription = null,
+                                                                tint = Color.Gray,
+                                                                modifier = Modifier.size(14.dp)
+                                                            )
+                                                        }
+
+                                                        if (logsExpanded) {
+                                                            Spacer(modifier = Modifier.height(4.dp))
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .heightIn(max = 140.dp)
+                                                                    .background(Color(0xFF10141D), RoundedCornerShape(4.dp))
+                                                                    .padding(6.dp)
+                                                                    .verticalScroll(rememberScrollState())
+                                                            ) {
+                                                                Text(
+                                                                    text = chat.attachedLogs,
+                                                                    fontSize = 9.sp,
+                                                                    fontFamily = FontFamily.Monospace,
+                                                                    color = Color(0xFF89D185)
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
 
@@ -915,7 +992,7 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 2.dp),
+                                        .padding(vertical = 3.dp),
                                     horizontalArrangement = Arrangement.Start
                                 ) {
                                     Surface(
@@ -951,7 +1028,153 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                             }
                         }
 
-                        // AI Goal Input Field
+                        // Attached Log Context Banner (if user attached terminal output/error)
+                        if (attachedLog != null) {
+                            var previewExpanded by remember { mutableStateOf(false) }
+                            val activeAttached = attachedLog!!
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2633)),
+                                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(VsCodeAccentBlue))
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Attachment,
+                                                contentDescription = "Attached Log",
+                                                tint = VsCodeAccentBlue,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "ATTACHED LOG CONTEXT",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = VsCodeAccentBlue
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (activeAttached.exitCode == 0) Color(0xFF1B3320) else Color(0xFF381E1E)
+                                            ) {
+                                                Text(
+                                                    text = if (activeAttached.exitCode == 0) "Exit 0" else "Exit ${activeAttached.exitCode}",
+                                                    fontSize = 9.sp,
+                                                    fontFamily = FontFamily.Monospace,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (activeAttached.exitCode == 0) VsCodeSuccessGreen else VsCodeErrorRed,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            IconButton(
+                                                onClick = { previewExpanded = !previewExpanded },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (previewExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                    contentDescription = "Toggle Preview",
+                                                    tint = VsCodeText,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = { viewModel.clearAttachedLog() },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Remove Attached Log",
+                                                    tint = VsCodeErrorRed,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Command source
+                                    Text(
+                                        text = "$ ${activeAttached.sourceCommand}",
+                                        fontSize = 11.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = VsCodeYellow,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+
+                                    // Snippet preview
+                                    val outputText = activeAttached.output.trim()
+                                    val lines = outputText.lines()
+                                    val previewText = if (previewExpanded) {
+                                        outputText
+                                    } else {
+                                        lines.take(3).joinToString("\n") + if (lines.size > 3) "\n... (${lines.size} lines total)" else ""
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 4.dp)
+                                            .background(Color(0xFF10141D), RoundedCornerShape(4.dp))
+                                            .padding(6.dp)
+                                            .then(
+                                                if (previewExpanded) Modifier
+                                                    .heightIn(max = 160.dp)
+                                                    .verticalScroll(rememberScrollState())
+                                                else Modifier
+                                            )
+                                    ) {
+                                        Text(
+                                            text = previewText,
+                                            fontSize = 10.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            color = if (activeAttached.exitCode != 0) VsCodeErrorRed else VsCodeGreen
+                                        )
+                                    }
+
+                                    // Action to insert directly as text into the prompt box
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 4.dp),
+                                        horizontalArrangement = Arrangement.End
+                                    ) {
+                                        TextButton(
+                                            onClick = {
+                                                val snippet = "[TERMINAL LOG: '${activeAttached.sourceCommand}']:\n${activeAttached.output.take(800)}"
+                                                autoPilotGoalInput = if (autoPilotGoalInput.isBlank()) {
+                                                    "Diagnose and fix this terminal output:\n$snippet"
+                                                } else {
+                                                    "$autoPilotGoalInput\n\n$snippet"
+                                                }
+                                                Toast.makeText(context, "Log snippet inserted into input prompt", Toast.LENGTH_SHORT).show()
+                                            },
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Icon(Icons.Default.PostAdd, contentDescription = null, tint = VsCodeGreen, modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Insert snippet into prompt", fontSize = 10.sp, color = VsCodeGreen)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // AI Goal Input Field & Log Attachment Action Strip
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -965,11 +1188,11 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                     modifier = Modifier.fillMaxWidth(),
                                     placeholder = {
                                         Text(
-                                            "Tell Pilot what you want done (e.g. 'Deploy git changes and build Docker')",
+                                            "Tell Pilot your goal or issue (e.g. 'Fix npm build error', 'Resolve git conflict')",
                                             fontSize = 11.sp
                                         )
                                     },
-                                    maxLines = 3,
+                                    maxLines = 4,
                                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp, color = VsCodeTextBright),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = Color(0xFF6C5CE7),
@@ -980,6 +1203,102 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                 )
 
                                 Spacer(modifier = Modifier.height(6.dp))
+
+                                // Quick Log Attachment Action Strip
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // 1. Attach Latest Output
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (attachedLog != null) Color(0xFF263238) else Color(0xFF2A2D34),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF3D4452)),
+                                        modifier = Modifier.clickable {
+                                            val attached = viewModel.attachLatestOutput()
+                                            if (attached) {
+                                                Toast.makeText(context, "Latest terminal output attached", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, "No terminal command outputs found yet", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.Attachment, contentDescription = null, tint = Color(0xFF81D4FA), modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Attach Last Output", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF81D4FA))
+                                        }
+                                    }
+
+                                    // 2. Attach Latest Error
+                                    val hasErrorLog = remember(sessionLogs) {
+                                        sessionLogs.any { it.exitCode != 0 || it.output.contains("error", ignoreCase = true) }
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (hasErrorLog) Color(0xFF381E1E) else Color(0xFF2A2D34),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, if (hasErrorLog) VsCodeErrorRed.copy(alpha = 0.6f) else Color(0xFF3D4452)),
+                                        modifier = Modifier.clickable {
+                                            val attached = viewModel.attachLatestError()
+                                            if (attached) {
+                                                Toast.makeText(context, "Recent error log attached for diagnosis", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, "No recent errors found", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.BugReport, contentDescription = null, tint = if (hasErrorLog) VsCodeErrorRed else Color.Gray, modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Attach Error Log", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = if (hasErrorLog) VsCodeErrorRed else VsCodeText)
+                                        }
+                                    }
+
+                                    // 3. Pick specific command log from history
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFF2A2D34),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF3D4452)),
+                                        modifier = Modifier.clickable { showLogPickerSheet = true }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.FormatListBulleted, contentDescription = null, tint = VsCodeYellow, modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Select from Logs...", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = VsCodeYellow)
+                                        }
+                                    }
+
+                                    // 4. Paste Custom Log Snippet
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFF2A2D34),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF3D4452)),
+                                        modifier = Modifier.clickable { showCustomLogDialog = true }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.ContentPaste, contentDescription = null, tint = VsCodeGreen, modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Paste Custom Log", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = VsCodeGreen)
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -1312,6 +1631,10 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                         onSaveToVault = {
                                             viewModel.saveCommandToVault(log.command.take(25), log.command)
                                             Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
+                                        },
+                                        onAskPilotWithLog = {
+                                            viewModel.attachLogEntry(log)
+                                            Toast.makeText(context, "Attached log to AI Pilot input", Toast.LENGTH_SHORT).show()
                                         }
                                     )
                                 }
@@ -1372,6 +1695,10 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
 
                 nodesList.forEach { nodeName ->
                     val isSelected = nodeName == activeNode
+                    val isMain = nodeName == "Main_HF_Space" || nodeName == "HF_Space_Node"
+                    val displayName = if (isMain) "Main (Hugging Face Space)" else nodeName
+                    val subtitle = if (isMain) "Primary Cloud Controller & Brain" else "Remote Workstation / Connected Node"
+
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = if (isSelected) Color(0xFF2A2D2E) else Color(0xFF1E1E1E),
@@ -1389,7 +1716,7 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                                 Box(
                                     modifier = Modifier
                                         .size(10.dp)
@@ -1398,32 +1725,66 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = displayName,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) VsCodeTextBright else VsCodeText
+                                        )
+                                        if (isMain) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(3.dp),
+                                                color = VsCodeYellow.copy(alpha = 0.2f)
+                                            ) {
+                                                Text(
+                                                    text = "MAIN",
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = VsCodeYellow,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                        }
+                                    }
                                     Text(
-                                        text = nodeName,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) VsCodeTextBright else VsCodeText
-                                    )
-                                    Text(
-                                        text = if (nodeName == "HF_Space_Node") "Hugging Face / Primary Container" else "Remote Workstation Agent",
+                                        text = subtitle,
                                         fontSize = 10.sp,
                                         color = Color.Gray
                                     )
                                 }
                             }
 
-                            if (isSelected) {
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = VsCodeAccentBlue
-                                ) {
-                                    Text(
-                                        text = "ACTIVE",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (isSelected) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = VsCodeAccentBlue
+                                    ) {
+                                        Text(
+                                            text = "ACTIVE",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                if (!isMain) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    IconButton(
+                                        onClick = { viewModel.disconnectClusterNode(nodeName) },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DeleteOutline,
+                                            contentDescription = "Remove Node",
+                                            tint = VsCodeErrorRed,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1741,40 +2102,108 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
     if (showAddNodeDialog) {
         AlertDialog(
             onDismissRequest = { showAddNodeDialog = false },
-            title = { Text("Connect Remote Cluster Node") },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Dns, contentDescription = null, tint = VsCodeAccentBlue, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Connect Workstation Node", fontWeight = FontWeight.Bold, color = VsCodeTextBright, fontSize = 14.sp)
+                }
+            },
             text = {
-                Column {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text(
+                        text = "Link your laptop or home computer to control it via bash commands from this device:",
+                        fontSize = 11.sp,
+                        color = VsCodeText,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
                     OutlinedTextField(
                         value = newNodeName,
                         onValueChange = { newNodeName = it },
-                        label = { Text("Node Name (e.g. Workstation_1)") },
+                        label = { Text("Node Name (e.g. My_Laptop, Ubuntu_Server)") },
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newNodeHost,
                         onValueChange = { newNodeHost = it },
-                        label = { Text("IP / Hostname (e.g. 192.168.1.100)") },
-                        modifier = Modifier.fillMaxWidth()
+                        label = { Text("IP Address or Public Tunnel URL") },
+                        placeholder = { Text("e.g. 192.168.1.15 or https://xyz.trycloudflare.com") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp)
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newNodePort,
+                        onValueChange = { newNodePort = it },
+                        label = { Text("Port") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("8888 (Agent)" to "8888", "8000 (FastAPI)" to "8000", "7860 (Space)" to "7860").forEach { (label, p) ->
+                            FilterChip(
+                                selected = newNodePort == p,
+                                onClick = { newNodePort = p },
+                                label = { Text(label, fontSize = 9.sp) }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF1E2633),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C3E50))
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Text(
+                                text = "💡 HOW TO START YOUR LAPTOP AGENT:",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = VsCodeYellow,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "1. In repo root on your laptop, run:\n   python orbit_node_daemon.py\n2. Note your laptop's local IP (or run cloudflared tunnel) and paste it above.",
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = Color(0xFF81D4FA),
+                                lineHeight = 14.sp
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         if (newNodeName.isNotBlank() && newNodeHost.isNotBlank()) {
-                            viewModel.addNewClusterNode(newNodeName.trim(), newNodeHost.trim(), 8888)
+                            val parsedPort = newNodePort.trim().toIntOrNull() ?: 8888
+                            viewModel.addNewClusterNode(newNodeName.trim(), newNodeHost.trim(), parsedPort)
                             newNodeName = ""
                             newNodeHost = ""
+                            newNodePort = "8888"
                             showAddNodeDialog = false
                             showNodeSheet = false
                         }
-                    }
-                ) { Text("Connect") }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = VsCodeAccentBlue)
+                ) { Text("Connect Node") }
             },
             dismissButton = {
                 TextButton(onClick = { showAddNodeDialog = false }) { Text("Cancel") }
-            }
+            },
+            containerColor = VsCodeTabActive,
+            shape = RoundedCornerShape(12.dp)
         )
     }
 
@@ -1884,6 +2313,41 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                         color = VsCodeText,
                                         lineHeight = 16.sp
                                     )
+
+                                    if (!chat.attachedLogs.isNullOrBlank()) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = Color(0xFF141923),
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF243248))
+                                        ) {
+                                            Column(modifier = Modifier.padding(6.dp)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Attachment,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF81D4FA),
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "Attached Terminal Log Context (${chat.attachedLogs.lines().size} lines):",
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF81D4FA),
+                                                        fontFamily = FontFamily.Monospace
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = chat.attachedLogs.take(250) + if (chat.attachedLogs.length > 250) "..." else "",
+                                                    fontSize = 9.sp,
+                                                    fontFamily = FontFamily.Monospace,
+                                                    color = Color(0xFF89D185)
+                                                )
+                                            }
+                                        }
+                                    }
 
                                     if (recCommands.isNotEmpty()) {
                                         Spacer(modifier = Modifier.height(8.dp))
@@ -2029,6 +2493,256 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
             shape = RoundedCornerShape(12.dp)
         )
     }
+
+    // 8. Log Picker Bottom Sheet for AI Pilot Context
+    if (showLogPickerSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showLogPickerSheet = false },
+            containerColor = VsCodeDark
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "ATTACH TERMINAL LOG CONTEXT 📎",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = VsCodeAccentBlue,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = "Select a command run to feed real output to AI Pilot:",
+                            fontSize = 11.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    IconButton(onClick = { showLogPickerSheet = false }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = VsCodeText)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (sessionLogs.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No command logs recorded in this session yet.\nExecute commands in the terminal first.",
+                            fontSize = 11.sp,
+                            color = Color.Gray,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 440.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(sessionLogs.reversed(), key = { it.id }) { log ->
+                            val timeStr = remember(log.timestamp) {
+                                SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(log.timestamp))
+                            }
+                            val isError = log.exitCode != 0 || log.output.contains("error", ignoreCase = true)
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF181C24)),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = if (isError) VsCodeErrorRed.copy(alpha = 0.5f) else Color(0xFF263238)
+                                )
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .clip(CircleShape)
+                                                    .background(if (log.exitCode == 0) VsCodeSuccessGreen else VsCodeErrorRed)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = if (log.exitCode == 0) "Exit 0" else "Exit ${log.exitCode}",
+                                                fontSize = 10.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (log.exitCode == 0) VsCodeSuccessGreen else VsCodeErrorRed
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "$ ${log.command}",
+                                                fontSize = 11.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                fontWeight = FontWeight.Bold,
+                                                color = VsCodeYellow,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        Text(text = timeStr, fontSize = 10.sp, color = Color.Gray)
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    // Snippet
+                                    val previewText = log.output.trim().lines().take(2).joinToString("\n")
+                                    if (previewText.isNotBlank()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(Color(0xFF10141D), RoundedCornerShape(4.dp))
+                                                .padding(6.dp)
+                                        ) {
+                                            Text(
+                                                text = previewText,
+                                                fontSize = 10.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = if (isError) VsCodeErrorRed else VsCodeGreen,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Insert into Text
+                                        TextButton(
+                                            onClick = {
+                                                val snippet = "[TERMINAL LOG: '${log.command}']:\n${log.output.take(800)}"
+                                                autoPilotGoalInput = if (autoPilotGoalInput.isBlank()) {
+                                                    "Diagnose and fix this terminal output:\n$snippet"
+                                                } else {
+                                                    "$autoPilotGoalInput\n\n$snippet"
+                                                }
+                                                showLogPickerSheet = false
+                                                Toast.makeText(context, "Log inserted into input prompt", Toast.LENGTH_SHORT).show()
+                                            }
+                                        ) {
+                                            Icon(Icons.Default.PostAdd, contentDescription = null, tint = VsCodeGreen, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Insert into Prompt", fontSize = 10.sp, color = VsCodeGreen)
+                                        }
+
+                                        Spacer(modifier = Modifier.width(6.dp))
+
+                                        // Attach as context
+                                        Button(
+                                            onClick = {
+                                                viewModel.attachLogEntry(log)
+                                                showLogPickerSheet = false
+                                                Toast.makeText(context, "Attached log for '${log.command.take(20)}'", Toast.LENGTH_SHORT).show()
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C5CE7)),
+                                            shape = RoundedCornerShape(6.dp),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.Default.Attachment, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Attach to Pilot", fontSize = 10.sp, color = Color.White)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+
+    // 9. Custom Log Paste Dialog
+    if (showCustomLogDialog) {
+        AlertDialog(
+            onDismissRequest = { showCustomLogDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.ContentPaste, contentDescription = null, tint = VsCodeGreen, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Paste Custom Log Snippet", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = VsCodeTextBright)
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Paste output, stack traces, compiler errors, or Docker logs to feed into AI Pilot:",
+                        fontSize = 11.sp,
+                        color = VsCodeText
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = customLogCommandInput,
+                        onValueChange = { customLogCommandInput = it },
+                        label = { Text("Command / Context (optional)") },
+                        placeholder = { Text("e.g. docker build, npm run dev") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = customLogSnippetInput,
+                        onValueChange = { customLogSnippetInput = it },
+                        label = { Text("Terminal Output / Stack Trace") },
+                        placeholder = { Text("Paste full log output here...") },
+                        maxLines = 6,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (customLogSnippetInput.isNotBlank()) {
+                            viewModel.attachCustomLog(
+                                command = customLogCommandInput.ifBlank { "Custom Paste" },
+                                output = customLogSnippetInput.trim()
+                            )
+                            customLogSnippetInput = ""
+                            customLogCommandInput = ""
+                            showCustomLogDialog = false
+                            Toast.makeText(context, "Custom log snippet attached", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = VsCodeAccentBlue)
+                ) { Text("Attach Context") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCustomLogDialog = false }) { Text("Cancel") }
+            },
+            containerColor = VsCodeTabActive,
+            shape = RoundedCornerShape(12.dp)
+        )
+    }
 }
 
 // Single VS Code Log Item Component with Enhanced Command Display
@@ -2038,7 +2752,8 @@ fun VsCodeTerminalLogItem(
     prompt: String,
     onCopy: () -> Unit,
     onRerun: () -> Unit,
-    onSaveToVault: () -> Unit
+    onSaveToVault: () -> Unit,
+    onAskPilotWithLog: (() -> Unit)? = null
 ) {
     val timeStr = remember(log.timestamp) {
         val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
@@ -2137,6 +2852,18 @@ fun VsCodeTerminalLogItem(
                             tint = VsCodeYellow,
                             modifier = Modifier.size(14.dp)
                         )
+                    }
+
+                    if (onAskPilotWithLog != null) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        IconButton(onClick = onAskPilotWithLog, modifier = Modifier.size(24.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.SmartToy,
+                                contentDescription = "Feed log to AI Pilot",
+                                tint = Color(0xFF81D4FA),
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
                     }
                 }
             }

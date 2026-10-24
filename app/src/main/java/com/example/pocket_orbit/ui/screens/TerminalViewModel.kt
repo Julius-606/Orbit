@@ -78,10 +78,10 @@ class TerminalViewModel(
     private val _prompt = MutableStateFlow("$ ")
     val prompt: StateFlow<String> = _prompt.asStateFlow()
 
-    private val _activeNode = MutableStateFlow("HF_Space_Node")
+    private val _activeNode = MutableStateFlow("Main_HF_Space")
     val activeNode: StateFlow<String> = _activeNode.asStateFlow()
 
-    private val _nodesList = MutableStateFlow<List<String>>(listOf("HF_Space_Node"))
+    private val _nodesList = MutableStateFlow<List<String>>(listOf("Main_HF_Space"))
     val nodesList: StateFlow<List<String>> = _nodesList.asStateFlow()
 
     private val _connectionStatus = MutableStateFlow("Connected")
@@ -90,6 +90,10 @@ class TerminalViewModel(
     // Pilot Suggestions
     private val _currentSuggestion = MutableStateFlow<TerminalSuggestionResponse?>(null)
     val currentSuggestion: StateFlow<TerminalSuggestionResponse?> = _currentSuggestion.asStateFlow()
+
+    // Attached Terminal Log for Auto Pilot context
+    private val _attachedLog = MutableStateFlow<AttachedTerminalLog?>(null)
+    val attachedLog: StateFlow<AttachedTerminalLog?> = _attachedLog.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -330,15 +334,72 @@ class TerminalViewModel(
     // AUTO PILOT (USER + AI CHAT & PROCEDURES)
     // ==========================================
 
-    fun askPilot(userGoal: String) {
+    fun attachLogEntry(entry: TerminalLogEntryEntity) {
+        _attachedLog.value = AttachedTerminalLog(
+            sourceCommand = entry.command,
+            output = entry.output,
+            exitCode = entry.exitCode,
+            timestamp = entry.timestamp
+        )
+    }
+
+    fun attachLatestOutput(): Boolean {
+        val latest = _sessionLogs.value.lastOrNull { it.output.isNotBlank() }
+        return if (latest != null) {
+            attachLogEntry(latest)
+            true
+        } else {
+            false
+        }
+    }
+
+    fun attachLatestError(): Boolean {
+        val latestError = _sessionLogs.value.lastOrNull {
+            it.exitCode != 0 || 
+            it.output.contains("error", ignoreCase = true) || 
+            it.output.contains("failed", ignoreCase = true) ||
+            it.output.contains("fatal", ignoreCase = true)
+        }
+        return if (latestError != null) {
+            attachLogEntry(latestError)
+            true
+        } else {
+            // If no explicit error flag, fallback to the latest output
+            attachLatestOutput()
+        }
+    }
+
+    fun attachCustomLog(command: String, output: String) {
+        if (output.isNotBlank()) {
+            _attachedLog.value = AttachedTerminalLog(
+                sourceCommand = if (command.isNotBlank()) command else "Custom Log Snippet",
+                output = output,
+                exitCode = 0,
+                timestamp = System.currentTimeMillis()
+            )
+        }
+    }
+
+    fun clearAttachedLog() {
+        _attachedLog.value = null
+    }
+
+    fun askPilot(userGoal: String, explicitLog: String? = null) {
         val trimmed = userGoal.trim()
         if (trimmed.isBlank()) return
         val currentSessionId = _activeSessionId.value
+        val logToSend = (explicitLog ?: _attachedLog.value?.output)?.takeIf { it.isNotBlank() }
 
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = apiService.suggestCommand(secretToken, TerminalSuggestionRequest(trimmed))
+                val response = apiService.suggestCommand(
+                    secretToken, 
+                    TerminalSuggestionRequest(
+                        user_goal = trimmed,
+                        terminal_output = logToSend
+                    )
+                )
                 if (response.isSuccessful && response.body() != null) {
                     val suggestion = response.body()!!
                     _currentSuggestion.value = suggestion
@@ -350,10 +411,14 @@ class TerminalViewModel(
                         userGoal = trimmed,
                         aiExplanation = suggestion.explanation,
                         recommendedCommandsJson = commandsJson,
+                        attachedLogs = logToSend,
                         timestamp = System.currentTimeMillis()
                     )
                     terminalDao.insertPilotChat(chatEntry)
                     terminalDao.touchSession(currentSessionId, System.currentTimeMillis())
+                    
+                    // Clear the attached log after sending
+                    _attachedLog.value = null
                 } else {
                     _currentSuggestion.value = TerminalSuggestionResponse(
                         explanation = "Pilot was unable to generate a plan (${response.code()}).",
@@ -447,6 +512,19 @@ class TerminalViewModel(
         }
     }
 
+    fun disconnectClusterNode(name: String) {
+        viewModelScope.launch {
+            try {
+                val response = apiService.disconnectNode(secretToken, name)
+                if (response.isSuccessful) {
+                    fetchBackendStatus()
+                }
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+    }
+
     // Helper to decode stored procedure json
     fun parseRecommendedCommands(json: String): List<SuggestedCommandItem> {
         return try {
@@ -457,3 +535,10 @@ class TerminalViewModel(
         }
     }
 }
+
+data class AttachedTerminalLog(
+    val sourceCommand: String,
+    val output: String,
+    val exitCode: Int = 0,
+    val timestamp: Long = System.currentTimeMillis()
+)

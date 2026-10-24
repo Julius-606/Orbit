@@ -51,7 +51,7 @@ USER orbituser
 # consumed by the internal Node process; Orbit remains the public process.
 RUN if [ -d "$HOME/app/DebateHub" ]; then \
         cd $HOME/app/DebateHub && \
-        rm -f package-lock.json && \
+        rm -f package-lock.json bun.lock && \
         (bun install || npm install --include=dev --legacy-peer-deps --no-audit) && \
         VITE_BASE=/debatehub/ npm run build; \
     fi

@@ -83,6 +83,7 @@ data class TerminalPilotChatEntity(
     val userGoal: String,
     val aiExplanation: String,
     val recommendedCommandsJson: String = "[]", // Serialized list of SuggestedCommandItem
+    val attachedLogs: String? = null,
     val timestamp: Long = System.currentTimeMillis()
 )
 

@@ -107,6 +107,12 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body request: SelectNodeRequest
     ): Response<TerminalActionResponse>
+
+    @DELETE("api/v1/terminal/nodes/{name}")
+    suspend fun disconnectNode(
+        @Header("Authorization") token: String,
+        @Path("name") name: String
+    ): Response<TerminalActionResponse>
 }
 
 data class TaskCompletionRequest(
@@ -132,8 +138,8 @@ data class TelemetryData(
 )
 
 data class TerminalStatusResponse(
-    val active_node: String = "HF_Space_Node",
-    val nodes: List<String> = listOf("HF_Space_Node"),
+    val active_node: String = "Main_HF_Space",
+    val nodes: List<String> = listOf("Main_HF_Space"),
     val telemetry: TelemetryData = TelemetryData(),
     val output: String = "",
     val os: String? = "linux",
@@ -153,7 +159,8 @@ data class TerminalActionResponse(
 )
 
 data class TerminalSuggestionRequest(
-    val user_goal: String
+    val user_goal: String,
+    val terminal_output: String? = null
 )
 
 data class SuggestedCommandItem(
