@@ -9,18 +9,17 @@ import os
 
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
-    HAS_PYDANTIC_SETTINGS = True
 except ImportError:
     try:
-        from pydantic import BaseSettings
-        HAS_PYDANTIC_SETTINGS = False
+        from pydantic import BaseSettings  # type: ignore
+        SettingsConfigDict = None  # type: ignore
     except ImportError:
         # Fallback for environments where pydantic is not yet initialized
         class BaseSettings:  # type: ignore
             def __init__(self, **kwargs):
                 for k, v in kwargs.items():
                     setattr(self, k, v)
-        HAS_PYDANTIC_SETTINGS = False
+        SettingsConfigDict = None  # type: ignore
 
 
 class Settings(BaseSettings):
@@ -127,20 +126,18 @@ class Settings(BaseSettings):
     # =========================================================================
     # ⚙️ PYDANTIC V1 & V2 COMPATIBILITY (extra="ignore" PREVENTS CRASHES)
     # =========================================================================
-    try:
+    if SettingsConfigDict is not None:
         model_config = SettingsConfigDict(
             env_file=".env",
             env_file_encoding="utf-8",
             case_sensitive=True,
             extra="ignore",  # Crucial: ignore unexpected extra fields in .env without throwing validation errors
         )
-    except NameError:
-        pass
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "ignore"  # Pydantic v1 fallback to never crash on unexpected env variables
+    else:
+        class Config:
+            env_file = ".env"
+            case_sensitive = True
+            extra = "ignore"  # Pydantic v1 fallback to never crash on unexpected env variables
 
 
 settings = Settings()
