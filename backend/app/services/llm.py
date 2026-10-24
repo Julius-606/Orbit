@@ -39,7 +39,7 @@ class OrbitSpeak:
                 break
             try:
                 genai.configure(api_key=key)
-                response = genai.GenerativeModel('gemini-2.5-flash').generate_content(full_prompt)
+                response = genai.GenerativeModel('gemini-3.8-flash').generate_content(full_prompt)
                 return response.text
             except Exception as e:
                 logger.warning("Gemini key failed; rotating to the next key: %s", e)

@@ -17,6 +17,8 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.example.pocket_orbit.network.offline.*
+import android.content.Context
 import java.util.UUID
 
 class TerminalViewModel(
@@ -101,6 +103,22 @@ class TerminalViewModel(
     private val _isExecuting = MutableStateFlow(false)
     val isExecuting: StateFlow<Boolean> = _isExecuting.asStateFlow()
 
+    // Offline Direct Link (Hotspot, USB Tethering, & Bluetooth)
+    private val _isScanningSubnet = MutableStateFlow(false)
+    val isScanningSubnet: StateFlow<Boolean> = _isScanningSubnet.asStateFlow()
+
+    private val _scanProgress = MutableStateFlow(0 to 0)
+    val scanProgress: StateFlow<Pair<Int, Int>> = _scanProgress.asStateFlow()
+
+    private val _discoveredNodes = MutableStateFlow<List<DiscoveredOfflineNode>>(emptyList())
+    val discoveredNodes: StateFlow<List<DiscoveredOfflineNode>> = _discoveredNodes.asStateFlow()
+
+    private val _activeInterfaces = MutableStateFlow<List<NetworkInterfaceInfo>>(emptyList())
+    val activeInterfaces: StateFlow<List<NetworkInterfaceInfo>> = _activeInterfaces.asStateFlow()
+
+    val btConnectionState: StateFlow<BluetoothConnectionState> = BluetoothNodeManager.connectionState
+    val pairedBtDevices: StateFlow<List<BluetoothDeviceInfo>> = BluetoothNodeManager.pairedDevices
+
     init {
         initializeSessions()
         startPeriodicTelemetry()
@@ -176,6 +194,22 @@ class TerminalViewModel(
     }
 
     fun fetchBackendStatus() {
+        if (_activeNode.value.startsWith("BT:")) {
+            viewModelScope.launch {
+                val status = BluetoothNodeManager.queryStatus()
+                if (status != null) {
+                    _connectionStatus.value = "Connected (Bluetooth)"
+                    _cpu.value = "${status.optDouble("cpu_usage", 0.0).toInt()}%"
+                    _ram.value = "${status.optDouble("ram_usage", 0.0).toInt()}%"
+                    _disk.value = "${status.optDouble("disk_usage", 0.0).toInt()}%"
+                    _cwd.value = status.optString("cwd", _cwd.value)
+                    _osType.value = status.optString("system", _osType.value)
+                } else if (!BluetoothNodeManager.isConnected()) {
+                    _connectionStatus.value = "Bluetooth Disconnected"
+                }
+            }
+            return
+        }
         viewModelScope.launch {
             try {
                 val response = apiService.getTerminalStatus(secretToken)
@@ -280,15 +314,22 @@ class TerminalViewModel(
             var exitCode = 0
 
             try {
-                val response = apiService.executeCommand(secretToken, TerminalCommandRequest(trimmed))
-                if (response.isSuccessful && response.body() != null) {
-                    val body = response.body()!!
-                    execOutput = body.output ?: body.message ?: "Done."
-                    if (body.cwd != null) _cwd.value = body.cwd
-                    if (body.prompt != null) _prompt.value = body.prompt
+                if (_activeNode.value.startsWith("BT:")) {
+                    val btRes = BluetoothNodeManager.executeCommand(trimmed)
+                    execOutput = btRes.output
+                    exitCode = btRes.exitCode
+                    if (btRes.cwd.isNotBlank()) _cwd.value = btRes.cwd
                 } else {
-                    execOutput = "Command exited with status ${response.code()}: ${response.message()}"
-                    exitCode = 1
+                    val response = apiService.executeCommand(secretToken, TerminalCommandRequest(trimmed))
+                    if (response.isSuccessful && response.body() != null) {
+                        val body = response.body()!!
+                        execOutput = body.output ?: body.message ?: "Done."
+                        if (body.cwd != null) _cwd.value = body.cwd
+                        if (body.prompt != null) _prompt.value = body.prompt
+                    } else {
+                        execOutput = "Command exited with status ${response.code()}: ${response.message()}"
+                        exitCode = 1
+                    }
                 }
             } catch (e: Exception) {
                 execOutput = "Execution error: ${e.message ?: "Network unreachable"}"
@@ -486,6 +527,13 @@ class TerminalViewModel(
     // ==========================================
 
     fun selectActiveClusterNode(nodeName: String) {
+        if (nodeName.startsWith("BT:")) {
+            _activeNode.value = nodeName
+            _connectionStatus.value = if (BluetoothNodeManager.isConnected()) "Connected (Bluetooth)" else "Offline (BT)"
+            _prompt.value = "${nodeName.removePrefix("BT:")}> "
+            fetchBackendStatus()
+            return
+        }
         viewModelScope.launch {
             try {
                 val response = apiService.selectActiveNode(secretToken, SelectNodeRequest(nodeName))
@@ -513,6 +561,11 @@ class TerminalViewModel(
     }
 
     fun disconnectClusterNode(name: String) {
+        if (name.startsWith("BT:")) {
+            disconnectBluetoothNode()
+            _nodesList.value = _nodesList.value.filter { it != name }
+            return
+        }
         viewModelScope.launch {
             try {
                 val response = apiService.disconnectNode(secretToken, name)
@@ -522,6 +575,63 @@ class TerminalViewModel(
             } catch (e: Exception) {
                 // Ignore
             }
+        }
+    }
+
+    // ==========================================
+    // OFFLINE DIRECT LINK (HOTSPOT, USB, & BLUETOOTH)
+    // ==========================================
+
+    fun scanOfflineSubnet(customPrefix: String? = null) {
+        viewModelScope.launch {
+            _isScanningSubnet.value = true
+            _activeInterfaces.value = OfflineNetworkScanner.getActiveOfflineInterfaces()
+            try {
+                val results = OfflineNetworkScanner.scanSubnet(
+                    customPrefix = customPrefix,
+                    onProgress = { current, total ->
+                        _scanProgress.value = current to total
+                    }
+                )
+                _discoveredNodes.value = results
+            } catch (e: Exception) {
+                // Ignore
+            } finally {
+                _isScanningSubnet.value = false
+            }
+        }
+    }
+
+    fun connectDiscoveredNode(node: DiscoveredOfflineNode) {
+        addNewClusterNode(node.name, node.ip, node.port)
+    }
+
+    fun loadPairedBluetoothDevices(context: Context) {
+        BluetoothNodeManager.loadPairedDevices(context)
+    }
+
+    fun connectBluetoothNode(device: BluetoothDeviceInfo) {
+        viewModelScope.launch {
+            val success = BluetoothNodeManager.connect(device.address, device.name)
+            if (success) {
+                val btNodeName = "BT:${device.name.replace(" ", "_")}"
+                if (!_nodesList.value.contains(btNodeName)) {
+                    _nodesList.value = _nodesList.value + btNodeName
+                }
+                _activeNode.value = btNodeName
+                _connectionStatus.value = "Connected (Bluetooth)"
+                _prompt.value = "${device.name}> "
+                fetchBackendStatus()
+            }
+        }
+    }
+
+    fun disconnectBluetoothNode() {
+        BluetoothNodeManager.disconnect()
+        if (_activeNode.value.startsWith("BT:")) {
+            _activeNode.value = "Main_HF_Space"
+            _connectionStatus.value = "Connected"
+            fetchBackendStatus()
         }
     }
 

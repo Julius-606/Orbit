@@ -46,6 +46,7 @@ import com.example.pocket_orbit.data.TerminalLogEntryEntity
 import com.example.pocket_orbit.network.RetrofitClient
 import com.example.pocket_orbit.data.TerminalSessionEntity
 import com.example.pocket_orbit.network.SuggestedCommandItem
+import com.example.pocket_orbit.network.offline.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -97,6 +98,15 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
     val isLoading by viewModel.isLoading.collectAsState()
     val isExecuting by viewModel.isExecuting.collectAsState()
     val backendOnline = connectionStatus.contains("online", ignoreCase = true) || connectionStatus.contains("connected", ignoreCase = true)
+
+    // Offline link states
+    val isScanningSubnet by viewModel.isScanningSubnet.collectAsState()
+    val scanProgress by viewModel.scanProgress.collectAsState()
+    val discoveredNodes by viewModel.discoveredNodes.collectAsState()
+    val activeInterfaces by viewModel.activeInterfaces.collectAsState()
+    val btConnectionState by viewModel.btConnectionState.collectAsState()
+    val pairedBtDevices by viewModel.pairedBtDevices.collectAsState()
+    var selectedAddNodeTab by remember { mutableIntStateOf(0) }
 
     // Screen tab: 0 = Manual VS Code Terminal, 1 = Auto Pilot Mode
     var selectedDeckTab by remember { mutableIntStateOf(0) }
@@ -1691,13 +1701,73 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Offline Direct Link Quick Action Banner
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF14202C),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF23354A)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.WifiTethering, contentDescription = null, tint = VsCodeYellow, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("OFFLINE DIRECT LINK", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VsCodeYellow, fontFamily = FontFamily.Monospace)
+                            }
+                            Text("Hotspot, USB Tethering, & Bluetooth", fontSize = 10.sp, color = Color(0xFF81D4FA))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilledTonalButton(
+                                onClick = {
+                                    selectedAddNodeTab = 0
+                                    showAddNodeDialog = true
+                                    viewModel.scanOfflineSubnet()
+                                },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("Auto-Scan", fontSize = 10.sp)
+                            }
+                            FilledTonalButton(
+                                onClick = {
+                                    selectedAddNodeTab = 1
+                                    showAddNodeDialog = true
+                                    viewModel.loadPairedBluetoothDevices(context)
+                                },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("Bluetooth", fontSize = 10.sp)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 nodesList.forEach { nodeName ->
                     val isSelected = nodeName == activeNode
                     val isMain = nodeName == "Main_HF_Space" || nodeName == "HF_Space_Node"
-                    val displayName = if (isMain) "Main (Hugging Face Space)" else nodeName
-                    val subtitle = if (isMain) "Primary Cloud Controller & Brain" else "Remote Workstation / Connected Node"
+                    val isBt = nodeName.startsWith("BT:")
+                    val displayName = when {
+                        isMain -> "Main (Hugging Face Space)"
+                        isBt -> nodeName.removePrefix("BT:").replace("_", " ")
+                        else -> nodeName
+                    }
+                    val subtitle = when {
+                        isMain -> "Primary Cloud Controller & Brain"
+                        isBt -> "Direct Bluetooth Serial Link (Offline)"
+                        else -> "Remote Workstation / Connected Node"
+                    }
 
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -1745,6 +1815,27 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
                                                     color = VsCodeYellow,
                                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                                 )
+                                            }
+                                        }
+                                        if (isBt) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(3.dp),
+                                                color = Color(0xFF1E88E5).copy(alpha = 0.25f)
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                ) {
+                                                    Icon(Icons.Default.Bluetooth, contentDescription = null, tint = Color(0xFF42A5F5), modifier = Modifier.size(10.dp))
+                                                    Spacer(modifier = Modifier.width(2.dp))
+                                                    Text(
+                                                        text = "BLUETOOTH",
+                                                        fontSize = 8.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF42A5F5)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -2098,109 +2189,395 @@ fun TerminalScreen(viewModel: TerminalViewModel) {
         )
     }
 
-    // 5. Connect Node Dialog
+    // 5. Connect Node Dialog (Offline Hotspot / USB, Bluetooth, & Manual)
     if (showAddNodeDialog) {
         AlertDialog(
             onDismissRequest = { showAddNodeDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Dns, contentDescription = null, tint = VsCodeAccentBlue, modifier = Modifier.size(20.dp))
+                    Icon(
+                        imageVector = when (selectedAddNodeTab) {
+                            0 -> Icons.Default.WifiTethering
+                            1 -> Icons.Default.Bluetooth
+                            else -> Icons.Default.Dns
+                        },
+                        contentDescription = null,
+                        tint = VsCodeAccentBlue,
+                        modifier = Modifier.size(20.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Connect Workstation Node", fontWeight = FontWeight.Bold, color = VsCodeTextBright, fontSize = 14.sp)
                 }
             },
             text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    Text(
-                        text = "Link your laptop or home computer to control it via bash commands from this device:",
-                        fontSize = 11.sp,
-                        color = VsCodeText,
-                        lineHeight = 16.sp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = newNodeName,
-                        onValueChange = { newNodeName = it },
-                        label = { Text("Node Name (e.g. My_Laptop, Ubuntu_Server)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = newNodeHost,
-                        onValueChange = { newNodeHost = it },
-                        label = { Text("IP Address or Public Tunnel URL") },
-                        placeholder = { Text("e.g. 192.168.1.15 or https://xyz.trycloudflare.com") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = newNodePort,
-                        onValueChange = { newNodePort = it },
-                        label = { Text("Port") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Navigation Tabs: Offline Auto-Scan, Bluetooth, and Manual
+                    TabRow(
+                        selectedTabIndex = selectedAddNodeTab,
+                        containerColor = Color(0xFF1E2633),
+                        contentColor = VsCodeAccentBlue
                     ) {
-                        listOf("8888 (Agent)" to "8888", "8000 (FastAPI)" to "8000", "7860 (Space)" to "7860").forEach { (label, p) ->
-                            FilterChip(
-                                selected = newNodePort == p,
-                                onClick = { newNodePort = p },
-                                label = { Text(label, fontSize = 9.sp) }
-                            )
-                        }
+                        Tab(
+                            selected = selectedAddNodeTab == 0,
+                            onClick = { selectedAddNodeTab = 0 },
+                            text = { Text("Auto-Scan", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                        )
+                        Tab(
+                            selected = selectedAddNodeTab == 1,
+                            onClick = {
+                                selectedAddNodeTab = 1
+                                viewModel.loadPairedBluetoothDevices(context)
+                            },
+                            text = { Text("Bluetooth", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                        )
+                        Tab(
+                            selected = selectedAddNodeTab == 2,
+                            onClick = { selectedAddNodeTab = 2 },
+                            text = { Text("Manual IP", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                        )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFF1E2633),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C3E50))
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 380.dp)
+                            .verticalScroll(rememberScrollState())
                     ) {
-                        Column(modifier = Modifier.padding(8.dp)) {
+                        if (selectedAddNodeTab == 0) {
+                            // ==========================================
+                            // TAB 0: OFFLINE TETHERING / HOTSPOT AUTO-SCAN
+                            // ==========================================
                             Text(
-                                text = "💡 HOW TO START YOUR LAPTOP AGENT:",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = VsCodeYellow,
-                                fontFamily = FontFamily.Monospace
+                                text = "Zero-Internet Offline Direct Link via Phone Hotspot or USB Tethering:",
+                                fontSize = 11.sp,
+                                color = VsCodeText,
+                                lineHeight = 15.sp
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Detected local network interfaces
+                            if (activeInterfaces.isNotEmpty()) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFF14202B),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF26384D)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        Text("DETECTED LOCAL INTERFACES:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = VsCodeYellow, fontFamily = FontFamily.Monospace)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        activeInterfaces.forEach { intf ->
+                                            val badgeColor = when (intf.interfaceType) {
+                                                OfflineInterfaceType.USB_TETHERING -> VsCodeOrange
+                                                OfflineInterfaceType.HOTSPOT -> VsCodeYellow
+                                                OfflineInterfaceType.WIFI_LAN -> VsCodeGreen
+                                                else -> Color.Gray
+                                            }
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text("${intf.name}: ${intf.ipAddress}", fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = Color.White)
+                                                Surface(shape = RoundedCornerShape(3.dp), color = badgeColor.copy(alpha = 0.2f)) {
+                                                    Text(intf.interfaceType.name.replace("_", " "), fontSize = 8.sp, fontWeight = FontWeight.Bold, color = badgeColor, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+
+                            // Trigger scan button
+                            Button(
+                                onClick = { viewModel.scanOfflineSubnet() },
+                                enabled = !isScanningSubnet,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = VsCodeAccentBlue)
+                            ) {
+                                if (isScanningSubnet) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Scanning Subnet (${scanProgress.first}/${scanProgress.second})...", fontSize = 11.sp)
+                                } else {
+                                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Auto-Scan Tethered Subnet", fontSize = 11.sp)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Discovered Nodes
+                            Text("DISCOVERED OFFLINE COMPUTERS:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = VsCodeYellow, fontFamily = FontFamily.Monospace)
                             Spacer(modifier = Modifier.height(4.dp))
+
+                            if (discoveredNodes.isEmpty() && !isScanningSubnet) {
+                                Text(
+                                    text = "No offline computers discovered yet. Ensure 'python orbit_node_daemon.py' is running on your computer, then tap Scan.",
+                                    fontSize = 10.sp,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(vertical = 6.dp)
+                                )
+                            } else {
+                                discoveredNodes.forEach { node ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFF1E2633),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334960)),
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(node.name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Surface(shape = RoundedCornerShape(3.dp), color = VsCodeGreen.copy(alpha = 0.2f)) {
+                                                        Text(node.osName, fontSize = 8.sp, color = VsCodeGreen, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                                    }
+                                                }
+                                                Text(node.fullUrl, fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF81D4FA))
+                                            }
+                                            Button(
+                                                onClick = {
+                                                    viewModel.connectDiscoveredNode(node)
+                                                    showAddNodeDialog = false
+                                                    showNodeSheet = false
+                                                },
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = VsCodeGreen)
+                                            ) {
+                                                Text("Connect", fontSize = 10.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF1A222D),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C3E50))
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Text("💡 HOW OFFLINE TETHERING WORKS:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = VsCodeYellow, fontFamily = FontFamily.Monospace)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("• USB Tethering: Connect phone to PC via USB cable, enable 'USB Tethering' in Android Settings.\n• Mobile Hotspot: Enable 'Personal Hotspot' on phone, connect PC to this Wi-Fi network.\n• In both modes, no internet is required. Start 'python orbit_node_daemon.py' and tap Auto-Scan above.", fontSize = 9.sp, color = Color(0xFF81D4FA), lineHeight = 13.sp)
+                                }
+                            }
+                        } else if (selectedAddNodeTab == 1) {
+                            // ==========================================
+                            // TAB 1: BLUETOOTH RFCOMM DIRECT LINK
+                            // ==========================================
                             Text(
-                                text = "1. In repo root on your laptop, run:\n   python orbit_node_daemon.py\n2. Note your laptop's local IP (or run cloudflared tunnel) and paste it above.",
-                                fontSize = 10.sp,
-                                fontFamily = FontFamily.Monospace,
-                                color = Color(0xFF81D4FA),
-                                lineHeight = 14.sp
+                                text = "Completely network-free Bluetooth Serial Link (zero cables, zero Wi-Fi):",
+                                fontSize = 11.sp,
+                                color = VsCodeText,
+                                lineHeight = 15.sp
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Bluetooth Connection status banner
+                            val btStatusText = when (btConnectionState) {
+                                is BluetoothConnectionState.Connected -> "Connected to ${(btConnectionState as BluetoothConnectionState.Connected).deviceName}"
+                                is BluetoothConnectionState.Connecting -> "Connecting to ${(btConnectionState as BluetoothConnectionState.Connecting).deviceName}..."
+                                is BluetoothConnectionState.Error -> (btConnectionState as BluetoothConnectionState.Error).message
+                                else -> "Disconnected"
+                            }
+                            val btStatusColor = when (btConnectionState) {
+                                is BluetoothConnectionState.Connected -> VsCodeSuccessGreen
+                                is BluetoothConnectionState.Connecting -> VsCodeYellow
+                                is BluetoothConnectionState.Error -> VsCodeErrorRed
+                                else -> Color.Gray
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF17202B),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C3E50)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Bluetooth, contentDescription = null, tint = btStatusColor, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(btStatusText, fontSize = 11.sp, color = btStatusColor, fontWeight = FontWeight.SemiBold)
+                                    }
+                                    if (btConnectionState is BluetoothConnectionState.Connected) {
+                                        TextButton(onClick = { viewModel.disconnectBluetoothNode() }) {
+                                            Text("Disconnect", fontSize = 10.sp, color = VsCodeErrorRed)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("PAIRED COMPUTERS & DEVICES:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = VsCodeYellow, fontFamily = FontFamily.Monospace)
+                                IconButton(
+                                    onClick = { viewModel.loadPairedBluetoothDevices(context) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = VsCodeGreen, modifier = Modifier.size(16.dp))
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            if (pairedBtDevices.isEmpty()) {
+                                Text(
+                                    text = "No paired Bluetooth devices found. Pair your computer with this phone in Android Bluetooth Settings first.",
+                                    fontSize = 10.sp,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            } else {
+                                pairedBtDevices.forEach { dev ->
+                                    val isConnectingThis = btConnectionState is BluetoothConnectionState.Connecting &&
+                                            (btConnectionState as BluetoothConnectionState.Connecting).deviceName == dev.name
+                                    val isConnectedThis = btConnectionState is BluetoothConnectionState.Connected &&
+                                            (btConnectionState as BluetoothConnectionState.Connected).address == dev.address
+
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isConnectedThis) Color(0xFF1E3A5F) else Color(0xFF1E2633),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isConnectedThis) VsCodeAccentBlue else Color(0xFF334960)),
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(dev.name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                Text(dev.address, fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color.Gray)
+                                            }
+                                            Button(
+                                                onClick = {
+                                                    viewModel.connectBluetoothNode(dev)
+                                                    showAddNodeDialog = false
+                                                    showNodeSheet = false
+                                                },
+                                                enabled = !isConnectingThis && !isConnectedThis,
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = if (isConnectedThis) VsCodeGreen else VsCodeAccentBlue)
+                                            ) {
+                                                if (isConnectingThis) {
+                                                    CircularProgressIndicator(modifier = Modifier.size(12.dp), color = Color.White, strokeWidth = 2.dp)
+                                                } else {
+                                                    Text(if (isConnectedThis) "Active" else "Connect BT", fontSize = 10.sp)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF1A222D),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C3E50))
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Text("💡 HOW TO USE BLUETOOTH SERIAL:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = VsCodeYellow, fontFamily = FontFamily.Monospace)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("1. Pair your laptop with this phone in your computer's Bluetooth settings.\n2. In terminal on your laptop, run:\n   python orbit_node_daemon.py --bt\n3. Tap your laptop in the list above to execute commands directly over Bluetooth!", fontSize = 9.sp, color = Color(0xFF81D4FA), lineHeight = 13.sp)
+                                }
+                            }
+                        } else {
+                            // ==========================================
+                            // TAB 2: MANUAL HOST / PUBLIC TUNNEL
+                            // ==========================================
+                            Text(
+                                text = "Connect using an explicit IP address or public tunnel URL (e.g. Cloudflare / ngrok):",
+                                fontSize = 11.sp,
+                                color = VsCodeText,
+                                lineHeight = 15.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = newNodeName,
+                                onValueChange = { newNodeName = it },
+                                label = { Text("Node Name (e.g. My_Laptop, Ubuntu_Server)", fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = newNodeHost,
+                                onValueChange = { newNodeHost = it },
+                                label = { Text("IP Address or Public Tunnel URL", fontSize = 11.sp) },
+                                placeholder = { Text("e.g. 192.168.1.15 or https://xyz.trycloudflare.com", fontSize = 10.sp) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = newNodePort,
+                                onValueChange = { newNodePort = it },
+                                label = { Text("Port", fontSize = 11.sp) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf("8888 (Agent)" to "8888", "8000 (FastAPI)" to "8000", "7860 (Space)" to "7860").forEach { (label, p) ->
+                                    FilterChip(
+                                        selected = newNodePort == p,
+                                        onClick = { newNodePort = p },
+                                        label = { Text(label, fontSize = 9.sp) }
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Button(
+                                onClick = {
+                                    if (newNodeName.isNotBlank() && newNodeHost.isNotBlank()) {
+                                        val parsedPort = newNodePort.trim().toIntOrNull() ?: 8888
+                                        viewModel.addNewClusterNode(newNodeName.trim(), newNodeHost.trim(), parsedPort)
+                                        newNodeName = ""
+                                        newNodeHost = ""
+                                        newNodePort = "8888"
+                                        showAddNodeDialog = false
+                                        showNodeSheet = false
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = VsCodeAccentBlue)
+                            ) {
+                                Text("Connect Manual Node", fontSize = 11.sp)
+                            }
                         }
                     }
                 }
             },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (newNodeName.isNotBlank() && newNodeHost.isNotBlank()) {
-                            val parsedPort = newNodePort.trim().toIntOrNull() ?: 8888
-                            viewModel.addNewClusterNode(newNodeName.trim(), newNodeHost.trim(), parsedPort)
-                            newNodeName = ""
-                            newNodeHost = ""
-                            newNodePort = "8888"
-                            showAddNodeDialog = false
-                            showNodeSheet = false
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = VsCodeAccentBlue)
-                ) { Text("Connect Node") }
-            },
+            confirmButton = {},
             dismissButton = {
-                TextButton(onClick = { showAddNodeDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showAddNodeDialog = false }) { Text("Close") }
             },
             containerColor = VsCodeTabActive,
             shape = RoundedCornerShape(12.dp)
