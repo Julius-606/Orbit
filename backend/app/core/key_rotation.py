@@ -7,6 +7,7 @@ import os
 import threading
 import logging
 from typing import List, Optional
+from app.core.config import settings
 
 logger = logging.getLogger("OrbitKeyRotation")
 
@@ -23,7 +24,12 @@ class GeminiKeyRotationManager:
 
     def reload_keys(self):
         with self._lock:
-            raw_multi = os.getenv("GEMINI_API_KEYS", "") or os.getenv("GEMINI_API_KEY", "")
+            # Settings loads backend/.env independently of the process working
+            # directory. Reading only os.environ misses dotenv values because
+            # pydantic-settings does not export them back into os.environ.
+            raw_multi = settings.effective_gemini_keys
+            if not raw_multi:
+                raw_multi = os.getenv("GEMINI_API_KEYS", "") or os.getenv("GEMINI_API_KEY", "")
             keys: List[str] = []
             if raw_multi:
                 # Comma-separated: AIzaSy...,AIzaSy...

@@ -6,6 +6,7 @@
 
 from typing import Optional
 import os
+from pathlib import Path
 
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -128,14 +129,17 @@ class Settings(BaseSettings):
     # =========================================================================
     if SettingsConfigDict is not None:
         model_config = SettingsConfigDict(
-            env_file=".env",
+            # Resolve the backend dotenv file from this module rather than the
+            # process working directory. Uvicorn may be launched from either
+            # the repository root or the backend directory.
+            env_file=str(Path(__file__).resolve().parents[2] / ".env"),
             env_file_encoding="utf-8",
             case_sensitive=True,
             extra="ignore",  # Crucial: ignore unexpected extra fields in .env without throwing validation errors
         )
     else:
         class Config:
-            env_file = ".env"
+            env_file = str(Path(__file__).resolve().parents[2] / ".env")
             case_sensitive = True
             extra = "ignore"  # Pydantic v1 fallback to never crash on unexpected env variables
 
