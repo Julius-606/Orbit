@@ -1,7 +1,7 @@
 #>>>--- START_FILE_BLOCK: backend/app/core/config.py
 ################################################################################
 # FILE: backend/app/core/config.py
-# VERSION: 1.2.0 | SYSTEM: Unified Orbit & DebateHub Config (Resilient Pydantic V2)
+# VERSION: 5.0.0 | SYSTEM: Unified Orbit & DebateHub Config (Resilient Pydantic V2)
 ################################################################################
 
 from typing import Optional
@@ -23,8 +23,8 @@ except ImportError:
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Project Orbit: Jarvis Protocol"
-    VERSION: str = "3.2.0"
+    PROJECT_NAME: str = "Project Orbit:"
+    VERSION: str = "4.5.0"
 
     # =========================================================================
     # 🗄️ DATABASE SETTINGS

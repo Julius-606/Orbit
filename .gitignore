@@ -77,3 +77,4 @@ temp_notes.txt
 TODO_PRIVATE.md
 backend/app/__pycache__/main.cpython-312.pyc
 backend/app/routers/vault.db
+backend/app/core/cluster_nodes.json
